@@ -56,7 +56,7 @@ export async function getServerSideProps({ params }: Params) {
 		processedArticle = await getArticle(params.year, params.month, params.cat, article_id, params.slug);
 	}
 
-	if (processedArticle == null) return {redirect: {permanent: false, destination: "/404"}}
+	if (processedArticle == null) return { redirect: { permanent: false, destination: "/404" } };
 
 	if (processedArticle?.markdown) {
 		let markedContent = await remark().use(html).process(processedArticle.content);
@@ -74,7 +74,7 @@ export default function Article({ article }: Props) {
 	// })
 	// const markedHTML = markedContent.toString()
 	// const paragraphs = article.content.split("\n");
-	article.content.split("\n").forEach((p) => console.log(`'${p}'` ))
+	article.content.split("\n").forEach(p => console.log(`'${p}'`));
 
 	return (
 		<div className="article">
@@ -191,7 +191,9 @@ export default function Article({ article }: Props) {
 				<br></br>
 				<br></br>
 				<div>
-					{article.img && <Image src={article.img} width={1000} height={1000} alt={article.img} style={{width: "100%", height: "auto"}} />}
+					{article.img && (
+						<Image src={article.img} width={1000} height={1000} alt={article.img} style={{ width: "100%", height: "auto" }} />
+					)}
 					{/* {caption exists ? (<p>{caption or whatever}</p>) : () }*/}
 				</div>
 
@@ -204,10 +206,10 @@ export default function Article({ article }: Props) {
 							.map((paragraph, index) =>
 								paragraph.startsWith("@img=") ? (
 									<img src={paragraph.substring(5)} width="100%" height="auto" key={index}></img>
-								) : (
-									(paragraph.charCodeAt(0) != 13) ?
+								) : paragraph.charCodeAt(0) != 13 ? (
 									<p key={index}>{paragraph.replace("&lt;", "<").replace("&gt;", ">")}</p>
-									: ""
+								) : (
+									""
 								)
 							)}
 					</div>

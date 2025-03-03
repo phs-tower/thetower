@@ -39,8 +39,7 @@ export default function Spread({ spread }: Props) {
 				span {
 					font-family: ${styles.font.sans};
 				}
-
-		`}</style>
+			`}</style>
 			<section className="title">
 				<Link legacyBehavior href={"/spreads/" + spread.year + "/" + spread.month + "/vanguard/" + encodeURI(spread.title)}>
 					<a>{spread.title}</a>

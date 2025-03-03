@@ -16,5 +16,5 @@ export async function getServerSideProps(): Promise<GetServerSidePropsResult<Pro
 }
 
 export default function Game(props: Props) {
-	return (<CrosswordGame puzzleInput={props.puzzleInput} />)
+	return <CrosswordGame puzzleInput={props.puzzleInput} />;
 }

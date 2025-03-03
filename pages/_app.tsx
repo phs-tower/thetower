@@ -39,12 +39,11 @@ export default function App({ Component, pageProps }: AppProps) {
 }
 
 function Banner() {
-	const currMonth = dayjs().month(); // 0-based indexing, jan = 0
+	const currMonth = dayjs().month() + 1; // Convert from 0-based (Jan = 0) to 1-based (Jan = 1)
 	const currYear = dayjs().year();
 	const prevIssue = {
-		// months use 1-based indexing in supabase storage, so 2 represents feb in supabase but march in dayjs
-		month: currMonth == 0 ? 12 : 6 <= currMonth && currMonth <= 8 ? 6 : currMonth,
-		year: currMonth == 0 ? currYear - 1 : currYear,
+		month: currMonth === 1 ? 12 : currMonth - 1, // If January, go to December of the previous year
+		year: currMonth === 1 ? currYear - 1 : currYear,
 	};
 
 	return (
@@ -105,7 +104,6 @@ function Banner() {
 					transform: scaleX(-1);
 					background-color: ${styles.color.accent};
 					color: ${styles.color.primary};
-					/* font-family: ${styles.font.sans}; */
 					cursor: pointer;
 					box-sizing: border-box;
 					padding: 5px;
@@ -153,7 +151,6 @@ function Banner() {
 			</div>
 			<div className="image">
 				<Link href="/home" passHref>
-					{/* <Image src="/assets/logo.png" alt="Tower banner" width={250} height={75} priority /> */}
 					<h1 style={{ fontFamily: "Canterbury", fontWeight: "normal", textAlign: "center", color: styles.color.accent, fontSize: "6rem" }}>
 						The Tower
 					</h1>
