@@ -14,12 +14,12 @@ import { SectionContainer, VanguardContainer } from "~/components/sectioncontain
 
 export async function getServerSideProps() {
 	const articles = await getFrontpageArticles();
-	const vang = await getSpreadsByCategory("vanguard", 6, await getIdOfNewest("vanguard", null), 0)
+	const vang = await getSpreadsByCategory("vanguard", 6, await getIdOfNewest("vanguard", null), 0);
 
 	return {
 		props: {
 			articles,
-			vang
+			vang,
 		},
 	};
 }
@@ -150,25 +150,28 @@ export default function FrontPage({ articles, vang }: Props) {
 			<SectionContainer category="NEWS & FEATURES" desc="The latest stories on PHS and its community." articles={articles["news-features"]} />
 			<hr />
 			<br />
-			<SectionContainer category="OPINIONS" desc="Opinions of the student body, from school policies to global issues." articles={articles["opinions"]} />
+			<SectionContainer
+				category="OPINIONS"
+				desc="Opinions of the student body, from school policies to global issues."
+				articles={articles["opinions"]}
+			/>
 			<div className="dark-banner">
 				<div id="dark-banner-content">
 					<hr />
-					<div style={{display: "flex", marginLeft: "5vw", marginRight: "5vw", gap: "1rem"}}>
+					<div style={{ display: "flex", marginLeft: "5vw", marginRight: "5vw", gap: "1rem" }}>
 						<Image src="/assets/white-tower.png" width={309} height={721} alt="Tower logo" style={{ width: "15rem", height: "auto" }} />
 						<div>
-							<h2 style={{ marginTop: "2.5rem", marginBottom: "2.5rem", textAlign: "left"}}>
+							<h2 style={{ marginTop: "2.5rem", marginBottom: "2.5rem", textAlign: "left" }}>
 								The Tower is Princeton High School&apos;s student-run newspaper.
 							</h2>
-							<p style={{textAlign: "left", fontSize: "2.5rem"}}>
-								Since 1928, the Tower has been reporting on the inner workings of PHS, the district, and the cultural and athletic events that
-								affect the student body.
+							<p style={{ textAlign: "left", fontSize: "2.5rem" }}>
+								Since 1928, the Tower has been reporting on the inner workings of PHS, the district, and the cultural and athletic
+								events that affect the student body.
 								<br /> <br />
-								Each year, the staff produces eight issues to be distributed.
-								Subscribe to have the latest stories delivered to your door.
+								Each year, the staff produces eight issues to be distributed. Subscribe to have the latest stories delivered to your
+								door.
 							</p>
 						</div>
-						
 					</div>
 					<hr />
 				</div>

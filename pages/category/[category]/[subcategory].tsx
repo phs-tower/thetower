@@ -35,15 +35,15 @@ export async function getServerSideProps({ params }: Params) {
 export default function Subcategory(props: Props) {
 	const [articles, setArticles] = useState(props.articles);
 	const [cursor, setCursor] = useState(null);
-	const [loadingContent, setLoadingContent] = useState("Loading articles, please wait...")
-	const [loadingDisplay, setLoadingDisplay] = useState("none")
+	const [loadingContent, setLoadingContent] = useState("Loading articles, please wait...");
+	const [loadingDisplay, setLoadingDisplay] = useState("none");
 	const subcategory = props.subcategory;
 	const sidebar = props.sidebar;
 	const route = useRouter().asPath;
 
 	async function newArticles() {
-		setLoadingContent("Loading articles, please wait...")
-		setLoadingDisplay("block")
+		setLoadingContent("Loading articles, please wait...");
+		setLoadingDisplay("block");
 
 		const response = await fetch("/api/load/loadsub", {
 			method: "POST",
@@ -57,16 +57,16 @@ export default function Subcategory(props: Props) {
 		if (loaded.length != 0) {
 			setArticles([...articles, ...loaded]);
 			setCursor(loaded[loaded.length - 1].id);
-			setLoadingDisplay("none")
+			setLoadingDisplay("none");
 		} else {
-			setLoadingContent("No more articles to load.")
+			setLoadingContent("No more articles to load.");
 		}
 	}
 
 	useEffect(() => {
 		async function setData() {
-			setLoadingContent("Loading articles, please wait...")
-			setLoadingDisplay("block")
+			setLoadingContent("Loading articles, please wait...");
+			setLoadingDisplay("block");
 			setCursor(null);
 
 			const articleRes = await fetch("/api/load/loadsub", {
@@ -82,8 +82,8 @@ export default function Subcategory(props: Props) {
 				setArticles(recvd);
 				setCursor(recvd[recvd.length - 1].id);
 			});
-			
-			setLoadingDisplay("none")
+
+			setLoadingDisplay("none");
 		}
 
 		setData();
@@ -150,7 +150,9 @@ export default function Subcategory(props: Props) {
 							<ArticlePreview key={article.id} article={article} style="row" size="category-list" />
 						))}
 					</section>
-					<p id="loading" style={{display: loadingDisplay}}>{loadingContent}</p>
+					<p id="loading" style={{ display: loadingDisplay }}>
+						{loadingContent}
+					</p>
 					<button id="loadmore" onClick={newArticles}>
 						Load more
 					</button>

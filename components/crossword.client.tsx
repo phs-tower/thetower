@@ -1,3 +1,5 @@
+/** @format */
+
 import { useMutativeReducer } from "use-mutative";
 import { Action, CrosswordDispatchContext, crosswordStateReducer, initialStateFromInput } from "lib/crossword/state";
 import { useCallback, useEffect, useMemo, useRef } from "react";
@@ -207,7 +209,9 @@ export default function CrosswordGame({ puzzleInput }: Props) {
 				</div>
 			)}
 			<br />
-			<Link href="/games/crossword/archive"><p>Explore more at our archives &#x21E8;</p></Link>
+			<Link href="/games/crossword/archive">
+				<p>Explore more at our archives &#x21E8;</p>
+			</Link>
 			<SubBanner title="Enjoyed the crossword? Consider subscribing." />
 		</CrosswordDispatchContext.Provider>
 	);

@@ -21,8 +21,8 @@ export default function Upload() {
 	const [category, setCategory] = useState("");
 	const [formData, setFormData] = useState<FormDataType>();
 	const [uploadResponse, setUploadResponse] = useState("");
-	const [previewDisplay, setPreviewDisplay] = useState("none")
-	const [previewContent, setPreviewContent] = useState("")
+	const [previewDisplay, setPreviewDisplay] = useState("none");
+	const [previewContent, setPreviewContent] = useState("");
 
 	function changeCategory(event: ChangeEvent<HTMLSelectElement>) {
 		setCategory(event.target.value);
@@ -43,7 +43,7 @@ export default function Upload() {
 
 	async function updateContent(event: ChangeEvent<HTMLTextAreaElement>) {
 		setFormData({ ...formData, content: event.target.value });
-		setPreviewContent((await remark().use(html).process(event.target.value)).toString())
+		setPreviewContent((await remark().use(html).process(event.target.value)).toString());
 	}
 
 	function updateImage(event: ChangeEvent<HTMLInputElement>) {
@@ -101,7 +101,7 @@ export default function Upload() {
 			if (formData.img) fd.append("img", formData.img);
 		}
 
-		setUploadResponse("Uploading; please stay on this page...")
+		setUploadResponse("Uploading; please stay on this page...");
 		const response = await fetch("/api/upload", {
 			method: "POST",
 			body: fd,
@@ -110,7 +110,8 @@ export default function Upload() {
 		// Handle response if necessary
 		response.json().then(data => {
 			setUploadResponse(data.message);
-			if (response.status == 200) { // Clear for next submission
+			if (response.status == 200) {
+				// Clear for next submission
 				setFormData({});
 				setPreviewContent("");
 			}
@@ -118,7 +119,7 @@ export default function Upload() {
 	}
 
 	function togglePreview(event: FormEvent<HTMLInputElement>) {
-		setPreviewDisplay((previewDisplay == "none") ? "block" : "none")
+		setPreviewDisplay(previewDisplay == "none" ? "block" : "none");
 	}
 
 	return (
@@ -203,55 +204,49 @@ export default function Upload() {
 
 					<div id="std-sections" style={{ display: category == "vanguard" || category == "multimedia" ? "none" : "block" }}>
 						<h3>Article</h3>
-
 						<strong>Header image</strong>
 						<br />
 						<input type="file" accept="image/*" id="img" onChange={updateImage} />
-
 						<br /> <br />
-
 						<strong>Title</strong>
 						<br />
 						<input type="text" id="title" onChange={updateTitle} value={formData && formData.title ? formData.title : ""} />
 						<br /> <br />
-
 						<strong>Author</strong>
 						<p>Separate each author with a comma, and do not include titles. Leave this blank for the editorial.</p>
 						<p>
 							Example: &quot;John Doe, NEWS AND FEATURES CO-EDITOR and Jane Doe, OPINIONS CO-EDITOR&quot; is entered as &quot;John Doe,
 							Jane Doe&quot;.
 						</p>
-						<input type="text" id="authors" onChange={updateAuthors} value={formData && formData.authors ? formData.authors : ""}/>
+						<input type="text" id="authors" onChange={updateAuthors} value={formData && formData.authors ? formData.authors : ""} />
 						<br /> <br />
 						<p>
 							You can write the article in Markdown (see{" "}
-							<Link
-								href="/articles/1970/1/news-features/Writing-in-Markdown-568"
-								style={{ textDecoration: "underline" }}
-							>
+							<Link href="/articles/1970/1/news-features/Writing-in-Markdown-568" style={{ textDecoration: "underline" }}>
 								here
 							</Link>{" "}
 							for more info). Format special notes as they appear on the physical paper.
 							<strong> Separate paragraphs with empty lines (hit enter twice).</strong>
 						</p>
-						<textarea id={styles.contentInput} onChange={updateContent} value={formData && formData.content ? formData.content : ""}></textarea>
-						<input type="checkbox" id="preview-checkbox" onChange={togglePreview} checked={previewDisplay == "block" ? true : false}/>
+						<textarea
+							id={styles.contentInput}
+							onChange={updateContent}
+							value={formData && formData.content ? formData.content : ""}
+						></textarea>
+						<input type="checkbox" id="preview-checkbox" onChange={togglePreview} checked={previewDisplay == "block" ? true : false} />
 						<label htmlFor="preview-checkbox">Show preview</label>
-						<div style={{display: previewDisplay}}>
+						<div style={{ display: previewDisplay }}>
 							<hr />
-							<div id={styles.preview} dangerouslySetInnerHTML={{__html: previewContent}} />
+							<div id={styles.preview} dangerouslySetInnerHTML={{ __html: previewContent }} />
 							<hr />
 						</div>
 					</div>
 					<div id="vanguard" style={{ display: category != "vanguard" ? "none" : "block" }}>
 						<h3>Vanguard</h3>
-						
 						<strong>Title</strong>
 						<br />
 						<input type="text" id="title" onChange={updateTitle} value={formData && formData.title ? formData.title : ""} />
-						
 						<br /> <br />
-						
 						<strong>Spread</strong>
 						<p>Upload your pages as one PDF (as they appear on the physical issue).</p>
 						<input type="file" accept=".pdf" onChange={updateSpread} />

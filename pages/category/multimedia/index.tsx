@@ -26,18 +26,17 @@ export async function getServerSideProps() {
 export default function Category(props: Props) {
 	const [videos, setVideos] = useState(props.videos);
 	const [vCursor, setVCursor] = useState(videos[videos.length - 1].id);
-	const [loadingVDisplay, setLoadingVDisplay] = useState("none")
-	const [loadingVContent, setLoadingVContent] = useState("Loading videos, please wait...")
+	const [loadingVDisplay, setLoadingVDisplay] = useState("none");
+	const [loadingVContent, setLoadingVContent] = useState("Loading videos, please wait...");
 
 	const [pods, setPods] = useState(props.pods);
 	const [pCursor, setPCursor] = useState(pods[pods.length - 1].id);
-	const [loadingPDisplay, setLoadingPDisplay] = useState("none")
-	const [loadingPContent, setLoadingPContent] = useState("Loading podcasts, please wait...")
-
+	const [loadingPDisplay, setLoadingPDisplay] = useState("none");
+	const [loadingPContent, setLoadingPContent] = useState("Loading podcasts, please wait...");
 
 	async function newVideos() {
-		setLoadingVContent("Loading videos, please wait...")
-		setLoadingVDisplay("block")
+		setLoadingVContent("Loading videos, please wait...");
+		setLoadingVDisplay("block");
 
 		const response = await fetch("/api/load/loadsub", {
 			method: "POST",
@@ -51,15 +50,15 @@ export default function Category(props: Props) {
 		if (loaded.length != 0) {
 			setVideos([...videos, ...loaded]);
 			setVCursor(loaded[loaded.length - 1].id);
-			setLoadingVDisplay("none")
+			setLoadingVDisplay("none");
 		} else {
-			setLoadingVContent("No more videos to load.")
+			setLoadingVContent("No more videos to load.");
 		}
 	}
 
 	async function newPods() {
-		setLoadingPContent("Loading podcasts, please wait...")
-		setLoadingPDisplay("block")
+		setLoadingPContent("Loading podcasts, please wait...");
+		setLoadingPDisplay("block");
 
 		const response = await fetch("/api/load/loadsub", {
 			method: "POST",
@@ -73,9 +72,9 @@ export default function Category(props: Props) {
 		if (loaded.length != 0) {
 			setPods([...pods, ...loaded]);
 			setPCursor(loaded[loaded.length - 1].id);
-			setLoadingPDisplay("none")
+			setLoadingPDisplay("none");
 		} else {
-			setLoadingPContent("No more podcasts to load.")
+			setLoadingPContent("No more podcasts to load.");
 		}
 	}
 
@@ -94,7 +93,6 @@ export default function Category(props: Props) {
 					font-weight: bold;
 					// font-size: calc(1.5rem + 1vw);
 				}
-
 
 				.grid {
 					display: grid;

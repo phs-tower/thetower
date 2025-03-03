@@ -246,11 +246,11 @@ export default function ArticlePreview({ article, category, style = "row", size 
 				</div>
 				<div>
 					<section className="category">
-							{category && (
-								<Link href={"/category/" + article.category}>
-									<span style={{ margin: "0px", fontFamily: styles.font.sans }}>{expandCategorySlug(article.category)}</span>
-								</Link>
-							)}
+						{category && (
+							<Link href={"/category/" + article.category}>
+								<span style={{ margin: "0px", fontFamily: styles.font.sans }}>{expandCategorySlug(article.category)}</span>
+							</Link>
+						)}
 					</section>
 					<section className="title">
 						<Link

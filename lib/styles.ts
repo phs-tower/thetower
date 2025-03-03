@@ -6,7 +6,7 @@ const styles = {
 		serifHeader: "Minion Pro Medium",
 		serifText: "Minion Pro Regular",
 		sans: "Neue Montreal Regular",
-		sansBold: "Neue Montreal Medium"
+		sansBold: "Neue Montreal Medium",
 	},
 	color: {
 		background: "#fff",
