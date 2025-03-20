@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import styles from "~/lib/styles";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface Props {
 	name: string;
@@ -14,18 +14,27 @@ interface Props {
 
 export default function Button({ name, href, children, className, onClick }: Props) {
 	const [isHovered, setIsHovered] = useState(false);
+	const [isFadingOut, setIsFadingOut] = useState(false);
+
+	useEffect(() => {
+		if (!isHovered) {
+			setIsFadingOut(true);
+			const timeout = setTimeout(() => setIsFadingOut(false), 300); // 300ms fade-out
+			return () => clearTimeout(timeout);
+		}
+	}, [isHovered]);
 
 	return (
-		<div
-			className={`dropdown ${className}`}
-			onMouseEnter={() => setIsHovered(true)}
-			onMouseLeave={() => setTimeout(() => setIsHovered(false), 150)} // Delay to prevent instant disappearance
-		>
+		<div className={`dropdown ${className}`} onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)} onClick={onClick}>
 			<style jsx>{`
 				.dropdown {
 					position: relative;
 					display: inline-block;
 					text-decoration: none;
+					text-align: center;
+				}
+				.showMenu {
+					display: none;
 				}
 				.btn {
 					color: ${styles.color.accent};
@@ -36,10 +45,10 @@ export default function Button({ name, href, children, className, onClick }: Pro
 					position: relative;
 					font-family: ${styles.font.sans};
 					text-align: center;
+					width: 100%;
 					cursor: pointer;
 					background-color: rgba(255, 255, 255, 0.9);
 					border-radius: 5px;
-					width: 100%;
 				}
 				.btn:hover {
 					background-color: rgba(255, 255, 255, 1);
@@ -47,7 +56,7 @@ export default function Button({ name, href, children, className, onClick }: Pro
 					box-shadow: 0px 5px 10px rgba(0, 0, 0, 0.1);
 				}
 				.content {
-					display: block;
+					display: ${isHovered || isFadingOut ? "block" : "none"};
 					position: absolute;
 					left: 50%;
 					transform: translateX(-50%);
@@ -56,8 +65,7 @@ export default function Button({ name, href, children, className, onClick }: Pro
 					box-shadow: 0px 10px 20px 0px rgba(0, 0, 0, 0.1);
 					z-index: 1;
 					opacity: ${isHovered ? "1" : "0"};
-					visibility: ${isHovered ? "visible" : "hidden"};
-					transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out, visibility 0.2s linear;
+					transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
 					background-color: ${styles.color.background};
 					text-align: center;
 					border-radius: 5px;
@@ -73,7 +81,7 @@ export default function Button({ name, href, children, className, onClick }: Pro
 					border-radius: 3px;
 				}
 				.content a:hover {
-					background-color: rgba(255, 255, 255, 1);
+					background-color: rgba(0, 0, 0, 0.05);
 					transform: translateY(-2px);
 					box-shadow: 0px 5px 10px rgba(0, 0, 0, 0.05);
 				}

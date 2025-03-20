@@ -26,13 +26,13 @@ export async function getServerSideProps() {
 export default function Category(props: Props) {
 	const [spreads, setSpreads] = useState(props.spreads);
 	const [cursor, setCursor] = useState(spreads[spreads.length - 1].id);
-	const [loadingDisplay, setLoadingDisplay] = useState("none")
-	const [loadingContent, setLoadingContent] = useState("Loading spreads, please wait...")
-	const sidebar = props.sidebar
+	const [loadingDisplay, setLoadingDisplay] = useState("none");
+	const [loadingContent, setLoadingContent] = useState("Loading spreads, please wait...");
+	const sidebar = props.sidebar;
 
 	async function newSpreads() {
-		setLoadingContent("Loading spreads, please wait...")
-		setLoadingDisplay("block")
+		setLoadingContent("Loading spreads, please wait...");
+		setLoadingDisplay("block");
 
 		const response = await fetch("/api/load/vang", {
 			method: "POST",
@@ -46,9 +46,9 @@ export default function Category(props: Props) {
 		if (loaded.length != 0) {
 			setSpreads([...spreads, ...loaded]);
 			setCursor(loaded[loaded.length - 1].id);
-			setLoadingDisplay("none")
+			setLoadingDisplay("none");
 		} else {
-			setLoadingContent("No more articles to load.")
+			setLoadingContent("No more articles to load.");
 		}
 	}
 
@@ -84,7 +84,7 @@ export default function Category(props: Props) {
 					border-left: 1px solid gainsboro;
 					border-right: 1px solid gainsboro;
 				}
-				
+
 				#loadmore {
 					border-radius: 2rem;
 					font-family: ${styles.font.sans};
@@ -116,7 +116,9 @@ export default function Category(props: Props) {
 							<Spread key={spread.id} spread={spread} />
 						))}
 					</section>
-					<p id="loading" style={{display: loadingDisplay}}>{loadingContent}</p>
+					<p id="loading" style={{ display: loadingDisplay }}>
+						{loadingContent}
+					</p>
 					<button id="loadmore" onClick={newSpreads}>
 						Load more
 					</button>

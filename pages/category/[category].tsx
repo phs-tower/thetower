@@ -35,15 +35,15 @@ export async function getServerSideProps({ params }: Params) {
 export default function Category(props: Props) {
 	const [articles, setArticles] = useState(props.articles);
 	const [cursor, setCursor] = useState(null);
-	const [loadingDisplay, setLoadingDisplay] = useState("none")
-	const [loadingContent, setLoadingContent] = useState("Loading articles, please wait...")
+	const [loadingDisplay, setLoadingDisplay] = useState("none");
+	const [loadingContent, setLoadingContent] = useState("Loading articles, please wait...");
 	const category = props.category;
 	const route = useRouter().asPath;
 	const sidebar = props.sidebar;
 
 	async function newArticles() {
-		setLoadingContent("Loading articles, please wait...")
-		setLoadingDisplay("block")
+		setLoadingContent("Loading articles, please wait...");
+		setLoadingDisplay("block");
 
 		const response = await fetch("/api/load/load", {
 			method: "POST",
@@ -57,17 +57,17 @@ export default function Category(props: Props) {
 		if (loaded.length != 0) {
 			setArticles([...articles, ...loaded]);
 			setCursor(loaded[loaded.length - 1].id);
-			setLoadingDisplay("none")
+			setLoadingDisplay("none");
 		} else {
-			setLoadingContent("No more articles to load.")
+			setLoadingContent("No more articles to load.");
 		}
 	}
 
 	useEffect(() => {
 		async function setData() {
 			console.log("route change");
-			setLoadingContent("Loading articles, please wait...")
-			setLoadingDisplay("block")
+			setLoadingContent("Loading articles, please wait...");
+			setLoadingDisplay("block");
 
 			setCursor(null);
 
@@ -85,7 +85,7 @@ export default function Category(props: Props) {
 				setCursor(recvd[recvd.length - 1].id);
 			});
 
-			setLoadingDisplay("none")
+			setLoadingDisplay("none");
 		}
 
 		setData();
@@ -155,7 +155,9 @@ export default function Category(props: Props) {
 							<ArticlePreview key={article.id} article={article} style="row" size="category-list" />
 						))}
 					</section>
-					<p id="loading" style={{display: loadingDisplay}}>{loadingContent}</p>
+					<p id="loading" style={{ display: loadingDisplay }}>
+						{loadingContent}
+					</p>
 					<button id="loadmore" onClick={newArticles}>
 						Load more
 					</button>
