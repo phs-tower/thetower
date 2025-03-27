@@ -27,7 +27,7 @@ export default function SpreadPage({ spread }: Props) {
 		<div className="spread">
 			<Head>
 				<title>{spread.title} | The Tower</title>
-				<meta property="og:title" content={spread.title + " | The Tower"} />
+				<meta property="og:title" content={`${spread.title} | The Tower`} />
 				<meta property="og:description" content="Read more about this article!" />
 			</Head>
 			<style jsx>{`
@@ -36,15 +36,20 @@ export default function SpreadPage({ spread }: Props) {
 					flex-direction: column;
 					align-items: center;
 				}
-				object {
+				.pdf-container {
 					width: 60vw;
 					height: 100vh;
+					border: none;
 				}
 			`}</style>
 			<h1>{spread.title}</h1>
-			<object data={spread.src} type="application/pdf">
-				<a href={spread.src}>to the PDF!</a>
-			</object>
+			<div className="pdf-container">
+				<object data={spread.src} type="application/pdf" width="100%" height="100%">
+					<iframe src={spread.src} width="100%" height="100%" style={{ border: "none" }}>
+						This browser does not support PDFs. Please download the PDF to view it: <a href={spread.src}>Download PDF</a>
+					</iframe>
+				</object>
+			</div>
 		</div>
 	);
 }
