@@ -4,6 +4,7 @@ import type { AppProps, NextWebVitalsMetric } from "next/app";
 import Head from "next/head";
 import Link from "next/link";
 import dayjs from "dayjs";
+import { useEffect, useState } from "react"; // <-- ADDED for useEffect, useState
 import { FaFacebookSquare } from "@react-icons/all-files/fa/FaFacebookSquare";
 import { FaInstagramSquare } from "@react-icons/all-files/fa/FaInstagramSquare";
 import { FaYoutubeSquare } from "@react-icons/all-files/fa/FaYoutubeSquare";
@@ -38,13 +39,56 @@ export default function App({ Component, pageProps }: AppProps) {
 	);
 }
 
+// ======================
+// REPLACED BANNER BELOW
+// ======================
 function Banner() {
-	const currMonth = dayjs().month() + 1; // Convert from 0-based (Jan = 0) to 1-based (Jan = 1)
-	const currYear = dayjs().year();
-	const prevIssue = {
-		month: currMonth === 1 ? 12 : currMonth - 1, // If January, go to December of the previous year
-		year: currMonth === 1 ? currYear - 1 : currYear,
-	};
+	// We’ll check the current month first
+	const currentMonth = dayjs().month() + 1; // 1-based
+	const currentYear = dayjs().year();
+
+	// We'll store the "best available" issue in state
+	const [issue, setIssue] = useState<{ month: number; year: number } | null>(null);
+
+	useEffect(() => {
+		// HEAD request to see if a PDF exists
+		async function pdfExists(month: number, year: number) {
+			const url = `https://yusjougmsdnhcsksadaw.supabase.co/storage/v1/object/public/prints/${month}-${year}.pdf`;
+			try {
+				const res = await fetch(url, { method: "HEAD" });
+				return res.ok;
+			} catch (err) {
+				return false;
+			}
+		}
+
+		async function findLatestIssue(month: number, year: number) {
+			let m = month;
+			let y = year;
+			// Check up to 24 months in the past
+			for (let i = 0; i < 24; i++) {
+				const found = await pdfExists(m, y);
+				if (found) {
+					return { month: m, year: y };
+				}
+				// If not found, go back 1 month
+				if (m === 1) {
+					m = 12;
+					y--;
+				} else {
+					m--;
+				}
+			}
+			return null;
+		}
+
+		findLatestIssue(currentMonth, currentYear).then(res => {
+			if (res) setIssue(res);
+		});
+	}, [currentMonth, currentYear]);
+
+	// Build the final PDF link from the found issue or "#" if none found
+	const pdfLink = issue ? `https://yusjougmsdnhcsksadaw.supabase.co/storage/v1/object/public/prints/${issue.month}-${issue.year}.pdf` : "#";
 
 	return (
 		<div className="banner">
@@ -61,11 +105,6 @@ function Banner() {
 					text-align: center;
 					margin: 0px;
 					padding: 0;
-				}
-				.image Image {
-					display: inline-block;
-					padding: 0;
-					margin: 0;
 				}
 				.image:hover {
 					cursor: pointer;
@@ -116,12 +155,13 @@ function Banner() {
 					}
 				}
 			`}</style>
+
 			<div className="sub">
 				<Link href="/subscribe">
 					<span style={{ color: styles.color.accent, cursor: "pointer", fontFamily: styles.font.sans, fontSize: "1.6rem" }}>SUBSCRIBE</span>
 				</Link>
 				<br />
-				<Link href={`https://yusjougmsdnhcsksadaw.supabase.co/storage/v1/object/public/prints/${prevIssue.month}-${prevIssue.year}.pdf`}>
+				<Link href={pdfLink}>
 					<span style={{ color: styles.color.accent, cursor: "pointer", fontFamily: styles.font.sans, fontSize: "1.6rem" }}>
 						PRINT EDITION
 					</span>
@@ -131,6 +171,7 @@ function Banner() {
 					{dayjs().format("dddd, MMMM D, YYYY ").toUpperCase()}
 				</span>
 			</div>
+
 			<div className="search">
 				<input
 					type="text"
@@ -149,6 +190,7 @@ function Banner() {
 					🔎︎
 				</button>
 			</div>
+
 			<div className="image">
 				<Link href="/home" passHref>
 					<h1 style={{ fontFamily: "Canterbury", fontWeight: "normal", textAlign: "center", color: styles.color.accent, fontSize: "6rem" }}>
@@ -160,6 +202,9 @@ function Banner() {
 	);
 }
 
+// ======================
+// FOOTER & NAVBAR BELOW
+// ======================
 function Footer() {
 	return (
 		<div className="footer">
@@ -191,13 +236,11 @@ function Footer() {
 					padding-top: 2.5vh;
 				}
 				.top .home-btn {
-					/* font-size: small; */
 					color: #274370;
 					float: right;
 					margin-right: 2.5vh;
 				}
 				.bottom {
-					/* font-family: "Courier New"; */
 					margin: 1vh;
 					display: grid;
 					grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
@@ -206,14 +249,6 @@ function Footer() {
 					.bottom {
 						grid-template-columns: 1fr;
 					}
-				}
-				.bottom b {
-					/* font-size: 1.1em;
-					font-weight: bolder; */
-				}
-
-				.bottom a {
-					/* font-size: 0.9em; */
 				}
 				span {
 					padding-bottom: 2vh;
@@ -320,9 +355,7 @@ function NavBar() {
 					text-align: center;
 					width: 100%;
 					border-bottom: 1px solid ${styles.color.lightAccent};
-					/* font-family: ${styles.font.sans}, "Courier New"; */
 				}
-
 				.navbar hr {
 					background-color: #ccc;
 					border: none;
@@ -330,11 +363,9 @@ function NavBar() {
 					margin-top: 5px;
 					margin-bottom: 5px;
 				}
-
 				.menu {
 					display: contents;
 				}
-
 				@media screen and (max-width: 1000px) {
 					.menu {
 						display: none;
@@ -349,17 +380,16 @@ function NavBar() {
 				href="#"
 				className="showMenu"
 				onClick={() => {
-					let menu = document.querySelector(".menu");
-					console.log(menu);
+					const menu = document.querySelector(".menu");
 					if (menu) menu.classList.toggle("show");
 				}}
-			></Button>
+			/>
 			<div className="menu">
 				<Button name="NEWS & FEATURES" href="/category/news-features">
 					<Link href="/category/news-features/phs-profiles">PHS Profiles</Link>
 				</Button>
 
-				<Button name="MULTIMEDIA" href="/category/multimedia"></Button>
+				<Button name="MULTIMEDIA" href="/category/multimedia" />
 
 				<Button name="OPINIONS" href="/category/opinions">
 					<Link href="/category/opinions/editorials">Editorials</Link>
