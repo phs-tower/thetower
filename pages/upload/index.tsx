@@ -208,7 +208,7 @@ export default function Upload() {
 	}
 
 	// Attempt upload with retries (1 extra attempt)
-	async function attemptUpload(fd: FormData, retries = 1) {
+	async function attemptUpload(fd: FormData, retries = 1): Promise<{ response: Response; data: any }> {
 		try {
 			let response = await fetch("/api/upload", { method: "POST", body: fd });
 			let data = await response.json();
