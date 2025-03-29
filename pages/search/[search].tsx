@@ -20,11 +20,14 @@ interface Props {
 }
 
 export async function getServerSideProps({ params }: Params) {
+	const sidebarArticles = await getCurrArticles();
+	const shuffledSidebar = shuffle(sidebarArticles); // Do this server-side
+
 	return {
 		props: {
 			search: params.search,
 			articles: await getArticlesBySearch(params.search),
-			sidebar: await getCurrArticles(),
+			sidebar: shuffledSidebar,
 		},
 	};
 }
@@ -33,10 +36,11 @@ export default function Category({ search, articles, sidebar }: Props) {
 	return (
 		<div className="category">
 			<Head>
-				<title>Search: {expandCategorySlug(search)} | The Tower</title>
+				<title>{`Search: ${expandCategorySlug(search)} | The Tower`}</title>
 				<meta property="og:title" content={"Search: " + expandCategorySlug(search) + " | The Tower"} />
 				<meta property="og:description" content={"Search: " + expandCategorySlug(search) + " at the Tower"} />
 			</Head>
+
 			<style jsx>{`
 				.category {
 					min-height: 100vh;
@@ -60,6 +64,7 @@ export default function Category({ search, articles, sidebar }: Props) {
 					border-right: 1px solid gainsboro;
 				}
 			`}</style>
+
 			<h1>Search: &quot;{expandCategorySlug(search)}&quot;</h1>
 			<div className="grid">
 				<section>
@@ -80,10 +85,9 @@ interface SidebarProps {
 }
 
 function SidebarArticles({ sidebar }: SidebarProps) {
-	let articles = shuffle(sidebar);
 	return (
 		<>
-			{articles.map(article => (
+			{sidebar.map(article => (
 				<ArticlePreview key={article.id} article={article} style="row" size="small" category />
 			))}
 		</>

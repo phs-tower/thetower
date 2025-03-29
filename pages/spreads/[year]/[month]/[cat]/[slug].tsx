@@ -26,7 +26,7 @@ export default function SpreadPage({ spread }: Props) {
 	return (
 		<div className="spread">
 			<Head>
-				<title>{spread.title} | The Tower</title>
+				<title>{`${spread.title} | The Tower`}</title>
 				<meta property="og:title" content={`${spread.title} | The Tower`} />
 				<meta property="og:description" content="Read more about this article!" />
 			</Head>

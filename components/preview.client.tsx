@@ -15,6 +15,23 @@ interface Props {
 	size?: "small" | "medium" | "large" | "featured" | "category-list";
 }
 
+// Utility: Extract photographer name from contentInfo
+function getPhotographerName(contentInfo?: string | null): string | null {
+	if (!contentInfo) return null;
+
+	const firstLine = contentInfo.split("\n")[0];
+	if (!firstLine.includes(":")) return null;
+
+	const [label, value] = firstLine.split(":");
+	const lower = label.trim().toLowerCase();
+
+	if (lower.includes("photo") || lower.includes("image") || lower.includes("graphic")) {
+		return value.trim().split(/\s+/).slice(0, 2).join(" ");
+	}
+
+	return null;
+}
+
 export default function ArticlePreview({ article, category, style = "row", size = "medium" }: Props) {
 	if (!article) return <></>;
 

@@ -89,12 +89,12 @@ export default function Category(props: Props) {
 		}
 
 		setData();
-	}, [route]);
+	}, [route, category, setLoadingContent, setLoadingDisplay, setCursor, setArticles]);
 
 	return (
 		<div className="category">
 			<Head>
-				<title>{expandCategorySlug(category)} | The Tower</title>
+				<title>{`${expandCategorySlug(category)} | The Tower`}</title>
 				<meta property="og:title" content={expandCategorySlug(category) + " | The Tower"} />
 				<meta property="og:description" content={expandCategorySlug(category) + " at the Tower"} />
 			</Head>

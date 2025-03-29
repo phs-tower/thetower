@@ -16,8 +16,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 		}
 
 		const today = new Date();
+		// Fix: Use getMonth() + 1 to get the actual month number
+		const currentMonth = today.getMonth() + 1;
+		const currentYear = today.getFullYear();
 
 		if (!fields.category) return res.status(500).json({ message: "Did you provide a category?" });
+
 		if (fields.category[0] == "vanguard") {
 			if (!files.spread) return res.status(500).json({ message: "Did you upload a spread?" });
 			let upload = await uploadFile(files.spread[0], "spreads");
@@ -26,8 +30,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 				await uploadSpread({
 					title: fields.title ? fields.title[0] : "No title provided",
 					src: upload.message,
-					month: today.getMonth(),
-					year: today.getFullYear(),
+					month: currentMonth, // Use currentMonth here
+					year: currentYear,
 					category: "vanguard",
 				});
 				return res.status(200).json({ message: "Uploaded!" });
@@ -41,8 +45,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 				await uploadMulti({
 					format: fields.subcategory[0],
 					src_id: fields.multi[0],
-					month: today.getMonth(),
-					year: today.getFullYear(),
+					month: currentMonth, // Fix applied here
+					year: currentYear,
 					title: fields.title ? fields.title[0] : "",
 				});
 				return res.status(200).json({ message: "Uploaded!" });
@@ -76,9 +80,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 				title: fields.title[0],
 				authors: fields.authors ? JSON.parse(fields.authors[0]) : [],
 				content: fields.content ? fields.content[0] : "",
+				contentInfo: fields["content-info"] ? fields["content-info"][0] : "",
 				img: imgURL,
-				month: today.getMonth(),
-				year: today.getFullYear(),
+				month: currentMonth,
+				year: currentYear,
 				markdown: true,
 			};
 

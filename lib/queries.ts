@@ -242,45 +242,39 @@ export async function getArticlesExceptCategory(cat: string) {
 	return articles;
 }
 
-export async function getArticlesBySearch(cat: string) {
-	const articles = await prisma.article.findMany({
-		orderBy: [
-			{
-				year: "desc",
-			},
-			{
-				month: "desc",
-			},
-		],
+export async function getArticlesBySearch(query: string) {
+	return await prisma.article.findMany({
 		where: {
 			OR: [
 				{
 					title: {
-						contains: cat,
+						contains: query,
+						mode: "insensitive",
+					},
+				},
+				{
+					content: {
+						contains: query,
 						mode: "insensitive",
 					},
 				},
 				{
 					authors: {
-						has: cat
-							.toLowerCase()
-							.split(" ")
-							.map(s => s.charAt(0).toUpperCase() + s.substring(1))
-							.join(" "),
+						has: query, // exact match in array
 					},
 				},
 				{
-					content: {
-						contains: ` ${cat} `,
-						mode: "insensitive",
+					contentInfo: {
+						contains: query,
+						mode: "insensitive", // ✅ photo credit search!
 					},
 				},
 			],
-			published: true,
+		},
+		orderBy: {
+			id: "desc",
 		},
 	});
-
-	return articles;
 }
 
 export async function getArticlesBySubcategory(subcat: string, take: number, offsetCursor: number, skip: number) {
@@ -306,22 +300,33 @@ export async function getArticlesBySubcategory(subcat: string, take: number, off
 
 	return articles;
 }
+import { Prisma } from "@prisma/client"; // make sure this is imported at the top
 
 export async function getArticlesByAuthor(author: string) {
+	const decoded = decodeURI(author);
+	const nameParts = decoded.split(" ").filter(Boolean);
+
+	const contentInfoConditions = nameParts.map(part => ({
+		contentInfo: {
+			contains: part,
+			mode: Prisma.QueryMode.insensitive, // ✅ fix is here
+		},
+	}));
+
 	const articles = await prisma.article.findMany({
-		orderBy: [
-			{
-				year: "desc",
-			},
-			{
-				month: "desc",
-			},
-		],
+		orderBy: [{ year: "desc" }, { month: "desc" }],
 		where: {
-			authors: {
-				has: decodeURI(author),
-			},
 			published: true,
+			OR: [
+				{
+					authors: {
+						has: decoded,
+					},
+				},
+				{
+					AND: contentInfoConditions,
+				},
+			],
 		},
 	});
 

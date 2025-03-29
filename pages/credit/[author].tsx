@@ -17,36 +17,55 @@ interface Props {
 }
 
 export async function getServerSideProps({ params }: Params) {
+	const author = decodeURI(params.author);
+
+	const articles = await getArticlesByAuthor(author); // Already checks authors + contentInfo
 	return {
 		props: {
-			author: decodeURI(params.author),
-			articles: await getArticlesByAuthor(params.author),
+			author,
+			articles,
 		},
 	};
 }
 
 export default function Credit({ author, articles }: Props) {
+	const title = `${author}'s Work | The Tower`;
+	const metaDesc = `${author}'s contributions to The Tower — either as an author or a photographer.`;
+
 	return (
 		<div className="credit">
 			<Head>
-				<title>{author}&apos;s Work | The Tower</title>
-				<meta property="og:title" content={author + "&apos;s Work | The Tower"} />
-				<meta property="og:description" content={author + "&apos;s Work at the Tower"} />
+				<title>{title}</title>
+				<meta property="og:title" content={title} />
+				<meta property="og:description" content={metaDesc} />
 			</Head>
+
 			<style jsx>{`
 				.credit {
 					max-width: 85vw;
+					margin: auto;
 				}
 				h1 {
 					text-align: center;
 					border-bottom: 3px double black;
-					margin-bottom: 1vh;
+					margin-bottom: 2vh;
+				}
+				.empty {
+					text-align: center;
+					font-family: Neue Montreal;
+					color: gray;
+					font-size: 1.8rem;
+					margin-top: 5vh;
 				}
 			`}</style>
+
 			<h1>{author}&apos;s Work</h1>
-			{articles.map(article => (
-				<ArticlePreview key={article.id} article={article} style="row" size="small" />
-			))}
+
+			{articles.length > 0 ? (
+				articles.map(article => <ArticlePreview key={article.id} article={article} style="row" size="small" />)
+			) : (
+				<p className="empty">No articles found with this name.</p>
+			)}
 		</div>
 	);
 }

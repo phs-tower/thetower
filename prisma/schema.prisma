@@ -11,6 +11,7 @@ model article {
   id          Int      @id @default(autoincrement())
   title       String   @db.VarChar
   content     String
+  contentInfo String?  @map("content-info") // <-- Add this line
   published   Boolean  @default(false)
   category    String   @db.VarChar
   subcategory String   @db.VarChar
@@ -21,6 +22,9 @@ model article {
   featured    Boolean  @default(false)
   markdown    Boolean  @default(false)
 }
+
+
+
 
 model spreads {
   id    Int    @id @default(autoincrement())

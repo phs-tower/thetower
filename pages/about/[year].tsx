@@ -45,7 +45,7 @@ export default function Year({ year, sections }: Props) {
 	return (
 		<div className="about">
 			<Head>
-				<title>{year} Staff | The Tower</title>
+				<title>{`${year} Staff | The Tower`}</title>
 				<meta property="og:title" content={`About the ${year} staff | The Tower`} />
 				<meta property="og:description" content={`About the ${year} staff of the Tower`} />
 			</Head>

@@ -50,7 +50,7 @@ export default function CrosswordGame({ puzzleInput }: Props) {
 			const serializedState = JSON.stringify(state);
 			localStorage.setItem("crosswordGameState", serializedState);
 		}
-	}, [state.grid, state.seconds, state.autocheck, state.paused, state.won]);
+	}, [state]); // <-- watch the whole `state` object
 
 	// Load puzzle state from localStorage on mount
 	useEffect(() => {

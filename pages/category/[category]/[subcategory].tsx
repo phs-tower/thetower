@@ -87,12 +87,12 @@ export default function Subcategory(props: Props) {
 		}
 
 		setData();
-	}, [route]);
+	}, [route, subcategory, setLoadingContent, setLoadingDisplay, setCursor, setArticles]);
 
 	return (
 		<div className="subcategory">
 			<Head>
-				<title>{expandCategorySlug(subcategory)} | The Tower</title>
+				<title>{`${expandCategorySlug(subcategory)} | The Tower`}</title>
 				<meta property="og:title" content={expandCategorySlug(subcategory) + " | The Tower"} />
 				<meta property="og:description" content={expandCategorySlug(subcategory) + " at the Tower"} />
 			</Head>
