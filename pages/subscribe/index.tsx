@@ -113,7 +113,7 @@ export default function Subscribe({ articles }: Props) {
 					<em>The Tower</em> Student Newspaper Subscription
 				</h1>
 
-				<p>Dear Tower Families, Friends, and Readers,</p>
+				<p style={{ marginTop: "1.6rem" }}>Dear Tower Families, Friends, and Readers,</p>
 
 				<p>
 					Since 1928, <em>The Tower</em> has told the story of Princeton High School — not just the big headlines, but the quiet changes,
