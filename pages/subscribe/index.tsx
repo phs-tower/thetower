@@ -35,11 +35,11 @@ export default function Subscribe({ articles }: Props) {
 					gap: 4rem;
 					padding: 4rem 6rem;
 					font-family: ${styles.font.serifText};
+					font-size: 9px;
 				}
 
 				.letter {
 					max-width: 95%;
-					font-size: 1rem;
 					line-height: 2;
 				}
 
@@ -63,7 +63,7 @@ export default function Subscribe({ articles }: Props) {
 					font-style: italic;
 					margin-top: 1.5rem;
 					margin-bottom: 1.5rem;
-					font-size: 1.2rem;
+					font-size: 1.6rem;
 				}
 
 				.buttons {
@@ -77,9 +77,9 @@ export default function Subscribe({ articles }: Props) {
 					background-color: white;
 					color: black;
 					transition: 0.25s;
-					padding: 0.9rem 1.8rem;
+					padding: 1.1rem 2.2rem;
 					font-family: ${styles.font.sans};
-					font-size: 1.3rem;
+					font-size: 1.4rem;
 					border-radius: 5px;
 					text-align: center;
 				}
@@ -151,7 +151,7 @@ export default function Subscribe({ articles }: Props) {
 
 				<div className="buttons">
 					<Link href="https://thetower.ludus.com/index.php?sections=payments">
-						<p className="sub-link">Pay with Card</p>
+						<p className="sub-link">Pay Online</p>
 					</Link>
 					<Link href="https://docs.google.com/forms/d/e/1FAIpQLSepzFs9XYC-Dfenzf5Y4xnwfPs5MBzpPhgoRzNYmsBtFAfa5g/viewform">
 						<p className="sub-link">Pay with Check or Cash</p>
