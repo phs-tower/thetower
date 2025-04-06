@@ -35,21 +35,17 @@ export default function Subscribe({ articles }: Props) {
 					gap: 4rem;
 					padding: 4rem 6rem;
 					font-family: ${styles.font.serifText};
-					font-size: 9px;
 				}
 
 				.letter {
 					max-width: 95%;
 					line-height: 2;
+					font-size: 17px !important;
 				}
 
-				h1 {
-					font-size: 2.8rem;
-					font-weight: 700;
-					margin-bottom: 1.7rem;
-				}
-
-				p {
+				.letter p {
+					font-size: inherit !important;
+					line-height: 1.4;
 					margin-bottom: 1.4rem;
 				}
 
@@ -59,10 +55,10 @@ export default function Subscribe({ articles }: Props) {
 				}
 
 				.price-note {
-					font-weight: bold;
-					font-style: italic;
 					margin-top: 1.5rem;
 					margin-bottom: 1.5rem;
+					font-weight: bold;
+					font-style: italic;
 					font-size: 1.6rem;
 				}
 
