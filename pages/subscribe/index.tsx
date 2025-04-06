@@ -43,7 +43,7 @@ export default function Subscribe({ articles }: Props) {
 					font-size: 17px !important;
 				}
 
-				.letter p {
+				.letter p:not(.contact-note) {
 					font-size: inherit !important;
 					line-height: 1.4;
 					margin-bottom: 1.4rem;
@@ -106,6 +106,12 @@ export default function Subscribe({ articles }: Props) {
 					background: #ccc;
 					margin: 1.5rem 0;
 				}
+
+				.contact-note {
+					font-size: 14px;
+					color: #444;
+					margin-top: -1.4rem;
+				}
 			`}</style>
 
 			<section className="letter">
@@ -144,6 +150,10 @@ export default function Subscribe({ articles }: Props) {
 				</p>
 
 				<p className="price-note">2024–25 Subscription: $30/year for 8 monthly issues</p>
+
+				<p className="contact-note">
+					Contact <u>towerbusiness@gmail.com</u> with any questions.
+				</p>
 
 				<div className="buttons">
 					<Link href="https://thetower.ludus.com/index.php?sections=payments">
