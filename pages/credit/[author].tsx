@@ -64,7 +64,7 @@ export default function Credit({ author, articles }: Props) {
 			{articles.length > 0 ? (
 				articles.map(article => <ArticlePreview key={article.id} article={article} style="row" size="small" />)
 			) : (
-				<p className="empty">No articles found with this name.</p>
+				<p className="empty">No work found with this name.</p>
 			)}
 		</div>
 	);
