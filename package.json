@@ -29,7 +29,7 @@
 		"react-pdf": "^9.2.1",
 		"remark": "^15.0.1",
 		"remark-html": "^16.0.1",
-		"sharp": "^0.33.2",
+		"sharp": "^0.34.0",
 		"use-mutative": "^0.0.4"
 	},
 	"devDependencies": {
