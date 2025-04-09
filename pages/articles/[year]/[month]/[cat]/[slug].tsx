@@ -11,6 +11,7 @@ import html from "remark-html";
 import SubBanner from "~/components/subbanner.client";
 import PhotoCredit from "~/components/photocredit";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 // 👇 Extend article manually to include contentInfo
 interface ExtendedArticle {
@@ -26,18 +27,8 @@ interface ExtendedArticle {
 	img: string;
 	featured: boolean;
 	markdown: boolean;
-	contentInfo?: string | null; // 👈 this fixes your TS error
+	contentInfo?: string | null;
 }
-
-const categoryLabels: Record<string, string> = {
-	"news-features": "NEWS & FEATURES",
-	"arts-entertainment": "ARTS & ENTERTAINMENT",
-	opinions: "OPINIONS",
-	sports: "SPORTS",
-	vanguard: "VANGUARD",
-	multimedia: "MULTIMEDIA",
-	crossword: "CROSSWORD",
-};
 
 interface Props {
 	article: ExtendedArticle;
@@ -89,6 +80,28 @@ export default function Article({ article }: Props) {
 
 		return null;
 	})();
+
+	const [scrolledPast, setScrolledPast] = useState(false);
+
+	useEffect(() => {
+		const handleScroll = () => {
+			// adjust 250 to however far down you want before switching
+			setScrolledPast(window.scrollY > 150);
+		};
+
+		window.addEventListener("scroll", handleScroll);
+		return () => window.removeEventListener("scroll", handleScroll);
+	}, []);
+
+	const category = article.category;
+	const categoryLabels: { [key: string]: string } = {
+		"news-features": "NEWS & FEATURES",
+		opinions: "OPINIONS",
+		vanguard: "VANGUARD",
+		sports: "SPORTS",
+		"arts-entertainment": "ARTS & ENTERTAINMENT",
+		crossword: "CROSSWORD",
+	};
 
 	return (
 		<div className="article">
@@ -215,10 +228,18 @@ export default function Article({ article }: Props) {
 				}
 			`}</style>
 
-			{/* ⬅️ Category top-right */}
-			<div className="category-label">
-				<Link href={`/category/${article.category}`}>
-					<p>{categoryLabels[article.category] || article.category.toUpperCase()} ↗</p>
+			{/* Category top-right */}
+			<div
+				className="category-label"
+				style={{
+					position: scrolledPast ? "fixed" : "absolute",
+					top: scrolledPast ? "4rem" : "-5rem",
+					right: scrolledPast ? "2rem" : "-3rem",
+					zIndex: 1000,
+				}}
+			>
+				<Link href={`/category/${category}`}>
+					<p>{categoryLabels[category] || category.toUpperCase()} ↗</p>
 				</Link>
 			</div>
 

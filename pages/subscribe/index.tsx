@@ -108,7 +108,7 @@ export default function Subscribe({ articles }: Props) {
 				}
 
 				.contact-note {
-					font-size: 14px;
+					font-size: 15px;
 					color: #444;
 					margin-top: -1.4rem;
 				}
