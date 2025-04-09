@@ -10,6 +10,7 @@ import { remark } from "remark";
 import html from "remark-html";
 import SubBanner from "~/components/subbanner.client";
 import PhotoCredit from "~/components/photocredit";
+import Link from "next/link";
 
 // 👇 Extend article manually to include contentInfo
 interface ExtendedArticle {
@@ -27,6 +28,16 @@ interface ExtendedArticle {
 	markdown: boolean;
 	contentInfo?: string | null; // 👈 this fixes your TS error
 }
+
+const categoryLabels: Record<string, string> = {
+	"news-features": "NEWS & FEATURES",
+	"arts-entertainment": "ARTS & ENTERTAINMENT",
+	opinions: "OPINIONS",
+	sports: "SPORTS",
+	vanguard: "VANGUARD",
+	multimedia: "MULTIMEDIA",
+	crossword: "CROSSWORD",
+};
 
 interface Props {
 	article: ExtendedArticle;
@@ -92,6 +103,7 @@ export default function Article({ article }: Props) {
 					display: flex;
 					flex-direction: column;
 					align-items: center;
+					position: relative;
 				}
 
 				.article .main-img {
@@ -111,6 +123,27 @@ export default function Article({ article }: Props) {
 					max-width: 50vw;
 				}
 
+				.category-label {
+					position: absolute;
+					top: -4rem;
+					right: -1rem;
+				}
+
+				.category-label p {
+					color: #666;
+					font-size: 1.4rem;
+					font-family: ${styles.font.sans};
+					cursor: pointer;
+					transition: color 0.2s ease;
+					text-transform: uppercase;
+					letter-spacing: 0.05em;
+				}
+
+				.category-label p:hover {
+					text-decoration: underline;
+					color: #333;
+				}
+
 				.main-article:not(h1, h2, h3, blockquote p)::first-letter {
 					initial-letter: 3;
 					margin-right: 10px;
@@ -121,6 +154,16 @@ export default function Article({ article }: Props) {
 						max-width: 100vw;
 						margin-left: 10px;
 						margin-right: 10px;
+					}
+
+					.category-label {
+						position: static;
+						text-align: center;
+						margin-bottom: 1rem;
+					}
+
+					.category-label p {
+						text-align: center;
 					}
 
 					.main-article:not(h1, h2, h3, blockquote p)::first-letter {
@@ -172,10 +215,16 @@ export default function Article({ article }: Props) {
 				}
 			`}</style>
 
+			{/* ⬅️ Category top-right */}
+			<div className="category-label">
+				<Link href={`/category/${article.category}`}>
+					<p>{categoryLabels[article.category] || article.category.toUpperCase()} ↗</p>
+				</Link>
+			</div>
+
 			<section className="content">
 				<div className="titleblock">
 					<h1>{article.title}</h1>
-
 					<span style={{ fontFamily: styles.font.sans }}>{displayDate(article.year, article.month)}</span>
 
 					{article.authors.length > 0 && (
@@ -210,21 +259,10 @@ export default function Article({ article }: Props) {
 							if (paragraph.startsWith("@img=")) {
 								const src = paragraph.substring(5).trim();
 								if (src) {
-									return (
-										<Image
-											key={index}
-											src={src}
-											alt="" // decorative image
-											width={1000}
-											height={600}
-											style={{ width: "100%", height: "auto" }}
-										/>
-									);
+									return <Image key={index} src={src} alt="" width={1000} height={600} style={{ width: "100%", height: "auto" }} />;
 								}
-								return null; // skip if no valid src
+								return null;
 							}
-
-							// fallback to normal paragraph
 							return paragraph.charCodeAt(0) !== 13 ? <p key={index}>{paragraph.replace("&lt;", "<").replace("&gt;", ">")}</p> : null;
 						})}
 					</div>
