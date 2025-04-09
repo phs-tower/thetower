@@ -12,7 +12,9 @@ import Link from "next/link";
 type Props = { puzzleInput: PuzzleInput };
 
 export default function CrosswordGame({ puzzleInput }: Props) {
-	const initialState = useMemo(() => initialStateFromInput(puzzleInput), [puzzleInput]);
+	const initialState = useMemo(() => {
+		return initialStateFromInput(puzzleInput);
+	}, []);
 
 	const [state, dispatch] = useMutativeReducer(crosswordStateReducer, initialState);
 	const inputRef = useRef<HTMLInputElement>(null);
@@ -20,42 +22,51 @@ export default function CrosswordGame({ puzzleInput }: Props) {
 	const cellSize = 30;
 	const hasMutatedRef = useRef(false);
 
-	const date = useMemo(() => new Date(puzzleInput.date), [puzzleInput.date]);
+	const date = useMemo(() => {
+		return new Date(puzzleInput.date);
+	}, []);
 
 	const won = useMemo(() => {
 		return state.grid.every(c => c.every(cell => (cell.used ? cell.answer == cell.guess : true)));
 	}, [state.grid]);
 
 	useEffect(() => {
-		if (won === true) {
+		if (won == true) {
 			dispatch({ type: "setWon", to: true });
 		}
-	}, [won, dispatch]);
+	}, [won]);
 
+	// Function to find the clue associated with the selected cell
 	const selectedClue = useMemo(() => {
-		if (!focused) return null;
+		if (!focused) {
+			return null;
+		}
 		const { row, col } = state.position;
+
 		const clue =
-			state.direction === "across"
+			state.direction == "across"
 				? state.clues.across.find(clue => row === clue.row && col >= clue.col && col < clue.col + clue.answer.length) ?? null
 				: state.clues.down.find(clue => col === clue.col && row >= clue.row && row < clue.row + clue.answer.length) ?? null;
+
 		return clue;
-	}, [state.position, state.direction, state.clues, focused]);
+	}, [state.position, state.direction, state.clues]);
 
 	useEffect(() => {
 		if (hasMutatedRef.current) {
+			console.log("saving");
 			const serializedState = JSON.stringify(state);
 			localStorage.setItem("crosswordGameState", serializedState);
 		}
-	}, [state]);
+	}, [state.grid, state.seconds]);
 
 	useEffect(() => {
+		console.log("loading");
 		const savedState = localStorage.getItem("crosswordGameState");
 		if (savedState) {
 			const parsedState = JSON.parse(savedState);
 			dispatch({ type: "loadState", state: parsedState });
 		}
-	}, [dispatch]);
+	}, []);
 
 	const dispatchWithTracking = useCallback(
 		(action: Action) => {
@@ -71,8 +82,9 @@ export default function CrosswordGame({ puzzleInput }: Props) {
 				dispatchWithTracking({ type: "tick" });
 			}
 		}, 1000);
+
 		return () => clearInterval(intervalId);
-	}, [won, dispatchWithTracking]);
+	}, [won]);
 
 	return (
 		<CrosswordDispatchContext.Provider value={dispatchWithTracking}>

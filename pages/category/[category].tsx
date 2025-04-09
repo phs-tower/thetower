@@ -27,7 +27,7 @@ export async function getServerSideProps({ params }: Params) {
 		props: {
 			category: params.category,
 			articles: [],
-			sidebar: await getArticlesExceptCategory(params.category),
+			sidebar: shuffle(await getArticlesExceptCategory(params.category)),
 		},
 	};
 }
@@ -175,10 +175,9 @@ interface SidebarProps {
 }
 
 function SidebarArticles({ sidebar }: SidebarProps) {
-	let articles = shuffle(sidebar);
 	return (
 		<>
-			{articles.map(article => (
+			{sidebar.map(article => (
 				<ArticlePreview key={article.id} article={article} style="row" size="small" category />
 			))}
 		</>
