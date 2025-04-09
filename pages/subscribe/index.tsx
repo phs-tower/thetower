@@ -8,6 +8,12 @@ import ArticlePreview from "~/components/preview.client";
 import styles from "~/lib/styles";
 import shuffle from "lodash/shuffle";
 
+import { FaFacebookSquare } from "@react-icons/all-files/fa/FaFacebookSquare";
+import { FaInstagramSquare } from "@react-icons/all-files/fa/FaInstagramSquare";
+import { FaYoutubeSquare } from "@react-icons/all-files/fa/FaYoutubeSquare";
+import { FaSpotify } from "@react-icons/all-files/fa/FaSpotify";
+import { SiApplepodcasts } from "@react-icons/all-files/si/SiApplepodcasts";
+
 interface Props {
 	articles: article[];
 }
@@ -112,12 +118,48 @@ export default function Subscribe({ articles }: Props) {
 					color: #444;
 					margin-top: -1.4rem;
 				}
+
+				.social-icons {
+					display: flex;
+					gap: 0.2rem;
+					margin-top: 0rem;
+					margin-bottom: 2rem;
+					align-items: center;
+				}
+
+				.social-icons a {
+					color: inherit;
+					transition: transform 0.2s ease;
+				}
+
+				.social-icons a:hover {
+					transform: scale(1.1);
+					color: ${styles.color.darkAccent};
+				}
 			`}</style>
 
 			<section className="letter">
 				<h1>
 					<em>The Tower</em> Student Newspaper Subscription
 				</h1>
+
+				<div className="social-icons">
+					<a href="https://www.instagram.com/thetowerphs/" target="_blank" rel="noopener noreferrer">
+						<FaInstagramSquare size="2em" />
+					</a>
+					<a href="https://www.facebook.com/phstower" target="_blank" rel="noopener noreferrer">
+						<FaFacebookSquare size="2em" />
+					</a>
+					<a href="https://www.youtube.com/channel/UCoopcAJbsz-qlTS2xkVWplQ" target="_blank" rel="noopener noreferrer">
+						<FaYoutubeSquare size="2em" />
+					</a>
+					<a href="https://open.spotify.com/show/2c0TlU1f01LKoVPaMMDxB8?si=f1fa622c0339438e" target="_blank" rel="noopener noreferrer">
+						<FaSpotify size="2em" />
+					</a>
+					<a href="https://podcasts.apple.com/us/podcast/phs-talks/id1674696258" target="_blank" rel="noopener noreferrer">
+						<SiApplepodcasts size="2em" />
+					</a>
+				</div>
 
 				<p style={{ marginTop: "1.6rem" }}>Dear Tower Families, Friends, and Readers,</p>
 
