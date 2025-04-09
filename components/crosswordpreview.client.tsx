@@ -15,7 +15,7 @@ export function CrosswordPreview(props: Props) {
 			<style jsx>{`
 				.crossword-preview {
 					width: 20rem;
-					height: 10rem;
+					height: 11rem;
 					background-color: #f0f0f0;
 					text-align: center;
 				}

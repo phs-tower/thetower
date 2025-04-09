@@ -65,7 +65,9 @@ export default function Archive(props: Props) {
 
 				#crossword-container {
 					display: grid;
-					grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+					grid-template-columns: repeat(5, 1fr);
+					gap: 2rem; /*  this adds space between BOTH rows and columns */
+					padding-top: 2rem;
 				}
 
 				#loadmore {

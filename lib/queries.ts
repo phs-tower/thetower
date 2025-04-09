@@ -203,9 +203,6 @@ export async function getArticlesByCategory(cat: string, take: number, offsetCur
 	const articles = await prisma.article.findMany({
 		orderBy: [
 			{
-				featured: "desc", // featured articles appear first
-			},
-			{
 				year: "desc",
 			},
 			{
