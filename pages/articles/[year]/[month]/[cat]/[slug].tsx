@@ -240,7 +240,7 @@ export default function Article({ article }: Props) {
 				style={{
 					position: !isMobile && scrolledPast ? "fixed" : "absolute",
 					top: !isMobile && scrolledPast ? "4rem" : "-5rem",
-					right: !isMobile && scrolledPast ? "4rem" : "-1rem",
+					right: !isMobile && scrolledPast ? "5rem" : "0rem",
 					zIndex: 1000,
 				}}
 			>
