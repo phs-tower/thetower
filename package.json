@@ -17,6 +17,7 @@
 	"dependencies": {
 		"@prisma/client": "^5.10.1",
 		"@react-icons/all-files": "^4.1.0",
+		"@react-pdf/renderer": "^4.3.0",
 		"@supabase/supabase-js": "^2.45.1",
 		"@uiw/react-md-editor": "^4.0.4",
 		"browser-image-compression": "^2.0.2",

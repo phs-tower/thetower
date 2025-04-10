@@ -82,16 +82,28 @@ export default function Article({ article }: Props) {
 	})();
 
 	const [scrolledPast, setScrolledPast] = useState(false);
+	const [isMobile, setIsMobile] = useState(false);
 
 	useEffect(() => {
-		const handleScroll = () => {
-			// adjust 250 to however far down you want before switching
-			setScrolledPast(window.scrollY > 150);
+		const handleResize = () => {
+			setIsMobile(window.innerWidth <= 1000); // Adjust threshold as needed
 		};
 
+		const handleScroll = () => {
+			if (!isMobile) {
+				setScrolledPast(window.scrollY > 150);
+			}
+		};
+
+		handleResize(); // set on first load
+		window.addEventListener("resize", handleResize);
 		window.addEventListener("scroll", handleScroll);
-		return () => window.removeEventListener("scroll", handleScroll);
-	}, []);
+
+		return () => {
+			window.removeEventListener("resize", handleResize);
+			window.removeEventListener("scroll", handleScroll);
+		};
+	}, [isMobile]);
 
 	const category = article.category;
 	const categoryLabels: { [key: string]: string } = {
@@ -134,12 +146,6 @@ export default function Article({ article }: Props) {
 				.article .content {
 					margin-top: 5vh;
 					max-width: 50vw;
-				}
-
-				.category-label {
-					position: absolute;
-					top: -4rem;
-					right: -1rem;
 				}
 
 				.category-label p {
@@ -232,9 +238,9 @@ export default function Article({ article }: Props) {
 			<div
 				className="category-label"
 				style={{
-					position: scrolledPast ? "fixed" : "absolute",
-					top: scrolledPast ? "4rem" : "-5rem",
-					right: scrolledPast ? "2rem" : "-3rem",
+					position: !isMobile && scrolledPast ? "fixed" : "absolute",
+					top: !isMobile && scrolledPast ? "4rem" : "-5rem",
+					right: !isMobile && scrolledPast ? "4rem" : "-1rem",
 					zIndex: 1000,
 				}}
 			>
