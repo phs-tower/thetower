@@ -473,9 +473,8 @@ export default function Upload() {
 							<>
 								<strong>Header Info</strong>
 								<p>
-									Start with a label like <strong>photo</strong>, <strong>image</strong>, <strong>graphic</strong>, or{" "}
-									<strong>photo courtesy</strong>, followed by a colon (<strong>:</strong>) and the name of the photographer or
-									designer.
+									Start with a label like <strong>Photo</strong>, <strong>Image</strong>, or <strong>Graphic</strong>, followed by a
+									colon (<strong>:</strong>) and the name of the photographer or designer.
 								</p>
 								<p>
 									To credit more than one person, include both names with <strong>and</strong> between them — for example:{" "}

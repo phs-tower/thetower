@@ -91,7 +91,7 @@ export default function Article({ article }: Props) {
 
 		const handleScroll = () => {
 			if (!isMobile) {
-				setScrolledPast(window.scrollY > 150);
+				setScrolledPast(window.scrollY > 85);
 			}
 		};
 
@@ -148,19 +148,27 @@ export default function Article({ article }: Props) {
 					max-width: 50vw;
 				}
 
-				.category-label p {
-					color: #666;
+				.category-button {
+					border: 2px solid ${styles.color.darkAccent};
+					background-color: white;
+					color: black;
+					padding: 0.5rem 1.4rem;
 					font-size: 1.4rem;
 					font-family: ${styles.font.sans};
-					cursor: pointer;
-					transition: color 0.2s ease;
+					border-radius: 5px;
+					transition: 0.25s;
 					text-transform: uppercase;
 					letter-spacing: 0.05em;
+					display: inline-block;
+					text-align: center;
+					cursor: pointer;
+					text-decoration: none;
 				}
 
-				.category-label p:hover {
-					text-decoration: underline;
-					color: #333;
+				.category-button:hover {
+					background-color: ${styles.color.darkAccent};
+					color: white;
+					text-decoration: none;
 				}
 
 				.main-article:not(h1, h2, h3, blockquote p)::first-letter {
@@ -239,13 +247,13 @@ export default function Article({ article }: Props) {
 				className="category-label"
 				style={{
 					position: !isMobile && scrolledPast ? "fixed" : "absolute",
-					top: !isMobile && scrolledPast ? "4rem" : "-5rem",
-					right: !isMobile && scrolledPast ? "5rem" : "0rem",
+					top: !isMobile && scrolledPast ? "7rem" : "-2rem",
+					right: !isMobile && scrolledPast ? "7rem" : "1.9rem",
 					zIndex: 1000,
 				}}
 			>
-				<Link href={`/category/${category}`}>
-					<p>{categoryLabels[category] || category.toUpperCase()} ↗</p>
+				<Link href={`/category/${category}`} legacyBehavior>
+					<a className="category-button">{categoryLabels[category] || category.toUpperCase()} ↗</a>
 				</Link>
 			</div>
 
