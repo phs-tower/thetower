@@ -194,7 +194,7 @@ export default function Subscribe({ articles }: Props) {
 				<p className="price-note">2024–25 Subscription: $30/year for 8 monthly issues</p>
 
 				<p className="contact-note">
-					Contact <u>towerbusiness@gmail.com</u> with any questions. (Including Sponsorship inquiries!)
+					Contact <u>towerbusiness@gmail.com</u> with any questions.
 				</p>
 
 				<div className="buttons">
