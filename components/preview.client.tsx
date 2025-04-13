@@ -228,6 +228,10 @@ export default function ArticlePreview({ article, category, style = "row", size 
 					display: grid;
 					grid-template-columns: 1fr !important;
 				}
+
+				.img-wrapper {
+					margin-right: 2rem;
+				}
 			`}</style>
 			<div className={size + "-preview"}>
 				{/* <div className="img-wrapper">

@@ -25,6 +25,7 @@
 		"dayjs": "^1.11.3",
 		"formidable": "^3.5.1",
 		"fs": "^0.0.1-security",
+		"fuse.js": "^7.1.0",
 		"lodash": "^4.17.21",
 		"next": "^14.1.0",
 		"pdfjs-dist": "^5.0.375",

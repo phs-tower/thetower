@@ -101,7 +101,7 @@ export default function Subcategory(props: Props) {
 					min-height: 100vh;
 				}
 				h1 {
-					text-align: center;
+					text-align: right;
 					border-bottom: 3px double black;
 					margin-bottom: 1vh;
 				}

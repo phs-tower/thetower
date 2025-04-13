@@ -137,12 +137,12 @@ function Banner() {
 				}
 				.search button {
 					width: 30px;
-					height: 29.5px;
+					height: 32px;
 					border: 1px solid ${styles.color.accent};
 					border-radius: 5px 0px 0px 5px;
 					transform: scaleX(-1);
 					background-color: ${styles.color.accent};
-					color: ${styles.color.primary};
+					color: #fff;
 					cursor: pointer;
 					box-sizing: border-box;
 					padding: 5px;
@@ -196,6 +196,17 @@ function Banner() {
 					<h1 style={{ fontFamily: "Canterbury", fontWeight: "normal", textAlign: "center", color: styles.color.accent, fontSize: "6rem" }}>
 						The Tower
 					</h1>
+					<p
+						style={{
+							fontFamily: styles.font.sans,
+							fontSize: "1.4rem",
+							textAlign: "center",
+							color: styles.color.accent,
+							marginTop: "-15px",
+						}}
+					>
+						Est. 1928
+					</p>
 				</Link>
 			</div>
 		</div>
@@ -345,89 +356,300 @@ function Footer() {
 }
 
 function NavBar() {
+	const [menuOpen, setMenuOpen] = useState(false);
+	const [search, setSearch] = useState("");
+
+	useEffect(() => {
+		const handleScroll = () => {
+			if (menuOpen) setMenuOpen(false);
+		};
+		window.addEventListener("scroll", handleScroll);
+		return () => window.removeEventListener("scroll", handleScroll);
+	}, [menuOpen]);
+
+	const closeMenu = () => setMenuOpen(false);
+
+	const handleSearch = () => {
+		if (search.trim()) {
+			window.location.href = `/search/${encodeURIComponent(search.trim())}`;
+			closeMenu();
+		}
+	};
+
+	const subItems = {
+		NEWS: [{ label: "Profiles", href: "/category/news-features/phs-profiles" }],
+		OPINIONS: [
+			{ label: "Editorials", href: "/category/opinions/editorials" },
+			{ label: "Cheers & Jeers", href: "/category/opinions/cheers-jeers" },
+		],
+		VANGUARD: [
+			{ label: "Spreads", href: "/category/vanguard/spreads" },
+			{ label: "Articles", href: "/category/vanguard/vanguard" },
+		],
+		ARTS: [{ label: "Student Artists", href: "/category/arts-entertainment/student-artists" }],
+		SPORTS: [{ label: "Student Athletes", href: "/category/sports/student-athletes" }],
+		ABOUT: [
+			{ label: "2025 Staff", href: "/about/2025" },
+			{ label: "2024 Staff", href: "/about/2024" },
+			{ label: "2023 Staff", href: "/about/2023" },
+			{ label: "2022 Staff", href: "/about/2022" },
+		],
+	};
+
 	return (
-		<div className="navbar" style={{ position: "sticky", top: "0", zIndex: "10" }}>
+		<div className="navbar">
 			<style jsx>{`
 				.navbar {
-					display: block;
-					background-color: rgba(255, 255, 255, 0.9) !important;
-					margin-bottom: 2vh;
-					text-align: center;
+					position: sticky;
+					top: 0;
+					z-index: 1000;
 					width: 100%;
-					border-bottom: 1px solid ${styles.color.lightAccent};
+					background-color: #0c1f3f;
+					border-bottom: 1px solid #aaa;
 				}
-				.navbar hr {
-					background-color: #ccc;
-					border: none;
-					height: 1px;
-					margin-top: 5px;
-					margin-bottom: 5px;
+				.strip {
+					display: flex;
+					align-items: center;
+					background-color: #0c1f3f;
+					padding: 0.5rem 2vw;
+					position: relative;
+					margin-top: 1.5vh;
+				}
+				.left {
+					display: flex;
+					align-items: center;
+				}
+				.menu-button {
+					font-size: 1.5rem;
+					color: white;
+					cursor: pointer;
+					padding: 6px 10px;
+					border: 1px solid white;
+					background: none;
+					border-radius: 4px;
+				}
+				.menu-button:hover {
+					background-color: white;
+					color: #0c1f3f;
+				}
+				.center-logo {
+					display: none;
+				}
+				.right {
+					display: flex;
+					margin-left: 15rem;
+					flex-grow: 1;
 				}
 				.menu {
-					display: contents;
+					display: flex;
+					flex-wrap: wrap;
+					gap: 0.5rem;
+				}
+				.slideout {
+					position: absolute;
+					top: 4.5rem;
+					left: 0;
+					width: 150px;
+					height: calc(100vh - 4.5rem);
+					background-color: white;
+					transform: translateX(${menuOpen ? "0" : "-100%"});
+					transition: transform 0.3s ease-in-out;
+					z-index: 999;
+					box-shadow: 2px 0 6px rgba(0, 0, 0, 0.2);
+					display: flex;
+					flex-direction: column;
+				}
+				.top-bar {
+					background-color: #f3f3f3;
+					padding: ${menuOpen ? "10px" : "0"};
+					border-bottom: ${menuOpen ? "1px solid #ccc" : "none"};
+					display: ${menuOpen ? "flex" : "none"};
+					gap: 0.5rem;
+					align-items: center;
+				}
+				.top-bar input {
+					width: 120px;
+					padding: 4px 6px;
+					font-size: 1.5rem;
+					border: 1px solid #ccc;
+					border-radius: 4px;
+				}
+				.top-bar button {
+					padding: 4px 8px;
+					font-size: 1rem;
+					cursor: pointer;
+					background-color: #0c1f3f;
+					color: white;
+					border: none;
+					border-radius: 4px;
+					margin-left: -2px;
+				}
+				.slideout ul {
+					list-style: none;
+					padding: 1rem;
+					margin: 0;
+					flex-grow: 1;
+				}
+				.slideout li {
+					margin-bottom: 1rem;
+					font-size: 1rem;
+					color: black;
+					cursor: pointer;
+					transition: color 0.2s ease;
+					position: relative;
+					font-family: ${styles.font.serifHeader};
+				}
+				.slideout li a {
+					color: black;
+					text-decoration: none;
+					transition: color 0.2s ease;
+				}
+				.slideout li a:hover {
+					color: #003366;
+					font-weight: 600;
+				}
+				.submenu {
+					margin-top: 0.5rem;
+					margin-left: 0.75rem;
+					font-size: 0.85rem;
+					color: #555;
+					display: none;
+					flex-direction: column;
+					gap: 0.4rem;
+				}
+				.slideout li:hover .submenu {
+					display: flex;
 				}
 				@media screen and (max-width: 1000px) {
 					.menu {
 						display: none;
 					}
-					.show {
-						display: contents !important;
+					.center-logo {
+						display: block;
+						position: absolute;
+						left: 50%;
+						transform: translateX(-50%);
+						color: white;
+						font-family: Canterbury;
+						font-size: 2rem;
 					}
 				}
 			`}</style>
-			<Button
-				name="☰"
-				href="#"
-				className="showMenu"
-				onClick={() => {
-					const menu = document.querySelector(".menu");
-					if (menu) menu.classList.toggle("show");
-				}}
-			/>
-			<div className="menu">
-				<Button name="NEWS & FEATURES" href="/category/news-features">
-					<Link href="/category/news-features/phs-profiles">PHS Profiles</Link>
-				</Button>
 
-				<Button name="MULTIMEDIA" href="/category/multimedia" />
+			<div className="strip">
+				<div className="left">
+					<button className="menu-button" onClick={() => setMenuOpen(!menuOpen)}>
+						{menuOpen ? "×" : "☰"}
+					</button>
+				</div>
+				<div className="center-logo">The Tower</div>
+				<div className="right">
+					<div className="menu">
+						<Button name="NEWS & FEATURES" href="/category/news-features">
+							<Link href="/category/news-features/phs-profiles">
+								<a>PHS Profiles</a>
+							</Link>
+						</Button>
+						<Button name="MULTIMEDIA" href="/category/multimedia" />
+						<Button name="OPINIONS" href="/category/opinions">
+							<Link href="/category/opinions/editorials">
+								<a>Editorials</a>
+							</Link>
+							<hr />
+							<Link href="/category/opinions/cheers-jeers">
+								<a>Cheers & Jeers</a>
+							</Link>
+						</Button>
+						<Button name="VANGUARD" href="/category/vanguard">
+							<Link href="/category/vanguard/spreads">
+								<a>Spreads</a>
+							</Link>
+							<hr />
+							<Link href="/category/vanguard/vanguard">
+								<a>Articles</a>
+							</Link>
+						</Button>
+						<Button name="ARTS & ENTERTAINMENT" href="/category/arts-entertainment">
+							<Link href="/category/arts-entertainment/student-artists">
+								<a>Student Artists</a>
+							</Link>
+						</Button>
+						<Button name="SPORTS" href="/category/sports">
+							<Link href="/category/sports/student-athletes">
+								<a>Student Athletes</a>
+							</Link>
+						</Button>
+						<Button name="CROSSWORD" href="/games/crossword" />
+						<Button name="ABOUT" href="/about">
+							<Link href="/about/2025">
+								<a>2025 Staff</a>
+							</Link>
+							<hr />
+							<Link href="/about/2024">
+								<a>2024 Staff</a>
+							</Link>
+							<hr />
+							<Link href="/about/2023">
+								<a>2023 Staff</a>
+							</Link>
+							<hr />
+							<Link href="/about/2022">
+								<a>2022 Staff</a>
+							</Link>
+						</Button>
+						<Button name="ARCHIVES" href="/archives" />
+					</div>
+				</div>
+			</div>
 
-				<Button name="OPINIONS" href="/category/opinions">
-					<Link href="/category/opinions/editorials">Editorials</Link>
-					<hr />
-					<Link href="/category/opinions/cheers-jeers">Cheers & Jeers</Link>
-				</Button>
+			<div className="slideout">
+				<div className="top-bar">
+					<input
+						type="text"
+						value={search}
+						onChange={e => setSearch(e.target.value)}
+						onKeyDown={e => e.key === "Enter" && handleSearch()}
+						placeholder="Search..."
+					/>
+					<button onClick={handleSearch}>Go</button>
+				</div>
+				<ul>
+					{["NEWS", "MULTIMEDIA", "OPINIONS", "VANGUARD", "ARTS", "SPORTS", "ABOUT", "ARCHIVES"].map((item, i) => (
+						<li key={i}>
+							<Link
+								href={
+									item === "NEWS"
+										? "/category/news-features"
+										: item === "OPINIONS"
+										? "/category/opinions"
+										: item === "VANGUARD"
+										? "/category/vanguard"
+										: item === "ARTS"
+										? "/category/arts-entertainment"
+										: item === "SPORTS"
+										? "/category/sports"
+										: item === "MULTIMEDIA"
+										? "/category/multimedia"
+										: item === "ABOUT"
+										? "/about"
+										: "/archives"
+								}
+							>
+								<a onClick={closeMenu}>{item}</a>
+							</Link>
 
-				<Button name="VANGUARD" href="/category/vanguard">
-					<Link href="/category/vanguard">Spreads</Link>
-					<hr />
-					<Link href="/category/vanguard/vanguard">Articles</Link>
-				</Button>
-
-				<Button name="ARTS & ENTERTAINMENT" href="/category/arts-entertainment">
-					<Link href="/category/arts-entertainment/student-artists">Student Artists</Link>
-				</Button>
-
-				<Button name="SPORTS" href="/category/sports">
-					<Link href="/category/sports/student-athletes">Student Athletes</Link>
-				</Button>
-
-				<Button name="CROSSWORD" href="/games/crossword">
-					<Link href="/games/crossword/archive">Past Crosswords</Link>
-				</Button>
-
-				<Button name="ABOUT" href="/about">
-					<Link href="/about/2025">2025 Staff</Link>
-					<hr />
-					<Link href="/about/2024">2024 Staff</Link>
-					<hr />
-					<Link href="/about/2023">2023 Staff</Link>
-					<hr />
-					<Link href="/about/2022">2022 Staff</Link>
-				</Button>
-
-				<Button name="ARCHIVES" href="/archives">
-					<Link href="/category/special/nsi">New Student Issues</Link>
-				</Button>
+							{subItems[item as keyof typeof subItems] && (
+								<div className="submenu">
+									{subItems[item as keyof typeof subItems]?.map((sub, j) => (
+										<Link key={j} href={sub.href}>
+											<a onClick={closeMenu}>{`→ ${sub.label}`}</a>
+										</Link>
+									))}
+								</div>
+							)}
+						</li>
+					))}
+				</ul>
 			</div>
 		</div>
 	);

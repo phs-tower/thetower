@@ -240,31 +240,33 @@ export async function getArticlesExceptCategory(cat: string) {
 	return articles;
 }
 
-export async function getArticlesBySearch(query: string) {
+export async function getArticlesBySearch(query: string | string[]) {
+	const safeQuery = Array.isArray(query) ? query[0] : query;
+
 	return await prisma.article.findMany({
 		where: {
 			OR: [
 				{
 					title: {
-						contains: query,
+						contains: safeQuery,
 						mode: "insensitive",
 					},
 				},
 				{
 					content: {
-						contains: query,
+						contains: safeQuery,
 						mode: "insensitive",
 					},
 				},
 				{
 					authors: {
-						has: query, // exact match in array
+						has: safeQuery,
 					},
 				},
 				{
 					contentInfo: {
-						contains: query,
-						mode: "insensitive", // ✅ photo credit search!
+						contains: safeQuery,
+						mode: "insensitive",
 					},
 				},
 			],
