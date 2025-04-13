@@ -383,7 +383,7 @@ function NavBar() {
 			{ label: "Cheers & Jeers", href: "/category/opinions/cheers-jeers" },
 		],
 		VANGUARD: [
-			{ label: "Spreads", href: "/category/vanguard/spreads" },
+			{ label: "Spreads", href: "/category/vanguard" },
 			{ label: "Articles", href: "/category/vanguard/vanguard" },
 		],
 		ARTS: [{ label: "Student Artists", href: "/category/arts-entertainment/student-artists" }],
@@ -561,7 +561,7 @@ function NavBar() {
 							</Link>
 						</Button>
 						<Button name="VANGUARD" href="/category/vanguard">
-							<Link href="/category/vanguard/spreads">
+							<Link href="/category/vanguard">
 								<a>Spreads</a>
 							</Link>
 							<hr />
