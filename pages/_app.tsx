@@ -367,8 +367,29 @@ function NavBar() {
 		return () => window.removeEventListener("scroll", handleScroll);
 	}, [menuOpen]);
 
-	const closeMenu = () => setMenuOpen(false);
+	useEffect(() => {
+		let lastScrollY = window.scrollY;
+		const panel = document.getElementById("navbar-scroll-panel");
 
+		const onScroll = () => {
+			if (!panel) return;
+			const scrollY = window.scrollY;
+			const scrollingDown = scrollY > lastScrollY;
+
+			if (scrollingDown && scrollY > 200) {
+				panel.classList.add("visible");
+			} else if (!scrollingDown && scrollY < 150) {
+				panel.classList.remove("visible");
+			}
+
+			lastScrollY = scrollY;
+		};
+
+		window.addEventListener("scroll", onScroll);
+		return () => window.removeEventListener("scroll", onScroll);
+	}, []);
+
+	const closeMenu = () => setMenuOpen(false);
 	const handleSearch = () => {
 		if (search.trim()) {
 			window.location.href = `/search/${encodeURIComponent(search.trim())}`;
@@ -400,19 +421,67 @@ function NavBar() {
 		<div className="navbar">
 			<style jsx>{`
 				.navbar {
-					position: sticky;
-					top: 0;
-					z-index: 1000;
 					width: 100%;
 					background-color: #0c1f3f;
 					border-bottom: 1px solid #aaa;
 				}
-				.strip {
+				.navbar-scroll-replace {
+					position: fixed;
+					top: -60px;
+					left: 0;
+					right: 0;
+					height: 50px;
+					background-color: #0c1f3f;
+					color: white;
 					display: flex;
 					align-items: center;
-					background-color: #0c1f3f;
+					justify-content: center;
+					padding: 0 1rem;
+					z-index: 1500;
+					transition: top 0.3s ease;
+					font-family: Canterbury;
+					font-size: 1.5rem;
+				}
+				.navbar-scroll-replace.visible {
+					top: 0px;
+				}
+				.navbar-scroll-replace .left {
+					position: absolute;
+					left: 2rem;
+					top: 30%;
+					transform: translateY(-25%);
+				}
+				.navbar-scroll-replace .menu-button {
+					font-size: 1.5rem;
+					color: white;
+					cursor: pointer;
+					padding: 6px 10px;
+					border: 1px solid white;
+					background: none;
+					border-radius: 4px;
+				}
+				.navbar-scroll-replace .menu-button:hover {
+					background-color: white;
+					color: #0c1f3f;
+				}
+				.navbar-scroll-replace .center-logo {
+					display: block;
+					position: absolute;
+					left: 50%;
+					transform: translateX(-50%);
+					color: white;
+					font-family: Canterbury;
+					font-size: 2.5rem;
+				}
+				.strip {
+					display: flex;
+					justify-content: space-between;
+					align-items: center;
 					padding: 0.5rem 2vw;
-					position: relative;
+					background-color: #0c1f3f;
+					position: sticky;
+					top: 0;
+					z-index: 1100;
 					margin-top: 1.5vh;
 				}
 				.left {
@@ -447,7 +516,7 @@ function NavBar() {
 				}
 				.slideout {
 					position: absolute;
-					top: 4.5rem;
+					top: 15rem;
 					left: 0;
 					width: 150px;
 					height: calc(100vh - 4.5rem);
@@ -536,6 +605,15 @@ function NavBar() {
 				}
 			`}</style>
 
+			<div id="navbar-scroll-panel" className="navbar-scroll-replace">
+				<div className="left">
+					<button className="menu-button" onClick={() => setMenuOpen(!menuOpen)}>
+						{menuOpen ? "×" : "☰"}
+					</button>
+				</div>
+				<div className="center-logo">The Tower</div>
+			</div>
+
 			<div className="strip">
 				<div className="left">
 					<button className="menu-button" onClick={() => setMenuOpen(!menuOpen)}>
@@ -546,56 +624,49 @@ function NavBar() {
 				<div className="right">
 					<div className="menu">
 						<Button name="NEWS & FEATURES" href="/category/news-features">
-							<Link href="/category/news-features/phs-profiles">
+							<Link href="/category/news-features/phs-profiles" legacyBehavior>
 								<a>PHS Profiles</a>
 							</Link>
 						</Button>
 						<Button name="MULTIMEDIA" href="/category/multimedia" />
 						<Button name="OPINIONS" href="/category/opinions">
-							<Link href="/category/opinions/editorials">
+							<Link href="/category/opinions/editorials" legacyBehavior>
 								<a>Editorials</a>
 							</Link>
 							<hr />
-							<Link href="/category/opinions/cheers-jeers">
+							<Link href="/category/opinions/cheers-jeers" legacyBehavior>
 								<a>Cheers & Jeers</a>
 							</Link>
 						</Button>
 						<Button name="VANGUARD" href="/category/vanguard">
-							<Link href="/category/vanguard">
+							<Link href="/category/vanguard" legacyBehavior>
 								<a>Spreads</a>
 							</Link>
 							<hr />
-							<Link href="/category/vanguard/vanguard">
+							<Link href="/category/vanguard/vanguard" legacyBehavior>
 								<a>Articles</a>
 							</Link>
 						</Button>
 						<Button name="ARTS & ENTERTAINMENT" href="/category/arts-entertainment">
-							<Link href="/category/arts-entertainment/student-artists">
+							<Link href="/category/arts-entertainment/student-artists" legacyBehavior>
 								<a>Student Artists</a>
 							</Link>
 						</Button>
 						<Button name="SPORTS" href="/category/sports">
-							<Link href="/category/sports/student-athletes">
+							<Link href="/category/sports/student-athletes" legacyBehavior>
 								<a>Student Athletes</a>
 							</Link>
 						</Button>
 						<Button name="CROSSWORD" href="/games/crossword" />
 						<Button name="ABOUT" href="/about">
-							<Link href="/about/2025">
-								<a>2025 Staff</a>
-							</Link>
-							<hr />
-							<Link href="/about/2024">
-								<a>2024 Staff</a>
-							</Link>
-							<hr />
-							<Link href="/about/2023">
-								<a>2023 Staff</a>
-							</Link>
-							<hr />
-							<Link href="/about/2022">
-								<a>2022 Staff</a>
-							</Link>
+							{["2025", "2024", "2023", "2022"].map(yr => (
+								<>
+									<Link href={`/about/${yr}`} legacyBehavior>
+										<a>{yr} Staff</a>
+									</Link>
+									<hr />
+								</>
+							))}
 						</Button>
 						<Button name="ARCHIVES" href="/archives" />
 					</div>
@@ -614,34 +685,15 @@ function NavBar() {
 					<button onClick={handleSearch}>Go</button>
 				</div>
 				<ul>
-					{["NEWS", "MULTIMEDIA", "OPINIONS", "VANGUARD", "ARTS", "SPORTS", "ABOUT", "ARCHIVES"].map((item, i) => (
+					{Object.keys(subItems).map((item, i) => (
 						<li key={i}>
-							<Link
-								href={
-									item === "NEWS"
-										? "/category/news-features"
-										: item === "OPINIONS"
-										? "/category/opinions"
-										: item === "VANGUARD"
-										? "/category/vanguard"
-										: item === "ARTS"
-										? "/category/arts-entertainment"
-										: item === "SPORTS"
-										? "/category/sports"
-										: item === "MULTIMEDIA"
-										? "/category/multimedia"
-										: item === "ABOUT"
-										? "/about"
-										: "/archives"
-								}
-							>
+							<Link href={`/${item.toLowerCase()}`} legacyBehavior>
 								<a onClick={closeMenu}>{item}</a>
 							</Link>
-
 							{subItems[item as keyof typeof subItems] && (
 								<div className="submenu">
-									{subItems[item as keyof typeof subItems]?.map((sub, j) => (
-										<Link key={j} href={sub.href}>
+									{subItems[item as keyof typeof subItems].map((sub, j) => (
+										<Link key={j} href={sub.href} legacyBehavior>
 											<a onClick={closeMenu}>{`→ ${sub.label}`}</a>
 										</Link>
 									))}
