@@ -150,7 +150,7 @@ function Banner() {
 				}
 				@media screen and (max-width: 1000px) {
 					.sub,
-					.search {
+					.search input {
 						display: none;
 					}
 				}
