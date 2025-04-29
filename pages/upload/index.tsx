@@ -52,6 +52,7 @@ export default function Upload() {
 	const [previewDisplay, setPreviewDisplay] = useState("none");
 	const [previewContent, setPreviewContent] = useState("");
 	const [isCompressing, setIsCompressing] = useState(false);
+	const [compressionSummary, setCompressionSummary] = useState<string | null>(null);
 
 	const errorRef = useRef<HTMLParagraphElement>(null);
 
@@ -67,6 +68,13 @@ export default function Upload() {
 			return () => clearTimeout(timer);
 		}
 	}, [uploadStatus]);
+
+	useEffect(() => {
+		if (compressionSummary) {
+			const timer = setTimeout(() => setCompressionSummary(null), 4000);
+			return () => clearTimeout(timer);
+		}
+	}, [compressionSummary]);
 
 	useEffect(() => {
 		setHydrated(true);
@@ -177,8 +185,13 @@ export default function Upload() {
 					maxWidthOrHeight: 3000,
 					useWebWorker: true,
 				};
+				const originalSize = file.size;
 				const compressed = await imageCompression(file, options);
-				console.log("Compressed image from", (file.size / 1024 / 1024).toFixed(2), "MB to", (compressed.size / 1024 / 1024).toFixed(2), "MB");
+
+				const beforeMB = (originalSize / 1024 / 1024).toFixed(2);
+				const afterMB = (compressed.size / 1024 / 1024).toFixed(2);
+
+				setCompressionSummary(`Compressed: ${beforeMB}MB → ${afterMB}MB`);
 				file = compressed;
 			} catch (err) {
 				console.warn("Image compression failed, using original:", err);
@@ -413,7 +426,7 @@ export default function Upload() {
 				<meta property="og:description" content="Section editors upload content here." />
 			</Head>
 
-			{isCompressing && (
+			{(isCompressing || compressionSummary) && (
 				<div
 					style={{
 						position: "fixed",
@@ -429,7 +442,7 @@ export default function Upload() {
 						fontSize: "1.4rem",
 					}}
 				>
-					Compressing image...
+					{isCompressing ? "Compressing image..." : compressionSummary}
 				</div>
 			)}
 
