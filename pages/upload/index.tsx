@@ -51,6 +51,8 @@ export default function Upload() {
 	const [uploadResponse, setUploadResponse] = useState("");
 	const [previewDisplay, setPreviewDisplay] = useState("none");
 	const [previewContent, setPreviewContent] = useState("");
+	const [isCompressing, setIsCompressing] = useState(false);
+
 	const errorRef = useRef<HTMLParagraphElement>(null);
 
 	// Saving indicator state
@@ -153,9 +155,10 @@ export default function Upload() {
 	}
 
 	// Update image: Accept only valid image types; max size 50 MB.
-	function updateImage(e: ChangeEvent<HTMLInputElement>) {
+	async function updateImage(e: ChangeEvent<HTMLInputElement>) {
 		if (!e.target.files || !e.target.files[0]) return;
-		const file = e.target.files[0];
+		let file = e.target.files[0];
+
 		const validExtensions = [".jpg", ".jpeg", ".png", ".gif"];
 		const nameLower = file.name.toLowerCase();
 		if (!validExtensions.some(ext => nameLower.endsWith(ext))) {
@@ -164,13 +167,27 @@ export default function Upload() {
 			setFormData({ ...formData, img: null, imgData: null, imgName: null });
 			return;
 		}
-		const fiftyMB = 50 * 1024 * 1024;
-		if (file.size > fiftyMB) {
-			alert("Error processing image: file is too large (max 50 MB).");
-			e.target.value = "";
-			setFormData({ ...formData, img: null, imgData: null, imgName: null });
-			return;
+
+		// 🔥 If image is larger than 4.5MB, compress it immediately
+		if (file.size > 4.5 * 1024 * 1024) {
+			try {
+				setIsCompressing(true); // 🚀 start compressing
+				const options = {
+					maxSizeMB: 3, // Try compressing to ~3MB
+					maxWidthOrHeight: 3000,
+					useWebWorker: true,
+				};
+				const compressed = await imageCompression(file, options);
+				console.log("Compressed image from", (file.size / 1024 / 1024).toFixed(2), "MB to", (compressed.size / 1024 / 1024).toFixed(2), "MB");
+				file = compressed;
+			} catch (err) {
+				console.warn("Image compression failed, using original:", err);
+			} finally {
+				setIsCompressing(false); // ✅ done compressing
+			}
 		}
+
+		// Read the (compressed or original) file
 		const reader = new FileReader();
 		reader.onload = () => {
 			setFormData({
@@ -211,21 +228,38 @@ export default function Upload() {
 	async function attemptUpload(fd: FormData, retries = 1): Promise<{ response: Response; data: any }> {
 		try {
 			let response = await fetch("/api/upload", { method: "POST", body: fd });
-			let data = await response.json();
-			if (!response.ok) {
-				if (retries > 0) {
-					return await attemptUpload(fd, retries - 1);
-				} else {
-					throw new Error(data.message || "Failed to upload");
+			let contentType = response.headers.get("content-type") || "";
+
+			let data;
+			if (contentType.includes("application/json")) {
+				try {
+					data = await response.json();
+				} catch (err) {
+					console.error("Failed to parse JSON:", err);
+					data = { message: "Invalid JSON response from server." };
 				}
+			} else {
+				const text = await response.text();
+
+				// If it's a common file-size error, throw something clear
+				if (text.toLowerCase().includes("entity too large")) {
+					throw new Error("Image is too large to upload. Try compressing or using a smaller image.");
+				}
+
+				// Fallback
+				console.error("Unexpected text response:", text);
+				throw new Error(text);
 			}
+
+			if (!response.ok) {
+				if (retries > 0) return await attemptUpload(fd, retries - 1);
+				throw new Error(data.message || "Upload failed");
+			}
+
 			return { response, data };
 		} catch (error: any) {
-			if (retries > 0) {
-				return await attemptUpload(fd, retries - 1);
-			} else {
-				throw error;
-			}
+			if (retries > 0) return await attemptUpload(fd, retries - 1);
+			throw error;
 		}
 	}
 
@@ -378,6 +412,27 @@ export default function Upload() {
 				<meta property="og:title" content="Upload Articles | The Tower" />
 				<meta property="og:description" content="Section editors upload content here." />
 			</Head>
+
+			{isCompressing && (
+				<div
+					style={{
+						position: "fixed",
+						top: "20px",
+						right: "20px",
+						backgroundColor: "#333",
+						color: "white",
+						padding: "10px 20px",
+						borderRadius: "8px",
+						boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
+						zIndex: 1000,
+						animation: "fadeIn 0.3s ease",
+						fontSize: "1.4rem",
+					}}
+				>
+					Compressing image...
+				</div>
+			)}
+
 			<div id={styles.formWrapper}>
 				<h2>PHS Tower Submission Platform</h2>
 				<p>
