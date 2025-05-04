@@ -183,7 +183,7 @@ export default function Multimedia({ videos: initialVideos, pods: initialPods }:
 
 						{videos.map(v => (
 							<div key={v.id} className="video-wrapper">
-								<Video link={v.src_id} title={v.title} />
+								<Video link={v.src_id ?? ""} title={v.title ?? ""} />
 								<br />
 							</div>
 						))}
@@ -205,7 +205,7 @@ export default function Multimedia({ videos: initialVideos, pods: initialPods }:
 					<section className="rightbar">
 						<h2>Tower Shorts</h2>
 						{pods.map(p => (
-							<Podcast key={p.id} link={p.src_id} />
+							<Podcast key={p.id} link={p.src_id ?? ""} />
 						))}
 						<p style={{ display: loadingP.display }}>{loadingP.text}</p>
 						<button className="loadmore" onClick={loadMorePods}>

@@ -46,14 +46,31 @@ interface Params {
 export async function getServerSideProps({ params }: Params) {
 	const article_id = params.slug.split("-").slice(-1)[0];
 
-	let processedArticle: ExtendedArticle | null = null;
+	let raw = null as Awaited<ReturnType<typeof getArticle>>;
+
 	if (isNaN(Number(article_id))) {
-		processedArticle = await getArticle(params.year, params.month, params.cat, "null", params.slug);
+		raw = await getArticle(params.year, params.month, params.cat, "null", params.slug);
 	} else {
-		processedArticle = await getArticle(params.year, params.month, params.cat, article_id, params.slug);
+		raw = await getArticle(params.year, params.month, params.cat, article_id, params.slug);
 	}
 
-	if (!processedArticle) return { redirect: { permanent: false, destination: "/404" } };
+	if (!raw) return { redirect: { permanent: false, destination: "/404" } };
+
+	const processedArticle: ExtendedArticle = {
+		id: raw.id,
+		title: raw.title,
+		content: raw.content,
+		published: raw.published,
+		category: raw.category,
+		subcategory: raw.subcategory,
+		authors: raw.authors,
+		month: raw.month,
+		year: raw.year,
+		img: raw.img,
+		featured: raw.featured ?? false,
+		markdown: raw.markdown ?? false,
+		contentInfo: raw.contentInfo ?? null,
+	};
 
 	if (processedArticle.markdown) {
 		const marked = await remark().use(html).process(processedArticle.content);

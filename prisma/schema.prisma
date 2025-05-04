@@ -33,14 +33,14 @@ model spreads {
 }
 
 model crossword {
-  id     BigInt   @id @default(autoincrement())
+  id Int @id @default(autoincrement())
   date   DateTime @unique(map: "crossword_created_at_key") @db.Date
   author String   @db.VarChar
   clues  String
 }
 
 model multimedia {
-  id     BigInt  @id @default(autoincrement())
+  id Int @id @default(autoincrement())
   format String? @db.VarChar
   src_id String? @db.VarChar
   month  Int?    @db.SmallInt

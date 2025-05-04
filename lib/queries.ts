@@ -233,7 +233,7 @@ export async function getArticlesExceptCategory(cat: string) {
 		let c = cats[i];
 		if (c == cat) continue;
 		let id = await getIdOfNewest(c, c);
-		let cArticles = await getArticlesByCategory(c, 2, id, 0);
+		let cArticles = await getArticlesByCategory(c, 2, Number(id), 0);
 		articles.push(...cArticles);
 	}
 
