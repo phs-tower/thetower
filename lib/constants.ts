@@ -1,12 +1,9 @@
 /** @format */
-import { FaFacebookSquare } from "@react-icons/all-files/fa/FaFacebookSquare";
-import { FaInstagramSquare } from "@react-icons/all-files/fa/FaInstagramSquare";
-import { FaYoutubeSquare } from "@react-icons/all-files/fa/FaYoutubeSquare";
-import { FaSpotify } from "@react-icons/all-files/fa/FaSpotify";
-import { SiApplepodcasts } from "@react-icons/all-files/si/SiApplepodcasts";
-import type { IconType } from "react-icons";
 
-export const socialLinks: { name: string; url: string; icon: IconType }[] = [
+import { FaFacebookSquare, FaInstagramSquare, FaYoutubeSquare, FaSpotify } from "react-icons/fa";
+import { SiApplepodcasts } from "react-icons/si";
+
+export const socialLinks = [
 	{
 		name: "Instagram",
 		url: "https://www.instagram.com/thetowerphs/",

@@ -277,18 +277,18 @@ function Footer() {
 			<hr />
 			<div className="top">
 				<h1>The Tower</h1>
-				{socialLinks.map(({ name, url, icon: Icon }) => (
-					<a
-						key={name}
-						href={url}
-						target="_blank"
-						rel="noopener noreferrer"
-						aria-label={name}
-						style={{ marginRight: "0.5rem" }} // optional spacing
-					>
-						<Icon size={name === "YouTube" || name === "Spotify" || name === "Apple Podcasts" ? "3.5rem" : "2.2em"} />
-					</a>
-				))}
+				{socialLinks.map(({ name, url, icon }) => {
+					// locally cast it to a component that accepts a `size` prop
+					const IconComponent = icon as React.ComponentType<{ size?: string }>;
+					const iconSize = ["YouTube", "Spotify", "Apple Podcasts"].includes(name) ? "3.5rem" : "2.2em";
+
+					return (
+						<a key={name} href={url} target="_blank" rel="noopener noreferrer" aria-label={name}>
+							<IconComponent size={iconSize} />
+						</a>
+					);
+				})}
+
 				<Link
 					href="https://docs.google.com/forms/d/e/1FAIpQLSeine_aZUId0y2OjY2FZyJ93ZliGQZos-6c3VwkPg2IhXsGfg/viewform?usp=sf_link"
 					legacyBehavior

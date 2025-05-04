@@ -9,6 +9,7 @@ import ArticlePreview from "~/components/preview.client";
 import styles from "~/lib/styles";
 import shuffle from "lodash/shuffle";
 import { socialLinks } from "~/lib/constants";
+import React from "react";
 
 interface Props {
 	articles: article[];
@@ -179,12 +180,17 @@ export default function Subscribe({ articles }: Props) {
 						<em>The Tower</em> Student Newspaper Subscription
 					</h1>
 
-					<div className="social-icons">
-						{socialLinks.map(({ name, url, icon: Icon }) => (
-							<a key={name} href={url} target="_blank" rel="noopener noreferrer" aria-label={name}>
-								<Icon size="2em" />
-							</a>
-						))}
+					<div className="social‐icons">
+						{socialLinks.map(({ name, url, icon }) => {
+							// cast to a real component type
+							const IconComponent = icon as React.ElementType;
+							return (
+								<a key={name} href={url} target="_blank" rel="noopener noreferrer" aria-label={name}>
+									{/* now TS is happy */}
+									<IconComponent size="2em" />
+								</a>
+							);
+						})}
 					</div>
 
 					<p style={{ marginTop: "1.6rem" }}>Dear Tower Families, Friends, and Readers,</p>

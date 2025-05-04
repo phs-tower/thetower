@@ -169,11 +169,15 @@ export default function Multimedia({ videos: initialVideos, pods: initialPods }:
 						<div className="topbar">
 							<div className="social-icons">
 								<span className="follow-text">Follow us:</span>
-								{socialLinks.map(({ name, url, icon: Icon }) => (
-									<a key={name} href={url} target="_blank" rel="noopener noreferrer" aria-label={name}>
-										<Icon size="1.7em" />
-									</a>
-								))}
+								{socialLinks.map(({ name, url, icon }) => {
+									// tell TS this is a component that takes a `size` prop
+									const IconComponent = icon as React.ComponentType<{ size?: string }>;
+									return (
+										<a key={name} href={url} target="_blank" rel="noopener noreferrer" aria-label={name}>
+											<IconComponent size="1.7em" />
+										</a>
+									);
+								})}
 							</div>
 						</div>
 
