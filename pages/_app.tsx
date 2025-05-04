@@ -10,6 +10,7 @@ import "~/styles/styles.scss";
 import styles from "~/lib/styles";
 import { useRouter } from "next/router";
 import { socialLinks } from "~/lib/constants";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 export default function App({ Component, pageProps }: AppProps) {
 	return (
@@ -40,6 +41,7 @@ export default function App({ Component, pageProps }: AppProps) {
 
 				<Component {...pageProps} />
 			</main>
+			<SpeedInsights />
 
 			<Footer />
 		</div>
