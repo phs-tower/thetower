@@ -3,12 +3,11 @@
 import { article } from "@prisma/client";
 import Head from "next/head";
 import ArticlePreview from "~/components/preview.client";
-import { getArticlesExceptCategory } from "~/lib/queries";
+import { getArticlesExceptCategory, getArticlesByCategory } from "~/lib/queries";
 import { expandCategorySlug } from "~/lib/utils";
 import shuffle from "lodash/shuffle";
 import styles from "~/lib/styles";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/router";
+import { useState } from "react";
 
 interface Params {
 	params: { category: string };
@@ -21,29 +20,26 @@ interface Props {
 }
 
 export async function getServerSideProps({ params }: Params) {
+	const [articles, sidebarRaw] = await Promise.all([getArticlesByCategory(params.category, 10, 0, 0), getArticlesExceptCategory(params.category)]);
+
 	return {
 		props: {
 			category: params.category,
-			articles: [], // We'll fetch these via /api/load after mount
-			sidebar: shuffle(await getArticlesExceptCategory(params.category)),
+			articles,
+			sidebar: shuffle(sidebarRaw),
 		},
 	};
 }
 
 export default function Category(props: Props) {
+	const { category, sidebar } = props;
+
 	const [articles, setArticles] = useState<article[]>(props.articles);
-	const [cursor, setCursor] = useState<number | null>(null);
+	const [cursor, setCursor] = useState<number | null>(props.articles.length > 0 ? props.articles[props.articles.length - 1].id : null);
 	const [loadingDisplay, setLoadingDisplay] = useState<"none" | "block">("none");
 	const [loadingContent, setLoadingContent] = useState("Loading articles, please wait...");
 	const [showSidebar, setShowSidebar] = useState(false);
 
-	const category = props.category;
-	const sidebar = props.sidebar;
-
-	const router = useRouter();
-	const route = router.asPath; // triggers effect on route changes
-
-	/** Load more articles on “Load More” button */
 	async function newArticles() {
 		setLoadingContent("Loading articles, please wait...");
 		setLoadingDisplay("block");
@@ -53,8 +49,8 @@ export default function Category(props: Props) {
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({ category, cursor }),
 		});
-
 		const loaded = await res.json();
+
 		if (loaded.length > 0) {
 			setArticles(prev => [...prev, ...loaded]);
 			setCursor(loaded[loaded.length - 1].id);
@@ -63,28 +59,6 @@ export default function Category(props: Props) {
 			setLoadingContent("No more articles to load.");
 		}
 	}
-
-	/** On mount or route change, fetch the initial set of articles */
-	useEffect(() => {
-		async function fetchArticles() {
-			setLoadingContent("Loading articles, please wait...");
-			setLoadingDisplay("block");
-			setCursor(null);
-
-			const res = await fetch("/api/load/load", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ category, cursor: null }),
-			});
-
-			const data = await res.json();
-			setArticles(data);
-			setCursor(data[data.length - 1]?.id || null);
-
-			setLoadingDisplay("none");
-		}
-		fetchArticles();
-	}, [route, category]);
 
 	return (
 		<div className="category">
@@ -154,11 +128,7 @@ export default function Category(props: Props) {
 						display: inline-block;
 					}
 					.grid {
-						/*
-              If showSidebar is false => second column is 0 (hidden).
-              If showSidebar is true => second column is 0.6fr
-              (makes the sidebar smaller relative to main).
-            */
+						/* If showSidebar is false => second column is 0 (hidden). If showSidebar is true => second column is 0.6fr	(makes the sidebar smaller relative to main).*/
 						grid-template-columns: ${showSidebar ? "1fr 0.6fr" : "1fr 0"};
 					}
 					.sidebar {
@@ -170,13 +140,11 @@ export default function Category(props: Props) {
 
 			<h1>{expandCategorySlug(category)}</h1>
 
-			{/* Mobile toggle button (below 1000px) */}
 			<button className="sidebar-toggle" onClick={() => setShowSidebar(prev => !prev)}>
 				{showSidebar ? "Hide Sidebar" : "Show Sidebar"}
 			</button>
 
 			<div className="grid">
-				{/* Main articles column */}
 				<div>
 					<section>
 						{articles.map(a => (
@@ -190,26 +158,12 @@ export default function Category(props: Props) {
 						Load more
 					</button>
 				</div>
-
-				{/* Sidebar column */}
 				<section className="sidebar">
-					<SidebarArticles sidebar={sidebar} />
+					{sidebar.map(s => (
+						<ArticlePreview key={s.id} article={s} style="row" size="small" category />
+					))}
 				</section>
 			</div>
 		</div>
-	);
-}
-
-interface SidebarProps {
-	sidebar: article[];
-}
-
-function SidebarArticles({ sidebar }: SidebarProps) {
-	return (
-		<>
-			{sidebar.map(s => (
-				<ArticlePreview key={s.id} article={s} style="row" size="small" category />
-			))}
-		</>
 	);
 }
