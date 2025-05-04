@@ -8,6 +8,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
 	const cursor = req.body.cursor;
 
-	const crosswords = cursor != null ? await getCrosswords(10, cursor, 1) : await getCrosswords(10, Number(await getIdOfNewestCrossword()), 0);
+	const crosswords = cursor != null ? await getCrosswords(10, cursor, 1) : await getCrosswords(10, await getIdOfNewestCrossword(), 0);
 	return res.status(200).json(crosswords);
 }

@@ -232,7 +232,7 @@ export async function getArticlesExceptCategory(cat: string) {
 		// TODO: use foreach but make it actually work
 		let c = cats[i];
 		if (c == cat) continue;
-		const id = Number(await getIdOfNewest(c, c));
+		let id = await getIdOfNewest(c, c);
 		let cArticles = await getArticlesByCategory(c, 2, id, 0);
 		articles.push(...cArticles);
 	}
