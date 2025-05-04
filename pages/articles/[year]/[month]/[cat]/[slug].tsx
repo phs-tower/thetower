@@ -91,7 +91,7 @@ export default function Article({ article }: Props) {
 
 		const handleScroll = () => {
 			if (!isMobile) {
-				setScrolledPast(window.scrollY > 85);
+				setScrolledPast(window.scrollY > 100);
 			}
 		};
 
@@ -247,8 +247,8 @@ export default function Article({ article }: Props) {
 				className="category-label"
 				style={{
 					position: !isMobile && scrolledPast ? "fixed" : "absolute",
-					top: !isMobile && scrolledPast ? "7rem" : "-2rem",
-					right: !isMobile && scrolledPast ? "7rem" : "1.9rem",
+					top: !isMobile && scrolledPast ? "8.1rem" : "-2rem",
+					right: !isMobile && scrolledPast ? "7.1rem" : "2rem",
 					zIndex: 1000,
 				}}
 			>

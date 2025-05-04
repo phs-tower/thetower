@@ -23,10 +23,11 @@ interface Props {
 }
 
 export async function getServerSideProps({ params }: Params) {
+	const sub = params.subcategory;
 	return {
 		props: {
-			subcategory: params.subcategory,
-			articles: await getArticlesBySubcategory(params.subcategory, 10, await getIdOfNewest(params.subcategory, params.subcategory), 0),
+			subcategory: sub,
+			articles: await getArticlesBySubcategory(sub, 10, await getIdOfNewest(sub, sub), 0),
 			sidebar: await getCurrArticles(),
 		},
 	};
@@ -34,9 +35,11 @@ export async function getServerSideProps({ params }: Params) {
 
 export default function Subcategory(props: Props) {
 	const [articles, setArticles] = useState(props.articles);
-	const [cursor, setCursor] = useState(null);
+	const [cursor, setCursor] = useState<number | null>(props.articles.length > 0 ? props.articles[props.articles.length - 1].id : null);
 	const [loadingContent, setLoadingContent] = useState("Loading articles, please wait...");
-	const [loadingDisplay, setLoadingDisplay] = useState("none");
+	const [loadingDisplay, setLoadingDisplay] = useState<"none" | "block">("none");
+	const [showSidebar, setShowSidebar] = useState(false);
+
 	const subcategory = props.subcategory;
 	const sidebar = props.sidebar;
 	const route = useRouter().asPath;
@@ -53,9 +56,9 @@ export default function Subcategory(props: Props) {
 			body: JSON.stringify({ subcategory, cursor }),
 		});
 
-		const loaded = await response.json();
-		if (loaded.length != 0) {
-			setArticles([...articles, ...loaded]);
+		const loaded: article[] = await response.json();
+		if (loaded.length !== 0) {
+			setArticles(prev => [...prev, ...loaded]);
 			setCursor(loaded[loaded.length - 1].id);
 			setLoadingDisplay("none");
 		} else {
@@ -77,33 +80,43 @@ export default function Subcategory(props: Props) {
 				body: JSON.stringify({ subcategory, cursor: null }),
 			});
 
-			articleRes.json().then(recvd => {
-				console.log(recvd);
-				setArticles(recvd);
-				setCursor(recvd[recvd.length - 1].id);
-			});
-
+			const recvd: article[] = await articleRes.json();
+			setArticles(recvd);
+			setCursor(recvd.length > 0 ? recvd[recvd.length - 1].id : null);
 			setLoadingDisplay("none");
 		}
 
 		setData();
-	}, [route, subcategory, setLoadingContent, setLoadingDisplay, setCursor, setArticles]);
+	}, [route, subcategory]);
 
 	return (
 		<div className="subcategory">
 			<Head>
 				<title>{`${expandCategorySlug(subcategory)} | The Tower`}</title>
-				<meta property="og:title" content={expandCategorySlug(subcategory) + " | The Tower"} />
-				<meta property="og:description" content={expandCategorySlug(subcategory) + " at the Tower"} />
+				<meta property="og:title" content={`${expandCategorySlug(subcategory)} | The Tower`} />
+				<meta property="og:description" content={`${expandCategorySlug(subcategory)} at the Tower`} />
 			</Head>
+
 			<style jsx>{`
 				.subcategory {
 					min-height: 100vh;
 				}
 				h1 {
-					text-align: right;
+					text-align: center;
 					border-bottom: 3px double black;
 					margin-bottom: 1vh;
+				}
+				/* Mobile toggle button */
+				.sidebar-toggle {
+					display: none;
+					margin-bottom: 1rem;
+					background: ${styles.color.accent};
+					color: white;
+					border: none;
+					padding: 0.6rem 1.2rem;
+					font-size: 1.4rem;
+					border-radius: 5px;
+					cursor: pointer;
 				}
 				.grid {
 					display: grid;
@@ -117,37 +130,52 @@ export default function Subcategory(props: Props) {
 					border: none;
 					border-left: 1px solid gainsboro;
 					border-right: 1px solid gainsboro;
+					opacity: 1;
+					transition: opacity 0.2s, border 0.2s;
 				}
-
 				#loadmore {
 					border-radius: 2rem;
 					font-family: ${styles.font.sans};
 					font-size: 1.6rem;
 					color: black;
 					background-color: white;
-					border-style: solid;
-					border-color: ${styles.color.darkAccent};
-					padding: 0.5rem;
-					padding-left: 0.75rem;
-					padding-right: 0.75rem;
+					border: 1px solid ${styles.color.darkAccent};
+					padding: 0.5rem 0.75rem;
 					transition: 0.25s;
 				}
-
 				#loadmore:hover {
 					color: white;
 					background-color: ${styles.color.darkAccent};
 				}
-
 				#loading {
 					display: none;
 				}
+
+				@media (max-width: 1000px) {
+					.sidebar-toggle {
+						display: inline-block;
+					}
+					.grid {
+						/* hide or show sidebar based on state */
+						grid-template-columns: ${showSidebar ? "1fr 0.6fr" : "1fr 0"};
+					}
+					.grid .sidebar {
+						border: ${showSidebar ? "1px solid gainsboro" : "none"};
+						opacity: ${showSidebar ? "1" : "0"};
+					}
+				}
 			`}</style>
+
 			<h1>{expandCategorySlug(subcategory)}</h1>
+			<button className="sidebar-toggle" onClick={() => setShowSidebar(s => !s)}>
+				{showSidebar ? "Hide Sidebar" : "Show Sidebar"}
+			</button>
+
 			<div className="grid">
 				<div>
 					<section>
-						{articles.map(article => (
-							<ArticlePreview key={article.id} article={article} style="row" size="category-list" />
+						{articles.map(art => (
+							<ArticlePreview key={art.id} article={art} style="row" size="category-list" />
 						))}
 					</section>
 					<p id="loading" style={{ display: loadingDisplay }}>
@@ -158,7 +186,9 @@ export default function Subcategory(props: Props) {
 					</button>
 				</div>
 				<section className="sidebar">
-					<SidebarArticles sidebar={sidebar} />
+					{shuffle(sidebar).map(s => (
+						<ArticlePreview key={s.id} article={s} style="row" size="small" category />
+					))}
 				</section>
 			</div>
 		</div>
@@ -170,11 +200,11 @@ interface SidebarProps {
 }
 
 function SidebarArticles({ sidebar }: SidebarProps) {
-	let articles = shuffle(sidebar);
+	const articles = shuffle(sidebar);
 	return (
 		<>
-			{articles.map(article => (
-				<ArticlePreview key={article.id} article={article} style="row" size="small" category />
+			{articles.map(art => (
+				<ArticlePreview key={art.id} article={art} style="row" size="small" category />
 			))}
 		</>
 	);

@@ -1,5 +1,6 @@
 /** @format */
 
+import { useState, useEffect } from "react";
 import { article } from "@prisma/client";
 import Head from "next/head";
 import ArticlePreview from "~/components/preview.client";
@@ -7,10 +8,11 @@ import { getArticlesExceptCategory, getArticlesByCategory } from "~/lib/queries"
 import { expandCategorySlug } from "~/lib/utils";
 import shuffle from "lodash/shuffle";
 import styles from "~/lib/styles";
-import { useState } from "react";
+import type { GetStaticPaths, GetStaticProps } from "next";
+import { ParsedUrlQuery } from "querystring";
 
-interface Params {
-	params: { category: string };
+interface Params extends ParsedUrlQuery {
+	category: string;
 }
 
 interface Props {
@@ -19,28 +21,46 @@ interface Props {
 	sidebar: article[];
 }
 
-export async function getServerSideProps({ params }: Params) {
-	const [articles, sidebarRaw] = await Promise.all([getArticlesByCategory(params.category, 10, 0, 0), getArticlesExceptCategory(params.category)]);
+export const getStaticPaths: GetStaticPaths<Params> = async () => {
+	const categories = ["news-features", "opinions", "arts-entertainment", "sports"];
+	return {
+		paths: categories.map(cat => ({ params: { category: cat } })),
+		fallback: "blocking",
+	};
+};
+
+export const getStaticProps: GetStaticProps<Props, Params> = async ({ params }) => {
+	const [initialArticles, sidebarRaw] = await Promise.all([
+		getArticlesByCategory(params!.category, 10, 0, 0),
+		getArticlesExceptCategory(params!.category),
+	]);
 
 	return {
 		props: {
-			category: params.category,
-			articles,
+			category: params!.category,
+			articles: initialArticles,
 			sidebar: shuffle(sidebarRaw),
 		},
+		revalidate: 60,
 	};
-}
+};
 
-export default function Category(props: Props) {
-	const { category, sidebar } = props;
+export default function CategoryPage(props: Props) {
+	const { category, sidebar, articles: initialArticles } = props;
 
-	const [articles, setArticles] = useState<article[]>(props.articles);
-	const [cursor, setCursor] = useState<number | null>(props.articles.length > 0 ? props.articles[props.articles.length - 1].id : null);
+	const [articles, setArticles] = useState<article[]>(initialArticles);
+	const [cursor, setCursor] = useState<number | null>(initialArticles.length > 0 ? initialArticles[initialArticles.length - 1].id : null);
 	const [loadingDisplay, setLoadingDisplay] = useState<"none" | "block">("none");
 	const [loadingContent, setLoadingContent] = useState("Loading articles, please wait...");
 	const [showSidebar, setShowSidebar] = useState(false);
 
-	async function newArticles() {
+	// Reset state when props.articles changes (on category switch)
+	useEffect(() => {
+		setArticles(initialArticles);
+		setCursor(initialArticles.length > 0 ? initialArticles[initialArticles.length - 1].id : null);
+	}, [initialArticles]);
+
+	async function loadMore() {
 		setLoadingContent("Loading articles, please wait...");
 		setLoadingDisplay("block");
 
@@ -49,11 +69,11 @@ export default function Category(props: Props) {
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({ category, cursor }),
 		});
-		const loaded = await res.json();
+		const more: article[] = await res.json();
 
-		if (loaded.length > 0) {
-			setArticles(prev => [...prev, ...loaded]);
-			setCursor(loaded[loaded.length - 1].id);
+		if (more.length > 0) {
+			setArticles(prev => [...prev, ...more]);
+			setCursor(more[more.length - 1].id);
 			setLoadingDisplay("none");
 		} else {
 			setLoadingContent("No more articles to load.");
@@ -140,7 +160,7 @@ export default function Category(props: Props) {
 
 			<h1>{expandCategorySlug(category)}</h1>
 
-			<button className="sidebar-toggle" onClick={() => setShowSidebar(prev => !prev)}>
+			<button className="sidebar-toggle" onClick={() => setShowSidebar(s => !s)}>
 				{showSidebar ? "Hide Sidebar" : "Show Sidebar"}
 			</button>
 
@@ -154,7 +174,7 @@ export default function Category(props: Props) {
 					<p id="loading" style={{ display: loadingDisplay }}>
 						{loadingContent}
 					</p>
-					<button id="loadmore" onClick={newArticles}>
+					<button id="loadmore" onClick={loadMore}>
 						Load more
 					</button>
 				</div>

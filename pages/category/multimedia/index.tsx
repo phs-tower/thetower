@@ -1,80 +1,81 @@
 /** @format */
 
+import React, { useState } from "react";
+import type { GetStaticProps } from "next";
+import dynamic from "next/dynamic";
 import Head from "next/head";
-import Video from "~/components/video.client";
-import Podcast from "~/components/podcast.client";
-import { getIdOfNewest, getMultiItems } from "~/lib/queries";
 import NoSSR from "~/components/nossr.client";
+import { getIdOfNewest, getMultiItems } from "~/lib/queries";
 import styles from "~/lib/styles";
-import { useEffect, useState } from "react";
 import { multimedia } from "@prisma/client";
+
+import { socialLinks } from "~/lib/constants";
+
+// Dynamically load heavy components only on client
+const Video = dynamic(() => import("~/components/video.client"), { ssr: false });
+const Podcast = dynamic(() => import("~/components/podcast.client"), { ssr: false });
 
 interface Props {
 	videos: multimedia[];
 	pods: multimedia[];
 }
 
-export async function getServerSideProps() {
+export const getStaticProps: GetStaticProps<Props> = async () => {
+	const [videos, pods] = await Promise.all([
+		getMultiItems("youtube", 5, await getIdOfNewest("multimedia", "youtube"), 0),
+		getMultiItems("podcast", 5, await getIdOfNewest("multimedia", "podcast"), 0),
+	]);
+
 	return {
-		props: {
-			videos: await getMultiItems("youtube", 5, await getIdOfNewest("multimedia", "youtube"), 0),
-			pods: await getMultiItems("podcast", 5, await getIdOfNewest("multimedia", "podcast"), 0),
-		},
+		props: { videos, pods },
+		revalidate: 60,
 	};
-}
+};
 
-export default function Category(props: Props) {
-	const [videos, setVideos] = useState(props.videos);
-	const [vCursor, setVCursor] = useState(videos[videos.length - 1].id);
-	const [loadingVDisplay, setLoadingVDisplay] = useState("none");
-	const [loadingVContent, setLoadingVContent] = useState("Loading videos, please wait...");
+export default function Multimedia({ videos: initialVideos, pods: initialPods }: Props) {
+	// Videos state
+	const [videos, setVideos] = useState(initialVideos);
+	const [vCursor, setVCursor] = useState<number | null>(initialVideos[initialVideos.length - 1]?.id ?? null);
+	const [loadingV, setLoadingV] = useState({ display: "none", text: "Loading videos, please wait..." });
 
-	const [pods, setPods] = useState(props.pods);
-	const [pCursor, setPCursor] = useState(pods[pods.length - 1].id);
-	const [loadingPDisplay, setLoadingPDisplay] = useState("none");
-	const [loadingPContent, setLoadingPContent] = useState("Loading podcasts, please wait...");
+	// Podcasts state
+	const [pods, setPods] = useState(initialPods);
+	const [pCursor, setPCursor] = useState<number | null>(initialPods[initialPods.length - 1]?.id ?? null);
+	const [loadingP, setLoadingP] = useState({ display: "none", text: "Loading podcasts, please wait..." });
 
-	async function newVideos() {
-		setLoadingVContent("Loading videos, please wait...");
-		setLoadingVDisplay("block");
-
-		const response = await fetch("/api/load/loadsub", {
+	// Load more videos
+	async function loadMoreVideos() {
+		setLoadingV({ display: "block", text: "Loading videos, please wait..." });
+		const res = await fetch("/api/load/loadsub", {
 			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-			},
+			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({ subcategory: "youtube", cursor: vCursor }),
 		});
-
-		const loaded = await response.json();
-		if (loaded.length != 0) {
-			setVideos([...videos, ...loaded]);
-			setVCursor(loaded[loaded.length - 1].id);
-			setLoadingVDisplay("none");
+		const more: multimedia[] = await res.json();
+		if (more.length) {
+			setVideos(prev => [...prev, ...more]);
+			setVCursor(more[more.length - 1].id);
+			setLoadingV({ ...loadingV, display: "none" });
 		} else {
-			setLoadingVContent("No more videos to load.");
+			setLoadingV({ display: "block", text: "No more videos to load." });
 		}
 	}
 
-	async function newPods() {
-		setLoadingPContent("Loading podcasts, please wait...");
-		setLoadingPDisplay("block");
-
-		const response = await fetch("/api/load/loadsub", {
+	// Load more podcasts
+	async function loadMorePods() {
+		setLoadingP({ display: "block", text: "Loading podcasts, please wait..." });
+		const res = await fetch("/api/load/loadsub", {
 			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-			},
+			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({ subcategory: "podcast", cursor: pCursor }),
 		});
-
-		const loaded = await response.json();
-		if (loaded.length != 0) {
-			setPods([...pods, ...loaded]);
-			setPCursor(loaded[loaded.length - 1].id);
-			setLoadingPDisplay("none");
+		const more: multimedia[] = await res.json();
+		if (more.length) {
+			setPods(prev => [...prev, ...more]);
+			setPCursor(more[more.length - 1].id);
+			setLoadingP({ ...loadingP, display: "none" });
 		} else {
-			setLoadingPContent("No more podcasts to load.");
+			setLoadingP({ display: "block", text: "No more podcasts to load." });
 		}
 	}
 
@@ -85,19 +86,17 @@ export default function Category(props: Props) {
 				<meta property="og:title" content="Multimedia | The Tower" />
 				<meta property="og:description" content="Multimedia at the Tower" />
 			</Head>
+
 			<style jsx>{`
 				h1 {
 					text-align: center;
 					border-bottom: 3px double black;
 					margin-bottom: 1vh;
 					font-weight: bold;
-					// font-size: calc(1.5rem + 1vw);
 				}
-
 				.grid {
 					display: grid;
 					grid-template-columns: 2fr 1fr 1fr;
-					/*height: 100vh;*/
 				}
 				@media (max-width: 1000px) {
 					.grid {
@@ -112,105 +111,102 @@ export default function Category(props: Props) {
 					padding: 1vw;
 					box-sizing: border-box;
 				}
-				.sm-grid {
-					display: grid;
-					grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-					gap: 1vw;
-				}
-				.videos,
-				.papercasts {
-					height: 100%;
-					/*overflow-y: scroll;*/
-				}
-				iframe {
-					background-color: #f6f6f6;
-				}
-
 				.loadmore {
 					border-radius: 2rem;
 					font-family: ${styles.font.sans};
 					font-size: 1.6rem;
 					color: black;
 					background-color: white;
-					border-style: solid;
-					border-color: ${styles.color.darkAccent};
-					padding: 0.5rem;
-					padding-left: 0.75rem;
-					padding-right: 0.75rem;
+					border: 1px solid ${styles.color.darkAccent};
+					padding: 0.5rem 0.75rem;
 					transition: 0.25s;
+					cursor: pointer;
 				}
-
 				.loadmore:hover {
 					color: white;
 					background-color: ${styles.color.darkAccent};
 				}
 
-				#loading {
-					display: none;
+				.topbar {
+					display: flex;
+					justify-content: space-between;
+					align-items: center;
+				}
+
+				.social-icons {
+					display: flex;
+					align-items: center;
+					gap: 0.5rem;
+					margin-top: 0;
+					margin-bottom: 0;
+					color: #444;
+				}
+
+				.social-icons .follow-text {
+					font-size: 1.35rem;
+					font-family: ${styles.font.sans};
+					margin-right: 0.5rem;
+					color: #444;
+				}
+
+				.social-icons a {
+					color: inherit;
+					transition: transform 0.2s ease, color 0.2s ease;
+				}
+
+				.social-icons a:hover {
+					transform: scale(1.1);
+					color: ${styles.color.darkAccent};
 				}
 			`}</style>
+
 			<h1>Multimedia</h1>
+
 			<div className="grid">
 				<NoSSR>
 					<section className="videos">
+						{/* social bar at top */}
+						<div className="topbar">
+							<div className="social-icons">
+								<span className="follow-text">Follow us:</span>
+								{socialLinks.map(({ name, url, icon: Icon }) => (
+									<a key={name} href={url} target="_blank" rel="noopener noreferrer" aria-label={name}>
+										<Icon size="1.7em" />
+									</a>
+								))}
+							</div>
+						</div>
+
 						{videos.map(v => (
 							<div key={v.id} className="video-wrapper">
-								<Video key={v.id} link={v.src_id} title={v.title} />
+								<Video link={v.src_id} title={v.title} />
 								<br />
 							</div>
 						))}
-						<p id="loading-videos" style={{ display: loadingVDisplay }}>
-							{loadingVContent}
-						</p>
-						<button className="loadmore" onClick={newVideos}>
+						<p style={{ display: loadingV.display }}>{loadingV.text}</p>
+						<button className="loadmore" onClick={loadMoreVideos}>
 							Load more
 						</button>
-						{/* <Video link="X6yiU_yupyw" title="Diving into Testing Season at PHS" />
-						<br />
-						<Video link="OL0By_NUTP4" title="Asian Fest Hosted by PHS" />
-						<br />
-						<Video link="icIwD1E3_SI" title="PHS Jazz Ensemble's Trip to Hawaii" />
-						<br />
-						<Video link="GDDGmRkkS5A" title="Soccer Practice with Nick Matese" />
-						<br />
-						<Video link="NlVjqI7eSfc" title="To Track or Not To Track? - A Math Talk with NCTM President Kevin Dykema" />
-						<br />
-						<Video link="VEcVyFME3M0" title="The Making of Newsies" />
-						<br />
-						<Video link="Z4bZBXoVseo" title="Artist of the Month: Kevin Huang Profile" /> */}
-						{/*
-						<div className="sm-grid">
-							<Video link="Z4bZBXoVseo" title="Artist of the Month: Kevin Huang Profile" />
-						</div>*/}
 					</section>
 
-					{/*<section className="papercasts">
-						<h2>Papercasts</h2>
-					</section>*/}
 					<section className="papercasts">
 						<h2>PHS Talks</h2>
 						<em>This podcast is no longer active.</em>
 						<Podcast link="phstalks/1272351" />
 						<Podcast link="phstalks/1233141" />
 						<Podcast link="phstalks/1187999" />
-						<Podcast link="phstalks/1187999" />
 						<Podcast link="phstalks/1143064" />
 					</section>
+
 					<section className="rightbar">
 						<h2>Tower Shorts</h2>
 						{pods.map(p => (
 							<Podcast key={p.id} link={p.src_id} />
 						))}
-						<p id="loading-pods" style={{ display: loadingPDisplay }}>
-							{loadingPContent}
-						</p>
-						<button className="loadmore" onClick={newPods}>
+						<p style={{ display: loadingP.display }}>{loadingP.text}</p>
+						<button className="loadmore" onClick={loadMorePods}>
 							Load more
 						</button>
-						{/* <Podcast link="towershorts/1484378/" />
-						<Podcast link="towershorts/1412519" />
-						<Podcast link="towershorts/1342192" />
-						<Podcast link="towershorts/1369461" /> */}
 					</section>
 				</NoSSR>
 			</div>

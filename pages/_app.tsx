@@ -5,20 +5,18 @@ import Head from "next/head";
 import Link from "next/link";
 import dayjs from "dayjs";
 import { useEffect, useState } from "react"; // <-- ADDED for useEffect, useState
-import { FaFacebookSquare } from "@react-icons/all-files/fa/FaFacebookSquare";
-import { FaInstagramSquare } from "@react-icons/all-files/fa/FaInstagramSquare";
-import { FaYoutubeSquare } from "@react-icons/all-files/fa/FaYoutubeSquare";
-import { FaSpotify } from "@react-icons/all-files/fa/FaSpotify";
-import { SiApplepodcasts } from "@react-icons/all-files/si/SiApplepodcasts";
 import Button from "~/components/button.client";
 import "~/styles/styles.scss";
 import styles from "~/lib/styles";
+import { useRouter } from "next/router";
+import { socialLinks } from "~/lib/constants";
 
 export default function App({ Component, pageProps }: AppProps) {
 	return (
 		<div>
 			<Head>
 				<title>Home | The Tower</title>
+				<meta name="viewport" content="width=device-width, initial-scale=1" />
 				<link rel="icon" href="/favicon.ico" sizes="32x32" />
 			</Head>
 			<Banner />
@@ -28,12 +26,21 @@ export default function App({ Component, pageProps }: AppProps) {
 					main {
 						display: block;
 						margin-top: 4vh;
-						margin-left: 2.5vw;
-						margin-right: 2.5vw;
+						/* no side margins by default */
+					}
+
+					/* only on desktop do we add the horizontal gutters */
+					@media (min-width: 1000px) {
+						main {
+							margin-left: 2.5vw;
+							margin-right: 2.5vw;
+						}
 					}
 				`}</style>
+
 				<Component {...pageProps} />
 			</main>
+
 			<Footer />
 		</div>
 	);
@@ -204,11 +211,11 @@ function Banner() {
 						textAlign: "center",
 						color: styles.color.accent,
 						marginTop: "-8px",
-						marginBottom: "15px",
+						marginBottom: "5px",
 						fontWeight: 700,
 					}}
 				>
-					Since 1928, the monthly voice of Princeton High School.
+					Telling Stories Since 1928.
 				</p>
 			</div>
 		</div>
@@ -270,21 +277,18 @@ function Footer() {
 			<hr />
 			<div className="top">
 				<h1>The Tower</h1>
-				<a href="https://www.instagram.com/thetowerphs/" target="_blank" rel="noopener noreferrer">
-					<FaInstagramSquare size="2.2em" />
-				</a>
-				<a href="https://www.facebook.com/phstower" target="_blank" rel="noopener noreferrer">
-					<FaFacebookSquare size="2.2em" />
-				</a>
-				<a href="https://www.youtube.com/channel/UCoopcAJbsz-qlTS2xkVWplQ" target="_blank" rel="noopener noreferrer">
-					<FaYoutubeSquare size="3.5rem" />
-				</a>
-				<a href="https://open.spotify.com/show/2c0TlU1f01LKoVPaMMDxB8?si=f1fa622c0339438e" target="_blank" rel="noopener noreferrer">
-					<FaSpotify size="3.5rem" />
-				</a>
-				<a href="https://podcasts.apple.com/us/podcast/phs-talks/id1674696258" target="_blank" rel="noopener noreferrer">
-					<SiApplepodcasts size="3.5rem" />
-				</a>
+				{socialLinks.map(({ name, url, icon: Icon }) => (
+					<a
+						key={name}
+						href={url}
+						target="_blank"
+						rel="noopener noreferrer"
+						aria-label={name}
+						style={{ marginRight: "0.5rem" }} // optional spacing
+					>
+						<Icon size={name === "YouTube" || name === "Spotify" || name === "Apple Podcasts" ? "3.5rem" : "2.2em"} />
+					</a>
+				))}
 				<Link
 					href="https://docs.google.com/forms/d/e/1FAIpQLSeine_aZUId0y2OjY2FZyJ93ZliGQZos-6c3VwkPg2IhXsGfg/viewform?usp=sf_link"
 					legacyBehavior
@@ -358,6 +362,22 @@ function Footer() {
 }
 
 function NavBar() {
+	const router = useRouter();
+
+	// on mount, prefetch all category pages
+	useEffect(() => {
+		[
+			"/category/news-features",
+			"/category/multimedia",
+			"/category/opinions",
+			"/category/vanguard",
+			"/category/arts-entertainment",
+			"/category/sports",
+		].forEach(path => {
+			router.prefetch(path);
+		});
+	}, [router]);
+
 	return (
 		<div className="navbar" style={{ position: "sticky", top: "0", zIndex: "10" }}>
 			<style jsx>{`
