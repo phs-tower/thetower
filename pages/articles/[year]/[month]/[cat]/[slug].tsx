@@ -264,7 +264,7 @@ export default function Article({ article }: Props) {
 				className="category-label"
 				style={{
 					position: !isMobile && scrolledPast ? "fixed" : "absolute",
-					top: !isMobile && scrolledPast ? "8.1rem" : "-2rem",
+					top: !isMobile && scrolledPast ? "7.5rem" : "-2rem",
 					right: !isMobile && scrolledPast ? "7.1rem" : "2rem",
 					zIndex: 1000,
 				}}
