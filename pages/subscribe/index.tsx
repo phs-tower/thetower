@@ -180,13 +180,12 @@ export default function Subscribe({ articles }: Props) {
 						<em>The Tower</em> Student Newspaper Subscription
 					</h1>
 
-					<div className="social‐icons">
+					<div className="social-icons">
 						{socialLinks.map(({ name, url, icon }) => {
 							// cast to a real component type
 							const IconComponent = icon as React.ElementType;
 							return (
 								<a key={name} href={url} target="_blank" rel="noopener noreferrer" aria-label={name}>
-									{/* now TS is happy */}
 									<IconComponent size="2em" />
 								</a>
 							);

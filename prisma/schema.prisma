@@ -11,7 +11,6 @@ model article {
   id          Int      @id @default(autoincrement())
   title       String   @db.VarChar
   content     String
-  contentInfo String?  @map("content-info") // <-- Add this line
   published   Boolean  @default(false)
   category    String   @db.VarChar
   subcategory String   @db.VarChar
@@ -19,34 +18,32 @@ model article {
   month       Int      @db.SmallInt
   year        Int      @db.SmallInt
   img         String   @db.VarChar
-  featured    Boolean  @default(false)
-  markdown    Boolean  @default(false)
+  featured    Boolean? @default(false)
+  markdown    Boolean? @default(false)
+  contentInfo String?  @map("content-info")
 }
 
-
-
-
 model spreads {
-  id    Int    @id @default(autoincrement())
-  title String @db.VarChar
-  src   String @db.VarChar
-  month Int    @db.SmallInt
-  year  Int    @db.SmallInt
-  category String @db.VarChar
+  id       Int     @id @default(autoincrement())
+  title    String  @db.VarChar
+  src      String  @db.VarChar
+  month    Int     @db.SmallInt
+  year     Int     @db.SmallInt
+  category String? @default("vanguard") @db.VarChar
 }
 
 model crossword {
-  id     Int @id @default(autoincrement())
-  date   DateTime @db.Date @unique
-  author String @db.VarChar
-  clues  String @db.Text
+  id     BigInt   @id @default(autoincrement())
+  date   DateTime @unique(map: "crossword_created_at_key") @db.Date
+  author String   @db.VarChar
+  clues  String
 }
 
 model multimedia {
-  id      Int @id @default(autoincrement())
-  format  String @db.VarChar
-  src_id  String @db.VarChar
-  title   String @db.VarChar
-  month   Int @db.SmallInt
-  year   Int @db.SmallInt
+  id     BigInt  @id @default(autoincrement())
+  format String? @db.VarChar
+  src_id String? @db.VarChar
+  month  Int?    @db.SmallInt
+  year   Int?    @db.SmallInt
+  title  String? @db.VarChar
 }
