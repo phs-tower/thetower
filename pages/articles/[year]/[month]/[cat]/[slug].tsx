@@ -266,7 +266,7 @@ export default function Article({ article }: Props) {
 					position: !isMobile && scrolledPast ? "fixed" : "absolute",
 					top: !isMobile && scrolledPast ? "7.5rem" : "-2rem",
 					right: !isMobile && scrolledPast ? "7.1rem" : "2rem",
-					zIndex: 1000,
+					zIndex: 0,
 				}}
 			>
 				<Link href={`/category/${category}`} legacyBehavior>
