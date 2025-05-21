@@ -264,8 +264,25 @@ export default function Article({ article }: Props) {
 				className="category-label"
 				style={{
 					position: !isMobile && scrolledPast ? "fixed" : "absolute",
-					top: !isMobile && scrolledPast ? "7.5rem" : "-2rem",
-					right: !isMobile && scrolledPast ? "7.1rem" : "2rem",
+					top:
+						!isMobile && scrolledPast
+							? "7.5rem"
+							: window.innerWidth < 1136
+							? "-10rem"
+							: window.innerWidth < 1400 && window.innerWidth > 1000
+							? "-2rem"
+							: "-1.7rem",
+
+					right:
+						!isMobile && scrolledPast
+							? window.innerWidth > 2000
+								? "7.1rem"
+								: window.innerWidth < 1136
+								? "4.8rem"
+								: window.innerWidth < 1400 && window.innerWidth > 1000
+								? "5.2rem"
+								: "5.8rem"
+							: "2rem",
 					zIndex: 0,
 				}}
 			>
