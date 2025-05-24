@@ -4,16 +4,17 @@ import { article } from "@prisma/client";
 import shuffle from "lodash/shuffle";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import ArticlePreview from "~/components/preview.client";
 import { getArticlesBySubcategory, getCurrArticles, getIdOfNewest } from "~/lib/queries";
 import styles from "~/lib/styles";
 import { expandCategorySlug } from "~/lib/utils";
+import { GetStaticPaths, GetStaticProps } from "next";
+import { ParsedUrlQuery } from "querystring";
 
-interface Params {
-	params: {
-		subcategory: string;
-	};
+interface Params extends ParsedUrlQuery {
+	category: string;
+	subcategory: string;
 }
 
 interface Props {
@@ -21,17 +22,42 @@ interface Props {
 	articles: article[];
 	sidebar: article[];
 }
+export const getStaticPaths: GetStaticPaths = async () => {
+	const categoryToSubcats = {
+		"news-features": ["phs-profiles"],
+		opinions: ["editorials", "cheers-jeers"],
+		vanguard: ["random-musings", "spreads"],
+		"arts-entertainment": ["student-artists"],
+		sports: ["student-athletes"],
+	};
 
-export async function getServerSideProps({ params }: Params) {
-	const sub = params.subcategory;
+	const paths = Object.entries(categoryToSubcats).flatMap(([category, subcats]) =>
+		subcats.map(subcategory => ({
+			params: { category, subcategory },
+		}))
+	);
+
+	return {
+		paths,
+		fallback: "blocking",
+	};
+};
+
+export const getStaticProps: GetStaticProps<Props, Params> = async ({ params }) => {
+	const { category, subcategory } = params!;
+
+	const articles = await getArticlesBySubcategory(subcategory, 10, await getIdOfNewest(category, subcategory), 0);
+	const sidebar = await getCurrArticles();
+
 	return {
 		props: {
-			subcategory: sub,
-			articles: await getArticlesBySubcategory(sub, 10, await getIdOfNewest(sub, sub), 0),
-			sidebar: await getCurrArticles(),
+			subcategory,
+			articles,
+			sidebar,
 		},
+		revalidate: 60,
 	};
-}
+};
 
 export default function Subcategory(props: Props) {
 	const [articles, setArticles] = useState(props.articles);
@@ -39,10 +65,20 @@ export default function Subcategory(props: Props) {
 	const [loadingContent, setLoadingContent] = useState("Loading articles, please wait...");
 	const [loadingDisplay, setLoadingDisplay] = useState<"none" | "block">("none");
 	const [showSidebar, setShowSidebar] = useState(false);
+	const [shuffledSidebar, setShuffledSidebar] = useState<article[]>([]);
 
 	const subcategory = props.subcategory;
 	const sidebar = props.sidebar;
 	const route = useRouter().asPath;
+
+	useEffect(() => {
+		setArticles(props.articles);
+		setCursor(props.articles.length > 0 ? props.articles[props.articles.length - 1].id : null);
+	}, [props.articles, props.subcategory]);
+
+	useEffect(() => {
+		setShuffledSidebar(shuffle(sidebar));
+	}, [sidebar]);
 
 	async function newArticles() {
 		setLoadingContent("Loading articles, please wait...");
@@ -65,29 +101,6 @@ export default function Subcategory(props: Props) {
 			setLoadingContent("No more articles to load.");
 		}
 	}
-
-	useEffect(() => {
-		async function setData() {
-			setLoadingContent("Loading articles, please wait...");
-			setLoadingDisplay("block");
-			setCursor(null);
-
-			const articleRes = await fetch("/api/load/loadsub", {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify({ subcategory, cursor: null }),
-			});
-
-			const recvd: article[] = await articleRes.json();
-			setArticles(recvd);
-			setCursor(recvd.length > 0 ? recvd[recvd.length - 1].id : null);
-			setLoadingDisplay("none");
-		}
-
-		setData();
-	}, [route, subcategory]);
 
 	return (
 		<div className="subcategory">
@@ -186,7 +199,7 @@ export default function Subcategory(props: Props) {
 					</button>
 				</div>
 				<section className="sidebar">
-					{shuffle(sidebar).map(s => (
+					{shuffledSidebar.map(s => (
 						<ArticlePreview key={s.id} article={s} style="row" size="small" category />
 					))}
 				</section>
