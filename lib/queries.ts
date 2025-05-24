@@ -81,7 +81,10 @@ export async function getArticle(year: string, month: string, cat: string, id: s
 						year: parseInt(year),
 						month: parseInt(month),
 						category: cat,
-						title: decodeURI(slug.replace(/-/g, " ")),
+						title: {
+							equals: decodeURIComponent(slug.replace(/-/g, " ")),
+							mode: "insensitive",
+						},
 						published: true,
 					},
 			  });

@@ -11,6 +11,7 @@ import styles from "~/lib/styles";
 import { useRouter } from "next/router";
 import { socialLinks } from "~/lib/constants";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Analytics } from "@vercel/analytics/react";
 
 export default function App({ Component, pageProps }: AppProps) {
 	return (
@@ -27,7 +28,6 @@ export default function App({ Component, pageProps }: AppProps) {
 					main {
 						display: block;
 						margin-top: 4vh;
-						/* no side margins by default */
 					}
 
 					/* only on desktop do we add the horizontal gutters */
@@ -42,7 +42,7 @@ export default function App({ Component, pageProps }: AppProps) {
 				<Component {...pageProps} />
 			</main>
 			<SpeedInsights />
-
+			<Analytics />
 			<Footer />
 		</div>
 	);
