@@ -264,15 +264,7 @@ export default function Article({ article }: Props) {
 				className="category-label"
 				style={{
 					position: !isMobile && scrolledPast ? "fixed" : "absolute",
-					top:
-						!isMobile && scrolledPast
-							? "7.5rem"
-							: window.innerWidth < 1136
-							? "-10rem"
-							: window.innerWidth < 1400 && window.innerWidth > 1000
-							? "-2rem"
-							: "-1.7rem",
-
+					top: !isMobile && scrolledPast ? "7.5rem" : isMobile ? "-10rem" : "-1.7rem", // ← fallback if not mobile and not scrolled
 					right:
 						!isMobile && scrolledPast
 							? window.innerWidth > 2000

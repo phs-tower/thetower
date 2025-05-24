@@ -67,30 +67,30 @@ export async function getPublishedArticles() {
 }
 
 export async function getArticle(year: string, month: string, cat: string, id: string, slug: string): Promise<article | null> {
-	// new scheme
-	let art =
-		id !== "null"
-			? await prisma.article.findFirst({
-					where: {
-						id: parseInt(id),
-						published: true,
-					},
-			  })
-			: await prisma.article.findFirst({
-					where: {
-						year: parseInt(year),
-						month: parseInt(month),
-						category: cat,
-						title: {
-							equals: decodeURIComponent(slug.replace(/-/g, " ")),
-							mode: "insensitive",
-						},
-						published: true,
-					},
-			  });
+	const parsedId = parseInt(id);
+	const isIdValid = !isNaN(parsedId) && id !== "null";
+	const titleFromSlug = decodeURIComponent(slug.split("-").slice(0, -1).join(" "));
 
-	// if (art) return Promise.resolve(art);
-	// else return Promise.reject("No article found");
+	const art = isIdValid
+		? await prisma.article.findFirst({
+				where: {
+					id: parsedId,
+					published: true,
+				},
+		  })
+		: await prisma.article.findFirst({
+				where: {
+					year: parseInt(year),
+					month: parseInt(month),
+					category: cat,
+					title: {
+						equals: titleFromSlug,
+						mode: "insensitive",
+					},
+					published: true,
+				},
+		  });
+
 	return art;
 }
 
