@@ -12,7 +12,7 @@ import styles from "~/lib/styles";
 import SubBanner from "~/components/subbanner.client";
 import { SectionContainer, VanguardContainer } from "~/components/sectioncontainer.client";
 
-export async function getServerSideProps() {
+export async function getStaticProps() {
 	const articles = await getFrontpageArticles();
 	const vang = await getSpreadsByCategory("vanguard", 6, await getIdOfNewest("vanguard", null), 0);
 
@@ -21,6 +21,7 @@ export async function getServerSideProps() {
 			articles,
 			vang,
 		},
+		revalidate: 60, // Regenerate once every minute
 	};
 }
 
