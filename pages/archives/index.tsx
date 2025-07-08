@@ -38,7 +38,7 @@ export default function Archives() {
 			`}</style>
 			<h1>Archives</h1>
 			<br></br>
-
+			{/* i think the react-y way to do this is a for loop hol up lemme do rq */}
 			<h2>2025</h2>
 			<div className="container">
 				<VirtualArchive month={2} year={2025} />

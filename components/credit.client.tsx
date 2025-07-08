@@ -8,6 +8,10 @@ interface Props {
 	small?: boolean;
 }
 
+/** Link to an editor's page
+ *
+ * `small` does *literally nothing* so don't use it
+ */
 export default function CreditLink({ author, small }: Props) {
 	return (
 		<>

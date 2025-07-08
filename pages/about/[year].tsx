@@ -63,10 +63,8 @@ export default function Year({ year, sections }: Props) {
 					margin-top: 4vh;
 					margin-bottom: 1vh;
 				}
-				p {
-					/* font-size: larger; */
-				}
 			`}</style>
+			{/* omg this is disgusting ^^^ */}
 			<h1>{year} Staff</h1>
 			{sections.map((section, index) => (
 				<>
