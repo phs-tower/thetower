@@ -3,6 +3,30 @@
 import Head from "next/head";
 import VirtualArchive from "~/components/archive.client";
 
+function ArchiveList() {
+	let outer = [];
+	const currYear = new Date().getFullYear();
+	const currMonth = new Date().getMonth();
+	for (let year: number = 2022; year <= currYear; year++) {
+		const container = [];
+		for (let month of [2, 3, 4, 6, 9, 10, 11, 12]) {
+			if (year == currYear && month >= currMonth) continue;
+
+			container.push(<VirtualArchive key={month} month={month} year={year} />);
+		}
+
+		if (!container.length) continue;
+		outer.push(<h2 key={year * 2}>{year}</h2>);
+		outer.push(
+			<div className="container" key={year * 2 + 1}>
+				{container}
+			</div>
+		);
+	}
+
+	return <>{outer}</>;
+}
+
 export default function Archives() {
 	return (
 		<div className="archives">
@@ -15,11 +39,6 @@ export default function Archives() {
 				h1,
 				h2 {
 					text-align: center;
-					/* font-weight: 600; */
-				}
-
-				h1 {
-					/* font-weight: bold; */
 				}
 
 				.container {
@@ -39,79 +58,7 @@ export default function Archives() {
 			<h1>Archives</h1>
 			<br></br>
 			{/* i think the react-y way to do this is a for loop hol up lemme do rq */}
-			<h2>2025</h2>
-			<div className="container">
-				<VirtualArchive month={2} year={2025} />
-				<VirtualArchive month={3} year={2025} />
-				{/*
-
-				<VirtualArchive month={4} year={2025} />
-				<VirtualArchive month={6} year={2025} />
-				<VirtualArchive month={9} year={2025} />
-				<VirtualArchive month={10} year={2025} />
-				<VirtualArchive month={11} year={2025} />
-				<VirtualArchive month={12} year={2025} /> 
-				*/}
-			</div>
-
-			<h2>2024</h2>
-			<div className="container">
-				<VirtualArchive month={2} year={2024} />
-				<VirtualArchive month={3} year={2024} />
-				<VirtualArchive month={4} year={2024} />
-				<VirtualArchive month={6} year={2024} />
-				<VirtualArchive month={9} year={2024} />
-				<VirtualArchive month={10} year={2024} />
-				<VirtualArchive month={11} year={2024} />
-				<VirtualArchive month={12} year={2024} />
-			</div>
-			<h2>2023</h2>
-			<div className="container">
-				<VirtualArchive month={2} year={2023} />
-				<VirtualArchive month={3} year={2023} />
-				<VirtualArchive month={4} year={2023} />
-				<VirtualArchive month={6} year={2023} />
-				<VirtualArchive month={9} year={2023} />
-				<VirtualArchive month={10} year={2023} />
-				<VirtualArchive month={11} year={2023} />
-				<VirtualArchive month={12} year={2023} />
-			</div>
-			<br></br>
-			<h2>2022</h2>
-			<div className="container">
-				<VirtualArchive month={2} year={2022} />
-				<VirtualArchive month={3} year={2022} />
-				<VirtualArchive month={4} year={2022} />
-				<VirtualArchive month={6} year={2022} />
-				<VirtualArchive month={9} year={2022} />
-				<VirtualArchive month={10} year={2022} />
-				<VirtualArchive month={11} year={2022} />
-				<VirtualArchive month={12} year={2022} />
-			</div>
-			<br></br>
-			<h2>2021</h2>
-			<div className="container">
-				<VirtualArchive month={2} year={2021} />
-				<VirtualArchive month={3} year={2021} />
-				<VirtualArchive month={4} year={2021} />
-				<VirtualArchive month={6} year={2021} />
-				<VirtualArchive month={9} year={2021} />
-				<VirtualArchive month={10} year={2021} />
-				<VirtualArchive month={11} year={2021} />
-				<VirtualArchive month={12} year={2021} />
-			</div>
-			<br></br>
-			<h2>2020</h2>
-			<div className="container">
-				<VirtualArchive month={2} year={2020} />
-				<VirtualArchive month={3} year={2020} />
-				<VirtualArchive month={4} year={2020} />
-				<VirtualArchive month={6} year={2020} />
-				<VirtualArchive month={9} year={2020} />
-				<VirtualArchive month={10} year={2020} />
-				<VirtualArchive month={11} year={2020} />
-				<VirtualArchive month={12} year={2020} />
-			</div>
+			<ArchiveList></ArchiveList>
 		</div>
 	);
 }

@@ -3,7 +3,6 @@
 import type { AppProps, NextWebVitalsMetric } from "next/app";
 import Head from "next/head";
 import Link from "next/link";
-import dayjs from "dayjs";
 import { useEffect, useState } from "react"; // <-- ADDED for useEffect, useState
 import Button from "~/components/button.client";
 import "~/styles/styles.scss";
@@ -12,6 +11,7 @@ import { useRouter } from "next/router";
 import { socialLinks } from "~/lib/constants";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/react";
+import { displayFullDate } from "~/lib/utils";
 
 export default function App({ Component, pageProps }: AppProps) {
 	return (
@@ -53,8 +53,8 @@ export default function App({ Component, pageProps }: AppProps) {
 // ======================
 function Banner() {
 	// We’ll check the current month first
-	const currentMonth = dayjs().month() + 1; // 1-based
-	const currentYear = dayjs().year();
+	const currentMonth = new Date().getMonth() + 1; // 1-based
+	const currentYear = new Date().getFullYear();
 
 	// We'll store the "best available" issue in state
 	const [issue, setIssue] = useState<{ month: number; year: number } | null>(null);
@@ -177,7 +177,7 @@ function Banner() {
 				</Link>
 				<br />
 				<span style={{ fontFamily: styles.font.sans, color: styles.color.accent, fontSize: "1.6rem" }}>
-					{dayjs().format("dddd, MMMM D, YYYY ").toUpperCase()}
+					{displayFullDate().toUpperCase()}
 				</span>
 			</div>
 
@@ -377,6 +377,7 @@ function NavBar() {
 			"/category/sports",
 		].forEach(path => {
 			router.prefetch(path);
+			// lowk would be better to just prefetch on intent (i.e. put prefetch="intent" on each nav link) unless prefetch ignores images (rn it eats ram)
 		});
 	}, [router]);
 
@@ -446,30 +447,22 @@ function NavBar() {
 					<Link href="/category/sports/student-athletes">Student Athletes</Link>
 				</Button>
 
-				<Button name="CROSSWORD" href="/games/crossword">
+				{/* <Button name="CROSSWORD" href="/games/crossword">
 					<Link href="/games/crossword/archive">Past Crosswords</Link>
-				</Button>
+				</Button> */}
 
 				<Button name="ABOUT" href="/about">
-					<Link href="/about/2025" legacyBehavior>
-						<a>2025 Staff</a>
-					</Link>
+					<Link href="/about/2025">2025 Staff</Link>
 					<hr />
-					<Link href="/about/2024" legacyBehavior>
-						<a>2024 Staff</a>
-					</Link>
+					<Link href="/about/2024">2024 Staff</Link>
 					<hr />
-					<Link href="/about/2023" legacyBehavior>
-						<a>2023 Staff</a>
-					</Link>
+					<Link href="/about/2023">2023 Staff</Link>
 					<hr />
-					<Link href="/about/2022" legacyBehavior>
-						<a>2022 Staff</a>
-					</Link>
+					<Link href="/about/2022">2022 Staff</Link>
 				</Button>
 
 				<Button name="ARCHIVES" href="/archives">
-					<Link href="/category/special/nsi">New Student Issues</Link>
+					{/* <Link href="/category/special/nsi">New Student Issues</Link> */}
 				</Button>
 			</div>
 		</div>

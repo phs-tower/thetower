@@ -26,7 +26,7 @@ export default class TowerDocument extends Document {
 					<meta name="keywords" content="Newspaper, PHS, Princeton, The Tower, Tower" />
 				</Head>
 				<body>
-					<style>{`body { height: 100%; }`}</style>
+					{/* <style>{`body { height: 100%; }`}</style> */}
 					<Main />
 					<NextScript />
 				</body>

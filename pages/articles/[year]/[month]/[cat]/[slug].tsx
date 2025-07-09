@@ -12,6 +12,7 @@ import SubBanner from "~/components/subbanner.client";
 import PhotoCredit from "~/components/photocredit";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { article } from "@prisma/client";
 
 // 👇 Extend article manually to include contentInfo
 interface ExtendedArticle {
@@ -46,7 +47,7 @@ interface Params {
 export async function getServerSideProps({ params }: Params) {
 	const article_id = params.slug.split("-").slice(-1)[0];
 
-	let raw = null as Awaited<ReturnType<typeof getArticle>>;
+	let raw: article | null = null; // equivalent to prior but explicit
 
 	if (isNaN(Number(article_id))) {
 		raw = await getArticle(params.year, params.month, params.cat, "null", params.slug);
@@ -57,16 +58,7 @@ export async function getServerSideProps({ params }: Params) {
 	if (!raw) return { redirect: { permanent: false, destination: "/404" } };
 
 	const processedArticle: ExtendedArticle = {
-		id: raw.id,
-		title: raw.title,
-		content: raw.content,
-		published: raw.published,
-		category: raw.category,
-		subcategory: raw.subcategory,
-		authors: raw.authors,
-		month: raw.month,
-		year: raw.year,
-		img: raw.img,
+		...raw, // this is my first time doing ts so idk if this is chill but like should work?
 		featured: raw.featured ?? false,
 		markdown: raw.markdown ?? false,
 		contentInfo: raw.contentInfo ?? null,
@@ -262,6 +254,7 @@ export default function Article({ article }: Props) {
 			{/* Category top-right */}
 			<div
 				className="category-label"
+				// I'm about to commit so many crimes 😭 what did css do to deserve this
 				style={{
 					position: !isMobile && scrolledPast ? "fixed" : "absolute",
 					top: !isMobile && scrolledPast ? "7.5rem" : isMobile ? "-10rem" : "-1.7rem", // ← fallback if not mobile and not scrolled
@@ -278,8 +271,10 @@ export default function Article({ article }: Props) {
 					zIndex: 0,
 				}}
 			>
-				<Link href={`/category/${category}`} legacyBehavior>
-					<a className="category-button">{categoryLabels[category] || category.toUpperCase()} ↗</a>
+				{/* Switch <Link><a> for <Link> (Link always renders as <a> now :) ) */}
+
+				<Link href={`/category/${category}`} className="category-button">
+					{categoryLabels[category] || category.toUpperCase()} ↗
 				</Link>
 			</div>
 
