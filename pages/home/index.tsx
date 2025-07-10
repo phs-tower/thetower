@@ -8,7 +8,6 @@ import ArticlePreview from "~/components/preview.client";
 import Video from "~/components/video.client";
 import Podcast from "~/components/podcast.client";
 import { getFrontpageArticles, getIdOfNewest, getSpreadsByCategory } from "~/lib/queries";
-import styles from "~/lib/styles";
 import SubBanner from "~/components/subbanner.client";
 import { SectionContainer, VanguardContainer } from "~/components/sectioncontainer.client";
 
@@ -33,82 +32,6 @@ interface Props {
 export default function FrontPage({ articles, vang }: Props) {
 	return (
 		<div>
-			<style jsx>{`
-				.mosaic {
-					display: grid;
-					grid-gap: 10px;
-					margin-left: 0vw;
-					margin-right: 0vw;
-				}
-				.triple {
-					display: grid;
-					grid-gap: 10px;
-					grid-template-columns: 0.625fr 1.75fr 0.625fr;
-				}
-
-				.one {
-					padding-bottom: 10px;
-					border-bottom: 1px solid gainsboro;
-					display: none;
-				}
-
-				@media (max-width: 1000px) {
-					.triple {
-						display: none;
-					}
-
-					.one {
-						display: block;
-					}
-				}
-
-				.three {
-					padding-top: 10px;
-					border-top: 1px solid gainsboro;
-				}
-
-				.dark-banner {
-					position: relative;
-					background-color: ${styles.color.darkAccent};
-					width: 100vw;
-					left: -2.5vw;
-					padding-top: 2.5rem;
-					padding-bottom: 2.5rem;
-				}
-
-				.dark-banner * {
-					color: ${styles.color.background};
-					text-align: center;
-					/* font-size: 2.5rem;
-					font-family: "Neue Montreal Medium";
-					margin-right: 0.75rem; */
-				}
-
-				#dark-banner-content {
-					margin-left: 7.5rem;
-					margin-right: 7.5rem;
-				}
-
-				#dark-banner-content h1 {
-					/* font-size: calc(1rem + 1vw); */
-				}
-
-				.section-header {
-					/* font-family: ${styles.font.serifHeader};
-					font-style: italic; */
-					text-align: center;
-					/* font-weight: bold; */
-				}
-
-				#vang-container h3 {
-					font-family: ${styles.font.sans};
-				}
-
-				#vang-container object {
-					width: 50vw;
-					height: 70vh;
-				}
-			`}</style>
 			<Head>
 				<meta property="og:title" content="Home | The Tower" />
 				<meta property="og:description" content="The Tower is Princeton High School's newspaper club." />
@@ -156,7 +79,7 @@ export default function FrontPage({ articles, vang }: Props) {
 				desc="Opinions of the student body, from school policies to global issues."
 				articles={articles["opinions"]}
 			/>
-			<div className="dark-banner">
+			{/* <div className="dark-banner">
 				<div id="dark-banner-content">
 					<hr />
 					<div style={{ display: "flex", marginLeft: "5vw", marginRight: "5vw", gap: "1rem" }}>
@@ -176,7 +99,8 @@ export default function FrontPage({ articles, vang }: Props) {
 					</div>
 					<hr />
 				</div>
-			</div>
+			</div> */}
+			{/* ^^ this is just... bland? like it pollutes the page and makes it rly uninteresting (maybe its filling in for the page being kinda boring? idk tho :shrug:) */}
 			<br />
 			<hr />
 			<br />

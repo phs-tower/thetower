@@ -13,38 +13,24 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/react";
 import { displayFullDate } from "~/lib/utils";
 
+import "./global.scss";
+
 export default function App({ Component, pageProps }: AppProps) {
 	return (
-		<div>
+		<>
 			<Head>
 				<title>Home | The Tower</title>
 				<meta name="viewport" content="width=device-width, initial-scale=1" />
-				<link rel="icon" href="/favicon.ico" sizes="32x32" />
 			</Head>
 			<Banner />
 			<NavBar />
 			<main className="content">
-				<style jsx>{`
-					main {
-						display: block;
-						margin-top: 4vh;
-					}
-
-					/* only on desktop do we add the horizontal gutters */
-					@media (min-width: 1000px) {
-						main {
-							margin-left: 2.5vw;
-							margin-right: 2.5vw;
-						}
-					}
-				`}</style>
-
 				<Component {...pageProps} />
 			</main>
 			<SpeedInsights />
 			<Analytics />
 			<Footer />
-		</div>
+		</>
 	);
 }
 
@@ -101,70 +87,6 @@ function Banner() {
 
 	return (
 		<div className="banner">
-			<style jsx>{`
-				.banner {
-					margin: 0px;
-					padding-top: 0px;
-					position: relative;
-					background-color: ${styles.color.background};
-				}
-				.image {
-					display: block;
-					margin-left: auto;
-					text-align: center;
-					margin: 0px;
-					padding: 0;
-				}
-				.image:hover {
-					cursor: pointer;
-				}
-				.sub {
-					position: absolute;
-					left: 1vw;
-					top: 5px;
-					bottom: 5px;
-				}
-				.search {
-					position: absolute;
-					right: 1vw;
-					bottom: 20px;
-				}
-				.search input {
-					width: 200px;
-					height: 30px;
-					border: 1px solid ${styles.color.accent};
-					border-radius: 5px 0px 0px 5px;
-					padding: 5px;
-					font-family: ${styles.font.sans};
-					font-size: 1.6rem;
-					box-sizing: border-box;
-					vertical-align: middle;
-					color: ${styles.color.accent};
-				}
-				.search input::placeholder {
-					color: ${styles.color.lightAccent};
-				}
-				.search button {
-					width: 30px;
-					height: 29.5px;
-					border: 1px solid ${styles.color.accent};
-					border-radius: 5px 0px 0px 5px;
-					transform: scaleX(-1);
-					background-color: ${styles.color.accent};
-					color: #fff;
-					cursor: pointer;
-					box-sizing: border-box;
-					padding: 5px;
-					vertical-align: middle;
-				}
-				@media screen and (max-width: 1000px) {
-					.sub,
-					.search input {
-						display: none;
-					}
-				}
-			`}</style>
-
 			<div className="sub">
 				<Link href="/subscribe">
 					<span style={{ color: styles.color.accent, cursor: "pointer", fontFamily: styles.font.sans, fontSize: "1.6rem" }}>SUBSCRIBE</span>
@@ -201,10 +123,8 @@ function Banner() {
 			</div>
 
 			<div className="image">
-				<Link href="/home" passHref>
-					<h1 style={{ fontFamily: "Canterbury", fontWeight: "normal", textAlign: "center", color: styles.color.accent, fontSize: "6rem" }}>
-						The Tower
-					</h1>
+				<Link href="/home">
+					<h1 id="big-title">The Tower</h1>
 				</Link>
 				<p
 					style={{
@@ -229,53 +149,7 @@ function Banner() {
 // ======================
 function Footer() {
 	return (
-		<div className="footer">
-			<style jsx>{`
-				.footer {
-					display: grid;
-					padding-top: 2vh;
-					width: 90vw;
-					margin-left: 5vw;
-				}
-				hr {
-					align-self: center;
-					background-color: #ccc;
-					border: none;
-					margin-top: 3vh;
-					margin-bottom: 1vh;
-					height: 3px;
-				}
-				.top h1 {
-					font-family: Canterbury;
-					font-size: xxx-large;
-					float: left;
-					padding-right: 10px;
-					font-weight: normal;
-				}
-				.top a {
-					display: inline-block;
-					position: relative;
-					padding-top: 2.5vh;
-				}
-				.top .home-btn {
-					color: #274370;
-					float: right;
-					margin-right: 2.5vh;
-				}
-				.bottom {
-					margin: 1vh;
-					display: grid;
-					grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
-				}
-				@media screen and (max-width: 700px) {
-					.bottom {
-						grid-template-columns: 1fr;
-					}
-				}
-				span {
-					padding-bottom: 2vh;
-				}
-			`}</style>
+		<footer>
 			<hr />
 			<div className="top">
 				<h1>The Tower</h1>
@@ -359,7 +233,7 @@ function Footer() {
 				Site by Luke Tong &apos;23, Jieruei Chang &apos;24, Henry Langmack &apos;25, Ayush Shrivastava &apos;25, Anita Ndubisi &apos;26, and
 				Aryan Singla &apos;27
 			</span>
-		</div>
+		</footer>
 	);
 }
 
@@ -382,35 +256,7 @@ function NavBar() {
 	}, [router]);
 
 	return (
-		<div className="navbar" style={{ position: "sticky", top: "0", zIndex: "10" }}>
-			<style jsx>{`
-				.navbar {
-					display: block;
-					background-color: rgba(255, 255, 255, 0.9) !important;
-					margin-bottom: 2vh;
-					text-align: center;
-					width: 100%;
-					border-bottom: 1px solid ${styles.color.lightAccent};
-				}
-				.navbar hr {
-					background-color: #ccc;
-					border: none;
-					height: 1px;
-					margin-top: 5px;
-					margin-bottom: 5px;
-				}
-				.menu {
-					display: contents;
-				}
-				@media screen and (max-width: 1000px) {
-					.menu {
-						display: none;
-					}
-					.show {
-						display: contents !important;
-					}
-				}
-			`}</style>
+		<nav>
 			<Button
 				name="☰"
 				href="#"
@@ -418,6 +264,7 @@ function NavBar() {
 				onClick={() => {
 					const menu = document.querySelector(".menu");
 					if (menu) menu.classList.toggle("show");
+					// omg i cant decide if i love this or hate it
 				}}
 			/>
 			<div className="menu">
@@ -465,7 +312,7 @@ function NavBar() {
 					{/* <Link href="/category/special/nsi">New Student Issues</Link> */}
 				</Button>
 			</div>
-		</div>
+		</nav>
 	);
 }
 

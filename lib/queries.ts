@@ -1,21 +1,27 @@
 /** @format */
 
-import { article, PrismaClient, spreads, multimedia } from "@prisma/client";
+import { article, PrismaClient, spreads, multimedia, Prisma } from "@prisma/client";
 import { PuzzleInput } from "./crossword/types";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { StorageApiError } from "@supabase/storage-js";
 import { readFile } from "fs/promises";
 import formidable from "formidable";
 
+let yolo = false;
+
 if (process.env.SERVICE_ROLE == undefined) {
-	throw new Error("Set up your .env!");
+	// throw new Error("Set up your .env!");
+	console.warn("No .env file ... defaulting to yolo mode");
+	yolo = true;
 }
 
-const prisma = new PrismaClient();
-
-const supabase = createClient("https://yusjougmsdnhcsksadaw.supabase.co/", process.env.SERVICE_ROLE);
+const prisma = yolo ? undefined : new PrismaClient();
+const supabase = !process.env.SERVICE_ROLE ? undefined : createClient("https://yusjougmsdnhcsksadaw.supabase.co/", process.env.SERVICE_ROLE);
 
 export async function getFrontpageArticles() {
 	let articles: Record<string, article[]> = { "news-features": [], opinions: [], "arts-entertainment": [], sports: [], featured: [] };
+	if (!prisma) return articles;
+
 	const categories = Object.keys(articles);
 
 	for (let i = 0; i < categories.length - 1; i++) {
@@ -57,6 +63,7 @@ export async function getFrontpageArticles() {
 }
 
 export async function getPublishedArticles() {
+	if (!prisma) return [];
 	const articles = await prisma.article.findMany({
 		where: {
 			published: true,
@@ -67,6 +74,23 @@ export async function getPublishedArticles() {
 }
 
 export async function getArticle(year: string, month: string, cat: string, id: string, slug: string): Promise<article | null> {
+	if (!prisma)
+		return {
+			id: 0,
+			title: "LOLLERS EPIC CONTENT",
+			content: "lorem ipsum dolor sit amet sigma rizz",
+			published: true,
+			category: "opinions",
+			subcategory: "urmom",
+			authors: ["sigma"],
+			month: 1,
+			year: 2025,
+			img: "",
+			featured: false,
+			markdown: false,
+			contentInfo: null,
+		};
+
 	const parsedId = parseInt(id);
 	const isIdValid = !isNaN(parsedId) && id !== "null";
 	const titleFromSlug = decodeURIComponent(slug.split("-").slice(0, -1).join(" "));
@@ -95,11 +119,12 @@ export async function getArticle(year: string, month: string, cat: string, id: s
 }
 
 export async function getCurrArticles() {
+	if (!prisma) return [];
 	const curr = new Date();
 	let month = curr.getMonth() + 1;
 	let year = curr.getFullYear();
 
-	let articles = await getArticlesByDateOld(curr.getFullYear().toString(), (curr.getMonth() + 1).toString());
+	let articles = await getArticlesByDateOld(year.toString(), month.toString());
 	while (articles.length === 0) {
 		month--;
 		if (month === 0) {
@@ -113,6 +138,7 @@ export async function getCurrArticles() {
 }
 
 export async function getArticlesByDateOld(year: string, month: string) {
+	if (!prisma) return [];
 	let articles: article[] = [];
 
 	articles = await prisma.article.findMany({
@@ -135,6 +161,8 @@ export async function getArticlesByDate(year: string, month: string) {
 	let articles: Record<string, article[]> = { "news-features": [], opinions: [], "arts-entertainment": [], sports: [] };
 	const categories = Object.keys(articles);
 
+	if (!prisma) return articles;
+
 	for (let category of categories) {
 		articles[category] = await prisma.article.findMany({
 			orderBy: [
@@ -155,6 +183,8 @@ export async function getArticlesByDate(year: string, month: string) {
 }
 
 export async function getIdOfNewest(cat: string, subcat: string | null) {
+	if (!prisma) return 0;
+
 	let res;
 	if (cat == "spreads") {
 		res = await prisma.spreads.findFirst({
@@ -203,6 +233,8 @@ export async function getIdOfNewest(cat: string, subcat: string | null) {
 }
 
 export async function getArticlesByCategory(cat: string, take: number, offsetCursor: number, skip: number) {
+	if (!prisma) return [];
+
 	const articles = await prisma.article.findMany({
 		orderBy: [
 			{
@@ -229,6 +261,7 @@ export async function getArticlesByCategory(cat: string, take: number, offsetCur
 
 export async function getArticlesExceptCategory(cat: string) {
 	let articles: any[] = [];
+	if (!prisma) return articles;
 	let cats = ["news-features", "arts-entertainment", "opinions", "sports", "multimedia"];
 
 	for (let i = 0; i < cats.length; i++) {
@@ -244,6 +277,8 @@ export async function getArticlesExceptCategory(cat: string) {
 }
 
 export async function getArticlesBySearch(query: string | string[]) {
+	if (!prisma) return [];
+
 	const safeQuery = Array.isArray(query) ? query[0] : query;
 
 	return await prisma.article.findMany({
@@ -281,6 +316,7 @@ export async function getArticlesBySearch(query: string | string[]) {
 }
 
 export async function getArticlesBySubcategory(subcat: string, take: number, offsetCursor: number, skip: number) {
+	if (!prisma) return [];
 	const articles = await prisma.article.findMany({
 		orderBy: [
 			{
@@ -303,9 +339,9 @@ export async function getArticlesBySubcategory(subcat: string, take: number, off
 
 	return articles;
 }
-import { Prisma } from "@prisma/client"; // make sure this is imported at the top
 
 export async function getArticlesByAuthor(author: string) {
+	if (!prisma) return [];
 	const decoded = decodeURI(author);
 	const nameParts = decoded.split(" ").filter(Boolean);
 
@@ -337,6 +373,8 @@ export async function getArticlesByAuthor(author: string) {
 }
 
 export async function getSpreadsByCategory(category: string, take: number, offsetCursor: number, skip: number) {
+	if (!prisma) return [];
+
 	if (!take) take = 1;
 
 	const spreads = await prisma.spreads.findMany({
@@ -362,6 +400,8 @@ export async function getSpreadsByCategory(category: string, take: number, offse
 }
 
 export async function getSpread(slug: string) {
+	if (!prisma) return null;
+
 	const spreads = await prisma.spreads.findFirst({
 		where: {
 			title: decodeURI(slug),
@@ -372,6 +412,8 @@ export async function getSpread(slug: string) {
 }
 
 export async function getCurrentCrossword(): Promise<PuzzleInput> {
+	if (!prisma) throw new Error("lol no");
+
 	const crossword = (await prisma.crossword.findFirst({ orderBy: { date: "desc" } }))!;
 	return {
 		author: crossword.author,
@@ -381,6 +423,7 @@ export async function getCurrentCrossword(): Promise<PuzzleInput> {
 }
 
 export async function getCrosswords(take: number, offsetCursor: number, skip: number) {
+	if (!prisma) throw new Error("lol no");
 	const crosswords = await prisma.crossword.findMany({
 		orderBy: [{ date: "desc" }],
 		cursor: {
@@ -399,10 +442,12 @@ export async function getCrosswords(take: number, offsetCursor: number, skip: nu
 }
 
 export async function getIdOfNewestCrossword() {
+	if (!prisma) throw new Error("lol no");
 	return (await prisma.crossword.findFirst({ orderBy: { date: "desc" }, select: { id: true } }))?.id || 1;
 }
 
 export async function getCrosswordById(id: number) {
+	if (!prisma) throw new Error("lol no");
 	const crossword = await prisma.crossword.findFirst({ where: { id } });
 	if (!crossword) return null;
 	return {
@@ -413,6 +458,7 @@ export async function getCrosswordById(id: number) {
 }
 
 export async function getMultiItems(format: string, take: number, offsetCursor: number, skip: number) {
+	if (!prisma) return [];
 	const items = await prisma.multimedia.findMany({
 		orderBy: [{ year: "desc" }, { month: "desc" }, { id: "desc" }],
 		where: {
@@ -438,35 +484,37 @@ export async function uploadArticle(info: {
 	img: string;
 	content: string;
 }) {
+	if (!prisma) throw new Error("no!");
 	console.log("uploadArticle called");
 	await prisma.article.create({ data: info });
 	console.log("upload complete from uploadArticle");
 }
 
 export async function uploadSpread(info: { title: string; src: string; month: number; year: number; category: string }) {
+	if (!prisma) throw new Error("npoe");
 	await prisma.spreads.create({ data: info });
 }
 
 export async function uploadMulti(info: { format: string; src_id: string; month: number; year: number; title: string }) {
+	if (!prisma) throw new Error("no");
 	await prisma.multimedia.create({ data: info });
 }
 
 export async function uploadFile(file: formidable.File, bucket: string) {
+	if (!supabase) throw new Error("not happening");
 	const fileContent = await readFile(file.filepath);
 	console.log("filename: ", file.originalFilename);
 	let regex = file.originalFilename ? file.originalFilename.replaceAll(/(?!\.png|\.jpg|\.jpeg|\.gif)\.|\s/g, "-") : "";
 	console.log("filename after regex:", regex);
-	const { data, error } = await supabase.storage
-		.from(bucket)
-		.upload(regex, fileContent, { contentType: file.mimetype || "file/unknown", upsert: false });
+	const { data, error } = await supabase.storage.from(bucket).upload(regex, fileContent, { contentType: file.mimetype || "file/unknown" });
 	if (error) {
-		console.error("we have a problem:", error);
+		console.error("Could not upload file: ", error);
 
-		//@ts-ignore
+		// @ts-ignore
 		// error.statusCode exists but for some reason ts says it doesn't
 		if (error.statusCode == "409") return { code: 409, message: "A file with that name already exists. Has your co-editor uploaded for you?" };
 
-		//@ts-ignore
+		// @ts-ignore
 		// error.error & error.message exist but for some reason ts says they don't
 		return { code: 500, message: `Unexpected problem in the server! Message: "${error.error}: ${error.message}". Contact Online editor(s).` };
 	} else {
