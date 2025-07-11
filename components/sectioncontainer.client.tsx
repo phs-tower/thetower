@@ -18,7 +18,7 @@ export function SectionContainer({ category, desc, articles }: SectionProps) {
 			<style jsx>{`
 				.row-container {
 					display: flex;
-					gap: 1.5rem;
+					gap: 1rem;
 					list-style: none;
 					overflow-x: scroll;
 					scroll-snap-type: x mandatory;
@@ -26,7 +26,7 @@ export function SectionContainer({ category, desc, articles }: SectionProps) {
 
 				.item {
 					flex-shrink: 0;
-					width: 25rem;
+					width: 16rem;
 					height: 100%;
 					background-color: #fff;
 					scroll-snap-align: start;
@@ -60,7 +60,7 @@ export function VanguardContainer({ desc, spreads }: VangProps) {
 			<style jsx>{`
 				.row-container {
 					display: flex;
-					gap: 1.5rem;
+					gap: 1rem;
 					list-style: none;
 					overflow-x: scroll;
 					scroll-snap-type: x mandatory;
@@ -68,7 +68,7 @@ export function VanguardContainer({ desc, spreads }: VangProps) {
 
 				.item {
 					flex-shrink: 0;
-					width: 25rem;
+					width: 16rem;
 					height: 100%;
 					background-color: #fff;
 					scroll-snap-align: start;
@@ -91,7 +91,7 @@ export function VanguardContainer({ desc, spreads }: VangProps) {
 				}
 
 				.title a {
-					font-size: 2.5rem;
+					font-size: 1.5rem;
 					color: ${styles.color.primary} !important !important !important;
 					font-weight: bold;
 				}
@@ -107,7 +107,7 @@ export function VanguardContainer({ desc, spreads }: VangProps) {
 								width={309}
 								height={721}
 								alt="Image"
-								style={{ width: "25rem", height: "25rem", objectFit: "cover", backgroundColor: "black" }}
+								style={{ width: "16rem", height: "16rem", objectFit: "cover", backgroundColor: "black" }}
 							/>
 							<section className="title">
 								<Link href={article.src} legacyBehavior>

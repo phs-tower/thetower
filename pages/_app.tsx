@@ -14,6 +14,160 @@ import { Analytics } from "@vercel/analytics/react";
 import { displayFullDate } from "~/lib/utils";
 
 import "./global.scss";
+import "./nav.scss";
+
+type Subsection = {
+	name: string;
+	href: string;
+};
+
+function SectionLink({ href, name: section, subsections }: { href: string; name: string; subsections?: Subsection[] }) {
+	return (
+		<div className="section-link">
+			<Link href={href}>
+				{section}
+				{subsections && <i className="fa-solid fa-chevron-down" />}
+			</Link>
+			{subsections && (
+				<div className="dropdown">
+					{subsections.map((subsection, i) => (
+						<Link key={i} href={subsection.href}>
+							{subsection.name}
+						</Link>
+					))}
+				</div>
+			)}
+		</div>
+	);
+}
+
+export function Nav() {
+	return (
+		<nav>
+			<div className="nav-inner section">
+				<Masthead />
+				<div id="links">
+					<SectionLink
+						href="/category/news-features"
+						name="NEWS & FEATURES"
+						subsections={[{ name: "PHS Profiles", href: "/category/news-features/phs-profiles" }]}
+					/>
+					<SectionLink href="/category/multimedia" name="MULTIMEDIA" />
+					<SectionLink
+						href="/category/opinions"
+						name="OPINIONS"
+						subsections={[
+							{ name: "Editorials", href: "/category/opinions/editorials" },
+							{ name: "Cheers & Jeers", href: "/category/opinions/cheers-jeers" },
+						]}
+					/>
+					<SectionLink href="/category/vanguard" name="VANGUARD" />
+					<SectionLink
+						href="/category/arts-entertainment"
+						name="ARTS & ENTERTAINMENT"
+						subsections={[{ name: "Student Artists", href: "/category/arts-entertainment/student-artists" }]}
+					/>
+					<SectionLink
+						href="/category/sports"
+						name="SPORTS"
+						subsections={[{ name: "Student Athletes", href: "/category/sports/student-athletes" }]}
+					/>
+					<SectionLink
+						href="/about"
+						name="ABOUT"
+						subsections={[
+							{ name: "2025 Staff", href: "/about/2025" },
+							{ name: "2024 Staff", href: "/about/2024" },
+							{ name: "2023 Staff", href: "/about/2023" },
+							{ name: "2022 Staff", href: "/about/2022" },
+						]}
+					/>
+					<SectionLink href="/archives" name="ARCHIVES" />
+				</div>
+			</div>
+		</nav>
+	);
+}
+
+function Masthead() {
+	const [issue, setIssue] = useState({ month: 2, year: 2022 });
+
+	const router = useRouter();
+	// We’ll check the current month first
+	let m = new Date().getMonth();
+	let y = new Date().getFullYear();
+
+	pdfExists(m, y).then(async res => {
+		if (res) {
+			setIssue({ month: m, year: y });
+			return;
+		}
+		while (!(await pdfExists(m, y))) {
+			m--;
+			if (m == 0) {
+				m = 12;
+				y--;
+			}
+		}
+		setIssue({ month: m, year: y });
+	});
+
+	async function pdfExists(month: number, year: number) {
+		const url = `https://yusjougmsdnhcsksadaw.supabase.co/storage/v1/object/public/prints/${month}-${year}.pdf`;
+		try {
+			const res = await fetch(url, { method: "HEAD" });
+			return res.ok;
+		} catch (err) {
+			return false;
+		}
+	}
+
+	const pdfLink = `https://yusjougmsdnhcsksadaw.supabase.co/storage/v1/object/public/prints/${issue.month}-${issue.year}.pdf`;
+
+	return (
+		<div className="header">
+			<Link href="/home" id="masthead">
+				<img src="/assets/tower-short.png" draggable="false" />
+				<h1 id="masthead-text">The Tower</h1>
+			</Link>
+			<div className="masthead-sides">
+				<div className="left-stuff">
+					<div id="paper-info">
+						<Link href={pdfLink}>Print Edition</Link>
+						<p>{displayFullDate().toUpperCase()}</p>
+					</div>
+					<button id="menu">
+						<i className="fa-solid fa-bars"></i>
+						<span>Sections</span>
+					</button>
+				</div>
+				<div className="right-stuff">
+					<button className="subscribe" onClick={() => router.push("/subscribe")}>
+						<span>Subscribe</span>
+					</button>
+					<div className="search-box">
+						<input
+							type="text"
+							placeholder="Search"
+							onKeyDown={e => {
+								if (e.key === "Enter") {
+									router.push(`/search/${document.querySelector("input")?.value}`);
+								}
+							}}
+						/>
+						<button
+							onClick={() => {
+								router.push(`/search/${document.querySelector("input")?.value}`);
+							}}
+						>
+							<i className="fa-solid fa-search"></i>
+						</button>
+					</div>
+				</div>
+			</div>
+		</div>
+	);
+}
 
 export default function App({ Component, pageProps }: AppProps) {
 	return (
@@ -22,125 +176,13 @@ export default function App({ Component, pageProps }: AppProps) {
 				<title>Home | The Tower</title>
 				<meta name="viewport" content="width=device-width, initial-scale=1" />
 			</Head>
-			<Banner />
-			<NavBar />
+			{/* <Banner /> */}
+			<Nav />
 			<main className="content">
 				<Component {...pageProps} />
 			</main>
-			<SpeedInsights />
-			<Analytics />
 			<Footer />
 		</>
-	);
-}
-
-// ======================
-// REPLACED BANNER BELOW
-// ======================
-function Banner() {
-	// We’ll check the current month first
-	const currentMonth = new Date().getMonth() + 1; // 1-based
-	const currentYear = new Date().getFullYear();
-
-	// We'll store the "best available" issue in state
-	const [issue, setIssue] = useState<{ month: number; year: number } | null>(null);
-
-	useEffect(() => {
-		// HEAD request to see if a PDF exists
-		async function pdfExists(month: number, year: number) {
-			const url = `https://yusjougmsdnhcsksadaw.supabase.co/storage/v1/object/public/prints/${month}-${year}.pdf`;
-			try {
-				const res = await fetch(url, { method: "HEAD" });
-				return res.ok;
-			} catch (err) {
-				return false;
-			}
-		}
-
-		async function findLatestIssue(month: number, year: number) {
-			let m = month;
-			let y = year;
-			// Check up to 24 months in the past
-			for (let i = 0; i < 24; i++) {
-				const found = await pdfExists(m, y);
-				if (found) {
-					return { month: m, year: y };
-				}
-				// If not found, go back 1 month
-				if (m === 1) {
-					m = 12;
-					y--;
-				} else {
-					m--;
-				}
-			}
-			return null;
-		}
-
-		findLatestIssue(currentMonth, currentYear).then(res => {
-			if (res) setIssue(res);
-		});
-	}, [currentMonth, currentYear]);
-
-	// Build the final PDF link from the found issue or "#" if none found
-	const pdfLink = issue ? `https://yusjougmsdnhcsksadaw.supabase.co/storage/v1/object/public/prints/${issue.month}-${issue.year}.pdf` : "#";
-
-	return (
-		<div className="banner">
-			<div className="sub">
-				<Link href="/subscribe">
-					<span style={{ color: styles.color.accent, cursor: "pointer", fontFamily: styles.font.sans, fontSize: "1.6rem" }}>SUBSCRIBE</span>
-				</Link>
-				<br />
-				<Link href={pdfLink}>
-					<span style={{ color: styles.color.accent, cursor: "pointer", fontFamily: styles.font.sans, fontSize: "1.6rem" }}>
-						PRINT EDITION
-					</span>
-				</Link>
-				<br />
-				<span style={{ fontFamily: styles.font.sans, color: styles.color.accent, fontSize: "1.6rem" }}>
-					{displayFullDate().toUpperCase()}
-				</span>
-			</div>
-
-			<div className="search">
-				<input
-					type="text"
-					placeholder="Search"
-					onKeyDown={e => {
-						if (e.key === "Enter") {
-							window.location.href = "/search/" + document.getElementsByTagName("input")[0].value;
-						}
-					}}
-				/>
-				<button
-					onClick={() => {
-						window.location.href = "/search/" + document.getElementsByTagName("input")[0].value;
-					}}
-				>
-					🔎︎
-				</button>
-			</div>
-
-			<div className="image">
-				<Link href="/home">
-					<h1 id="big-title">The Tower</h1>
-				</Link>
-				<p
-					style={{
-						fontFamily: styles.font.sans,
-						fontSize: "1.5rem",
-						textAlign: "center",
-						color: styles.color.accent,
-						marginTop: "-8px",
-						marginBottom: "5px",
-						fontWeight: 700,
-					}}
-				>
-					Telling Stories Since 1928.
-				</p>
-			</div>
-		</div>
 	);
 }
 
@@ -156,11 +198,10 @@ function Footer() {
 				{socialLinks.map(({ name, url, icon }) => {
 					// locally cast it to a component that accepts a `size` prop
 					const IconComponent = icon as React.ComponentType<{ size?: string }>;
-					const iconSize = ["YouTube", "Spotify", "Apple Podcasts"].includes(name) ? "3.5rem" : "2.2em";
 
 					return (
 						<a key={name} href={url} target="_blank" rel="noopener noreferrer" aria-label={name}>
-							<IconComponent size={iconSize} />
+							<IconComponent size="2.2em" />
 						</a>
 					);
 				})}
@@ -238,23 +279,6 @@ function Footer() {
 }
 
 function NavBar() {
-	const router = useRouter();
-
-	// on mount, prefetch all category pages
-	useEffect(() => {
-		[
-			"/category/news-features",
-			"/category/multimedia",
-			"/category/opinions",
-			"/category/vanguard",
-			"/category/arts-entertainment",
-			"/category/sports",
-		].forEach(path => {
-			router.prefetch(path);
-			// lowk would be better to just prefetch on intent (i.e. put prefetch="intent" on each nav link) unless prefetch ignores images (rn it eats ram)
-		});
-	}, [router]);
-
 	return (
 		<nav>
 			<Button

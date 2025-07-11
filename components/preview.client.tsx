@@ -150,7 +150,7 @@ export default function ArticlePreview({ article, category, style = "row", size 
 
 				.title .featured {
 					/* font-family: ${styles.font.serifHeader}, sans-serif; */
-					font-size: 4rem;
+					font-size: 2.5rem;
 					color: ${styles.color.primary} !important !important !important;
 				}
 
@@ -162,7 +162,7 @@ export default function ArticlePreview({ article, category, style = "row", size 
 
 				.title .large {
 					/* font-family: ${styles.font.serifHeader}, sans-serif; */
-					font-size: 2.5rem;
+					font-size: 1.5rem;
 					color: ${styles.color.primary} !important !important !important;
 				}
 				.title .medium {
@@ -176,7 +176,7 @@ export default function ArticlePreview({ article, category, style = "row", size 
 				}
 
 				.title .category-list {
-					font-size: 2.5rem;
+					font-size: 1.5rem;
 				}
 
 				.category {
@@ -230,7 +230,7 @@ export default function ArticlePreview({ article, category, style = "row", size 
 				}
 
 				.img-wrapper {
-					margin-right: 2rem;
+					margin-right: 1.25rem;
 				}
 			`}</style>
 			<div className={size + "-preview"}>
@@ -248,8 +248,8 @@ export default function ArticlePreview({ article, category, style = "row", size 
 							style={{
 								width: "100%",
 								height: "100%",
-								maxWidth: `${size == "featured" ? "90%" : "25rem"}`,
-								maxHeight: `${size == "featured" ? "90%" : "25rem"}`,
+								maxWidth: `${size == "featured" ? "90%" : "16rem"}`,
+								maxHeight: `${size == "featured" ? "90%" : "16rem"}`,
 								marginLeft: "5%",
 								marginRight: "5%",
 								objectFit: "cover",
@@ -261,7 +261,7 @@ export default function ArticlePreview({ article, category, style = "row", size 
 							width={309}
 							height={721}
 							alt="Image"
-							style={{ width: "25rem", height: "25rem", objectFit: "cover", backgroundColor: "black" }}
+							style={{ width: "16rem", height: "16rem", objectFit: "cover", backgroundColor: "black" }}
 						/>
 					)}
 				</div>

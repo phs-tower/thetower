@@ -161,8 +161,8 @@ export default function Article({ article }: Props) {
 					border: 2px solid ${styles.color.darkAccent};
 					background-color: white;
 					color: black;
-					padding: 0.5rem 1.4rem;
-					font-size: 1.4rem;
+					padding: 0.3rem 1rem;
+					font-size: 1rem;
 					font-family: ${styles.font.sans};
 					border-radius: 5px;
 					transition: 0.25s;
@@ -195,7 +195,7 @@ export default function Article({ article }: Props) {
 					.category-label {
 						position: static;
 						text-align: center;
-						margin-bottom: 1rem;
+						margin-bottom: 0.6rem;
 					}
 
 					.category-label p {
@@ -232,7 +232,7 @@ export default function Article({ article }: Props) {
 				}
 
 				:global(.main-article blockquote p) {
-					font-size: 2.5rem !important;
+					font-size: 1.5rem !important;
 					font-family: "Neue Montreal Regular" !important;
 				}
 
@@ -242,12 +242,12 @@ export default function Article({ article }: Props) {
 
 				:global(.main-article code) {
 					font-family: monospace;
-					font-size: 1.6rem;
+					font-size: 1rem;
 				}
 
 				:global(.main-article a) {
 					text-decoration: underline;
-					font-size: 2rem;
+					font-size: 1.25rem;
 				}
 			`}</style>
 
@@ -257,17 +257,17 @@ export default function Article({ article }: Props) {
 				// I'm about to commit so many crimes 😭 what did css do to deserve this
 				style={{
 					position: !isMobile && scrolledPast ? "fixed" : "absolute",
-					top: !isMobile && scrolledPast ? "7.5rem" : isMobile ? "-10rem" : "-1.7rem", // ← fallback if not mobile and not scrolled
+					top: !isMobile && scrolledPast ? "4.5rem" : isMobile ? "-6rem" : "-1rem", // ← fallback if not mobile and not scrolled
 					right:
 						!isMobile && scrolledPast
 							? window.innerWidth > 2000
-								? "7.1rem"
+								? "4.4rem"
 								: window.innerWidth < 1136
-								? "4.8rem"
+								? "3rem"
 								: window.innerWidth < 1400 && window.innerWidth > 1000
-								? "5.2rem"
-								: "5.8rem"
-							: "2rem",
+								? "3.25rem"
+								: "3.6rem"
+							: "1.25rem",
 					zIndex: 0,
 				}}
 			>

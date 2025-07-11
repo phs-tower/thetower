@@ -35,19 +35,19 @@ export default function Subscribe({ articles }: Props) {
 
 			<style jsx>{`
 				.subscribe-page {
-					padding: 4rem 6rem;
+					padding: 2.5rem 4rem;
 					font-family: ${styles.font.serifText};
 				}
 
 				/* mobile toggle button (hidden by default) */
 				.sidebar-toggle {
 					display: none;
-					margin-bottom: 1rem;
+					margin-bottom: 0.6rem;
 					background: ${styles.color.accent};
 					color: white;
 					border: none;
-					padding: 0.6rem 1.2rem;
-					font-size: 1.4rem;
+					padding: 0.5rem 0.75rem;
+					font-size: 1rem;
 					border-radius: 5px;
 					cursor: pointer;
 				}
@@ -56,7 +56,7 @@ export default function Subscribe({ articles }: Props) {
 				.grid {
 					display: grid;
 					grid-template-columns: 2.5fr 1fr;
-					gap: 4rem;
+					gap: 2.5rem;
 					transition: grid-template-columns 0.2s ease;
 				}
 
@@ -68,37 +68,37 @@ export default function Subscribe({ articles }: Props) {
 				.letter p:not(.contact-note) {
 					font-size: inherit !important;
 					line-height: 1.4;
-					margin-bottom: 1.4rem;
+					margin-bottom: 1rem;
 				}
 				.signature {
-					margin-top: 2.5rem;
+					margin-top: 1.6rem;
 					font-style: italic;
 				}
 				.price-note {
-					margin-top: 1.5rem;
-					margin-bottom: 1.5rem;
+					margin-top: 1rem;
+					margin-bottom: 1rem;
 					font-weight: bold;
 					font-style: italic;
-					font-size: 1.6rem;
+					font-size: 1rem;
 				}
 				.contact-note {
 					font-size: 15px;
 					color: #444;
-					margin-top: -1.4rem;
+					margin-top: -1rem;
 				}
 				.buttons {
 					display: flex;
-					gap: 2rem;
-					margin-top: 1rem;
+					gap: 1.25rem;
+					margin-top: 0.6rem;
 				}
 				.sub-link {
 					border: 2px solid ${styles.color.darkAccent};
 					background-color: white;
 					color: black;
 					transition: 0.25s;
-					padding: 1.1rem 2.2rem;
+					padding: 0.7rem 1.4rem;
 					font-family: ${styles.font.sans};
-					font-size: 1.4rem;
+					font-size: 1rem;
 					border-radius: 5px;
 					text-align: center;
 				}
@@ -109,8 +109,8 @@ export default function Subscribe({ articles }: Props) {
 
 				.social-icons {
 					display: flex;
-					gap: 0.2rem;
-					margin-bottom: 2rem;
+					gap: 0.1rem;
+					margin-bottom: 1.25rem;
 					align-items: center;
 				}
 				.social-icons a {
@@ -126,13 +126,13 @@ export default function Subscribe({ articles }: Props) {
 					display: flex;
 					flex-direction: column;
 					border-left: 1px solid #dcdcdc;
-					padding-left: 1.5rem;
-					margin-top: 0.2rem;
+					padding-left: 1rem;
+					margin-top: 0.1rem;
 					transition: opacity 0.2s ease, border 0.2s ease;
 				}
 				.sidebar h2 {
-					font-size: 2rem;
-					margin-bottom: 1rem;
+					font-size: 1.25rem;
+					margin-bottom: 0.6rem;
 					font-family: ${styles.font.serifHeader};
 					text-align: left;
 				}
@@ -140,12 +140,12 @@ export default function Subscribe({ articles }: Props) {
 					width: 100%;
 					height: 1px;
 					background: #ccc;
-					margin: 1.5rem 0;
+					margin: 1rem 0;
 				}
 
 				@media screen and (max-width: 1000px) {
 					.subscribe-page {
-						padding: 2rem 1.5rem;
+						padding: 1.25rem 1rem;
 					}
 
 					.sidebar-toggle {
@@ -192,7 +192,7 @@ export default function Subscribe({ articles }: Props) {
 						})}
 					</div>
 
-					<p style={{ marginTop: "1.6rem" }}>Dear Tower Families, Friends, and Readers,</p>
+					<p style={{ marginTop: "1rem" }}>Dear Tower Families, Friends, and Readers,</p>
 
 					<p>
 						Since 1928, <em>The Tower</em> has told the story of Princeton High School — not just the big headlines, but the quiet

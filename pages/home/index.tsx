@@ -113,7 +113,7 @@ export default function FrontPage({ articles, vang }: Props) {
 			<div id="vang-container">
 				<VanguardContainer desc="The most creative section, with the format changing each issue." spreads={vang} />
 			</div>
-			<div className="dark-banner">
+			{/* <div className="dark-banner">
 				<div id="dark-banner-content">
 					<hr />
 					<h1 style={{ marginTop: "2.5rem" }}> Thank you to our sponsors for supporting us!</h1>
@@ -126,7 +126,7 @@ export default function FrontPage({ articles, vang }: Props) {
 					/>
 					<hr />
 				</div>
-			</div>
+			</div> */}
 			<SubBanner title="Consider subscribing to The Tower." />
 		</div>
 	);

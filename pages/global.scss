@@ -1,7 +1,7 @@
 /** @format */
 
 :root {
-	--background: #fff;
+	--background: #eee;
 	--primary: black;
 	--accent-light: #c1d2d9;
 	--accent: #061b40;
@@ -13,20 +13,21 @@
 	--font-sans: "Neue Montreal Regular";
 	--font-sans-bold: "Neue Montreal Medium";
 }
-
+a {
+	color: black;
+}
 main {
 	display: block;
 	margin-top: 4vh;
-	// apparently we set 1rem != 16px??? which is rly goofy and we should probs fix at some point
 	margin-inline: calc(max(2.5vw, 16px));
 }
 
-.banner {
-	margin: 0px;
-	padding-top: 0px;
-	position: relative;
-	background-color: var(--background);
-}
+// .banner {
+// 	margin: 0px;
+// 	padding-top: 0px;
+// 	position: relative;
+// 	background-color: var(--background);
+// }
 
 .image {
 	display: block;
@@ -143,52 +144,52 @@ footer {
 	}
 }
 
-// .banner, nav {
-// 	background-color: var(--accent-dark);
-// 	color: var(--accent-light);
+// // .banner, nav {
+// // 	background-color: var(--accent-dark);
+// // 	color: var(--accent-light);
+// // }
+
+// nav {
+// 	display: block;
+// 	background-color: var(--background);
+// 	margin-bottom: 2vh;
+// 	text-align: center;
+// 	width: 100%;
+// 	border-bottom: 1px solid var(--accent-light);
+// 	position: sticky;
+// 	top: 0;
+// 	z-index: 10;
+
+// 	hr {
+// 		background-color: #ccc;
+// 		border: none;
+// 		height: 1px;
+// 		margin-top: 5px;
+// 		margin-bottom: 5px;
+// 	}
+
+// 	.menu {
+// 		display: contents;
+// 	}
+
+// 	@media screen and (max-width: 1000px) {
+// 		.menu {
+// 			display: none;
+// 		}
+
+// 		.show {
+// 			display: contents;
+// 		}
+// 	}
 // }
 
-nav {
-	display: block;
-	background-color: var(--background);
-	margin-bottom: 2vh;
-	text-align: center;
-	width: 100%;
-	border-bottom: 1px solid var(--accent-light);
-	position: sticky;
-	top: 0;
-	z-index: 10;
-
-	hr {
-		background-color: #ccc;
-		border: none;
-		height: 1px;
-		margin-top: 5px;
-		margin-bottom: 5px;
-	}
-
-	.menu {
-		display: contents;
-	}
-
-	@media screen and (max-width: 1000px) {
-		.menu {
-			display: none;
-		}
-
-		.show {
-			display: contents;
-		}
-	}
-}
-
-h1#big-title {
-	font-family: "Canterbury";
-	font-weight: normal;
-	text-align: center;
-	color: var(--accent);
-	font-size: 6rem;
-}
+// h1#big-title {
+// 	font-family: "Canterbury";
+// 	font-weight: normal;
+// 	text-align: center;
+// 	color: var(--accent);
+// 	font-size: 6rem;
+// }
 
 // From /home
 
@@ -259,4 +260,11 @@ h1#big-title {
 #vang-container object {
 	width: 50vw;
 	height: 70vh;
+}
+
+a {
+	color: black;
+	&:hover {
+		color: #888;
+	}
 }

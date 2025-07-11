@@ -326,7 +326,7 @@ function MenuBar({ seconds, paused, autocheck, onTogglePaused, onReset, onToggle
 				<button className="button" onClick={onTogglePaused}>
 					{paused ? "Play" : "Pause"}
 				</button>
-				<div className="timer" style={{ fontSize: "1.6rem" }}>
+				<div className="timer" style={{ fontSize: "1rem" }}>
 					{formatSeconds(seconds)}
 				</div>
 			</div>
@@ -366,7 +366,7 @@ function CluesSection({ clues, title }: CluesSectionProps): JSX.Element {
 
 				li {
 					margin-bottom: 10px; /* Adjust the margin as needed */
-					font-size: 1.6rem;
+					font-size: 1rem;
 				}
 
 				.clue-number {

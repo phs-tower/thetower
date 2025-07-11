@@ -67,7 +67,7 @@ export default function Category(props: Props) {
 					border-bottom: 3px double black;
 					margin-bottom: 1vh;
 					/* font-weight: bold;
-					font-size: calc(1.5rem + 1vw); */
+					font-size: calc(1rem + 1vw); */
 				}
 				.grid {
 					display: grid;
@@ -86,16 +86,16 @@ export default function Category(props: Props) {
 				}
 
 				#loadmore {
-					border-radius: 2rem;
+					border-radius: 1.25rem;
 					font-family: ${styles.font.sans};
-					font-size: 1.6rem;
+					font-size: 1rem;
 					color: black;
 					background-color: white;
 					border-style: solid;
 					border-color: ${styles.color.darkAccent};
-					padding: 0.5rem;
-					padding-left: 0.75rem;
-					padding-right: 0.75rem;
+					padding: 0.3rem;
+					padding-left: 0.5rem;
+					padding-right: 0.5rem;
 					transition: 0.25s;
 				}
 

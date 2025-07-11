@@ -100,12 +100,12 @@ export default function CategoryPage(props: Props) {
 				/* The mobile toggle button is hidden by default */
 				.sidebar-toggle {
 					display: none;
-					margin-bottom: 1rem;
+					margin-bottom: 0.6rem;
 					background: ${styles.color.accent};
 					color: white;
 					border: none;
-					padding: 0.6rem 1.2rem;
-					font-size: 1.4rem;
+					padding: 0.4rem 0.75rem;
+					font-size: 1rem;
 					border-radius: 5px;
 					cursor: pointer;
 				}
@@ -125,14 +125,14 @@ export default function CategoryPage(props: Props) {
 					transition: all 0.2s ease;
 				}
 				#loadmore {
-					border-radius: 2rem;
+					border-radius: 1.25rem;
 					font-family: ${styles.font.sans};
-					font-size: 1.6rem;
+					font-size: 1rem;
 					color: black;
 					background-color: white;
 					border-style: solid;
 					border-color: ${styles.color.darkAccent};
-					padding: 0.5rem 0.75rem;
+					padding: 0.3rem 0.5rem;
 					transition: 0.25s;
 				}
 				#loadmore:hover {

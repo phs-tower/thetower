@@ -20,7 +20,7 @@ export default function SubBanner({ title }: Props) {
 				.sub-banner h2 {
 					/* font-family: ${styles.font.serifHeader};
 					font-weight: bold;
-					font-size: calc(1.25rem + 1vw); */
+					font-size: calc(.8rem + 1vw); */
 				}
 
 				.sub-banner p {
@@ -36,9 +36,9 @@ export default function SubBanner({ title }: Props) {
 					border-style: solid;
 					background-color: white;
 					transition: 0.25s;
-					padding: 0.5rem;
+					padding: 0.3rem;
 					font-family: ${styles.font.sans};
-					font-size: 1.6rem;
+					font-size: 1rem;
 					// text-align: center;
 				}
 

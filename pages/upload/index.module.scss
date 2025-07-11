@@ -1,69 +1,75 @@
+/** @format */
+
 @import "/styles/globals.scss";
 
 #formWrapper {
-    max-width: 50vw;
-    margin: 0 auto;
+	max-width: 50vw;
+	margin: 0 auto;
 
-    p, strong, select, textarea, a, input, label {
-        font-size: 1.8rem;
-    }
+	p,
+	strong,
+	select,
+	textarea,
+	a,
+	input,
+	label {
+		font-size: 1.2rem;
+	}
 
-    strong {
-        font-family: $font-header;
-    }
+	strong {
+		font-family: $font-header;
+	}
 }
 
 #selectHolder {
-    display: flex;
+	display: flex;
 }
 
 #contentInput {
-    width: 50vw;
-    height: 10vh;
+	width: 50vw;
+	height: 10vh;
 }
 
 #preview {
+	:first-child:not(h1, h2, h3, blockquote p)::first-letter {
+		initial-letter: 3;
+		margin-right: 10px;
+	}
 
-    :first-child:not(h1, h2, h3, blockquote p)::first-letter {
-        initial-letter: 3;
-        margin-right: 10px;
-    }
+	:global(blockquote) {
+		border-left: 3px solid lightgray;
+		padding-left: 5px;
+	}
 
-    :global(blockquote) {
-        border-left: 3px solid lightgray;
-        padding-left: 5px;
-    }
+	:global(blockquote p) {
+		font-size: 1.6rem !important;
+		font-family: "Neue Montreal Regular" !important;
+		font-weight: normal !important;
+	}
 
-    :global(blockquote p) {
-        font-size: 2.5rem !important;
-        font-family: "Neue Montreal Regular" !important;
-        font-weight: normal !important;
-    }
+	:global(pre) {
+		background-color: lightgray;
+	}
 
-    :global(pre) {
-        background-color: lightgray;
-    }
+	:global(code) {
+		font-family: monospace;
+		font-size: 1rem;
+	}
 
-    :global(code) {
-        font-family: monospace;
-        font-size: 1.6rem;
-    }
+	:global(a) {
+		text-decoration: underline;
+		font-size: 1.25rem;
+	}
 
-    :global(a) {
-        text-decoration: underline;
-        font-size: 2rem;
-    }
+	:global(p) {
+		font-family: $font-text;
+		font-size: 1.25rem;
+		margin-top: 3vh;
+		margin-bottom: 3vh;
+	}
 
-    :global(p) {
-        font-family: $font-text;
-        font-size: 2rem;
-        margin-top: 3vh;
-        margin-bottom: 3vh;
-    }
-
-    :global(strong) {
-        font-family: $font-header;
-        font-size: 2rem;
-    }
-    
+	:global(strong) {
+		font-family: $font-header;
+		font-size: 1.25rem;
+	}
 }

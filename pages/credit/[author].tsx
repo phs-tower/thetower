@@ -54,7 +54,7 @@ export default function Credit({ author, articles }: Props) {
 					text-align: center;
 					font-family: Neue Montreal;
 					color: gray;
-					font-size: 1.8rem;
+					font-size: 1.1rem;
 					margin-top: 5vh;
 				}
 			`}</style>
