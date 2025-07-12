@@ -1,0 +1,102 @@
+/** @format */
+
+.img {
+	width: 48vw;
+	height: 60vh;
+	position: relative;
+}
+
+section.content .titleblock {
+	display: block;
+	text-align: center;
+
+	.date {
+		font-family: var(--font-sans);
+	}
+
+	.authors {
+		font-size: 1rem;
+	}
+}
+
+.main-article:not(h1, h2, h3, blockquote p)::first-letter {
+	initial-letter: 3;
+	margin-right: 10px;
+}
+
+section.content {
+	margin-top: 4rem;
+	margin-inline: auto;
+	max-width: 80ch;
+	padding-inline: 2rem;
+	img {
+		width: 100%;
+		height: auto;
+	}
+	p {
+		font-family: var(--font-serif-text);
+		margin-block: 3vh;
+	}
+
+	strong,
+	b {
+		font-family: var(--font-serif-header);
+	}
+}
+
+.return-to-category-container {
+	position: sticky;
+	top: 8rem;
+	@media screen and (max-width: 970px) {
+		position: relative;
+		top: unset;
+	}
+}
+
+a.return-to-category {
+	font-family: var(--font-sans);
+	border: 2px solid var(--accent-dark);
+	padding: 0.2rem 0.5rem;
+	border-radius: 0.25rem;
+	position: absolute;
+	right: 2rem;
+	top: -2rem;
+	font-size: 0.8rem;
+	background: var(--background);
+	color: var(--accent-dark);
+	letter-spacing: 0.05em;
+	&:hover {
+		background: var(--accent-dark);
+		color: white;
+	}
+	// For the up-right arrow on the button (fa free doesn't have up-right :( )
+	i:global(.fa-arrow-up) {
+		transform: rotate(45deg);
+	}
+}
+
+.main-article {
+	blockquote {
+		border-left: 3px solid lightgray;
+		padding-left: 5px;
+
+		p {
+			font-size: 1.5rem !important;
+			font-family: "Neue Montreal Regular" !important;
+		}
+	}
+
+	pre {
+		background-color: lightgray;
+	}
+
+	code {
+		font-family: monospace;
+		font-size: 1rem;
+	}
+
+	a {
+		text-decoration: underline;
+		font-size: 1.25rem;
+	}
+}
