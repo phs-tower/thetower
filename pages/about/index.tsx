@@ -12,10 +12,10 @@ export default function About() {
 				<meta property="og:description" content="About the Tower" />
 			</Head>
 			<style jsx>{`
-				.about {
+				/*.about {
 					max-width: 100vw;
 					min-height: 100vh;
-				}
+				} */
 				h1 {
 					text-align: center;
 					border-bottom: 3px solid gainsboro;
@@ -27,12 +27,13 @@ export default function About() {
 					text-align: center;
 				}
 
-				p {
+				/*p {
 					margin-left: 24vw;
-				}
+				}*/
 				p,
 				b {
-					max-width: 45vw;
+					max-width: 80ch;
+					margin-inline: auto;
 					/* font-family: ${styles.font.serifText}, ${styles.font.stack}; */
 				}
 				b {

@@ -12,6 +12,7 @@ import { socialLinks } from "~/lib/constants";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/react";
 import { displayFullDate } from "~/lib/utils";
+import { usePathname } from "next/navigation";
 
 import "./global.scss";
 import "./nav.scss";
@@ -22,11 +23,21 @@ type Subsection = {
 };
 
 function SectionLink({ href, name: section, subsections }: { href: string; name: string; subsections?: Subsection[] }) {
+	const [open, setOpen] = useState(false);
 	return (
 		<div className="section-link">
 			<Link href={href}>
 				{section}
-				{subsections && <i className="fa-solid fa-chevron-down" />}
+				{subsections && (
+					<i
+						className="fa-solid fa-chevron-down"
+						onClick={e => {
+							e.preventDefault();
+							setOpen(!open);
+						}}
+						data-open={open}
+					/>
+				)}
 			</Link>
 			{subsections && (
 				<div className="dropdown">
@@ -44,46 +55,44 @@ function SectionLink({ href, name: section, subsections }: { href: string; name:
 export function Nav() {
 	return (
 		<nav>
-			<div className="nav-inner section">
-				<Masthead />
-				<div id="links">
-					<SectionLink
-						href="/category/news-features"
-						name="NEWS & FEATURES"
-						subsections={[{ name: "PHS Profiles", href: "/category/news-features/phs-profiles" }]}
-					/>
-					<SectionLink href="/category/multimedia" name="MULTIMEDIA" />
-					<SectionLink
-						href="/category/opinions"
-						name="OPINIONS"
-						subsections={[
-							{ name: "Editorials", href: "/category/opinions/editorials" },
-							{ name: "Cheers & Jeers", href: "/category/opinions/cheers-jeers" },
-						]}
-					/>
-					<SectionLink href="/category/vanguard" name="VANGUARD" />
-					<SectionLink
-						href="/category/arts-entertainment"
-						name="ARTS & ENTERTAINMENT"
-						subsections={[{ name: "Student Artists", href: "/category/arts-entertainment/student-artists" }]}
-					/>
-					<SectionLink
-						href="/category/sports"
-						name="SPORTS"
-						subsections={[{ name: "Student Athletes", href: "/category/sports/student-athletes" }]}
-					/>
-					<SectionLink
-						href="/about"
-						name="ABOUT"
-						subsections={[
-							{ name: "2025 Staff", href: "/about/2025" },
-							{ name: "2024 Staff", href: "/about/2024" },
-							{ name: "2023 Staff", href: "/about/2023" },
-							{ name: "2022 Staff", href: "/about/2022" },
-						]}
-					/>
-					<SectionLink href="/archives" name="ARCHIVES" />
-				</div>
+			<Masthead />
+			<div id="links">
+				<SectionLink
+					href="/category/news-features"
+					name="NEWS & FEATURES"
+					subsections={[{ name: "PHS Profiles", href: "/category/news-features/phs-profiles" }]}
+				/>
+				<SectionLink href="/category/multimedia" name="MULTIMEDIA" />
+				<SectionLink
+					href="/category/opinions"
+					name="OPINIONS"
+					subsections={[
+						{ name: "Editorials", href: "/category/opinions/editorials" },
+						{ name: "Cheers & Jeers", href: "/category/opinions/cheers-jeers" },
+					]}
+				/>
+				<SectionLink href="/category/vanguard" name="VANGUARD" />
+				<SectionLink
+					href="/category/arts-entertainment"
+					name="ARTS & ENTERTAINMENT"
+					subsections={[{ name: "Student Artists", href: "/category/arts-entertainment/student-artists" }]}
+				/>
+				<SectionLink
+					href="/category/sports"
+					name="SPORTS"
+					subsections={[{ name: "Student Athletes", href: "/category/sports/student-athletes" }]}
+				/>
+				<SectionLink
+					href="/about"
+					name="ABOUT"
+					subsections={[
+						{ name: "2025 Staff", href: "/about/2025" },
+						{ name: "2024 Staff", href: "/about/2024" },
+						{ name: "2023 Staff", href: "/about/2023" },
+						{ name: "2022 Staff", href: "/about/2022" },
+					]}
+				/>
+				<SectionLink href="/archives" name="ARCHIVES" />
 			</div>
 		</nav>
 	);
@@ -91,27 +100,40 @@ export function Nav() {
 
 function Masthead() {
 	const [issue, setIssue] = useState({ month: 2, year: 2022 });
-
+	const [menuOpen, setMenuOpen] = useState(false);
+	const [menuX, setMenuX] = useState(false);
 	const router = useRouter();
-	// We’ll check the current month first
-	let m = new Date().getMonth();
-	let y = new Date().getFullYear();
 
-	pdfExists(m, y).then(async res => {
-		if (res) {
+	// I HATE YOU NEXTJS FAJSHJHDALKHFKJLAHSKHKDJAFHK WHY IS IT THIS ASFJDHKJLFDHKJ TO AFHKJHKDJHKL I JUST WANT TO FDHLKHDKF
+	// (btw this is so that the sections menu closes once you go to a new section)
+	const [startLocation, setStartLocation] = useState(usePathname());
+	const path = usePathname();
+	if (startLocation != path) {
+		setStartLocation(path);
+		if (menuOpen) setMenuOpen(false);
+	}
+
+	useEffect(() => document.addEventListener("keyup", e => e.key == "Escape" && setMenuOpen(false)));
+
+	let m = new Date().getMonth() + 1;
+	let y = new Date().getFullYear();
+	const getIssue = async () => {
+		if (await pdfExists(m, y)) {
 			setIssue({ month: m, year: y });
 			return;
 		}
-		while (!(await pdfExists(m, y))) {
+		for (let i = 0; i < 12; i++) {
 			m--;
 			if (m == 0) {
 				m = 12;
 				y--;
 			}
+			if (!(await pdfExists(m, y))) continue;
+			setIssue({ month: m, year: y });
+			return;
 		}
-		setIssue({ month: m, year: y });
-	});
-
+	};
+	if (issue.year == 2022) getIssue();
 	async function pdfExists(month: number, year: number) {
 		const url = `https://yusjougmsdnhcsksadaw.supabase.co/storage/v1/object/public/prints/${month}-${year}.pdf`;
 		try {
@@ -123,6 +145,12 @@ function Masthead() {
 	}
 
 	const pdfLink = `https://yusjougmsdnhcsksadaw.supabase.co/storage/v1/object/public/prints/${issue.month}-${issue.year}.pdf`;
+
+	if (menuOpen != menuX) {
+		setTimeout(() => {
+			setMenuX(menuOpen);
+		}, 100);
+	}
 
 	return (
 		<div className="header">
@@ -136,8 +164,8 @@ function Masthead() {
 						<Link href={pdfLink}>Print Edition</Link>
 						<p>{displayFullDate().toUpperCase()}</p>
 					</div>
-					<button id="menu">
-						<i className="fa-solid fa-bars"></i>
+					<button id="menu" data-open={menuOpen} onClick={() => setMenuOpen(!menuOpen)}>
+						<i className={`fa-solid ${menuX ? "fa-x" : "fa-bars"}`}></i>
 						<span>Sections</span>
 					</button>
 				</div>
@@ -187,30 +215,33 @@ export default function App({ Component, pageProps }: AppProps) {
 }
 
 // ======================
-// FOOTER & NAVBAR BELOW
+// FOOTER BELOW
 // ======================
 function Footer() {
 	return (
 		<footer>
 			<hr />
 			<div className="top">
-				<h1>The Tower</h1>
-				{socialLinks.map(({ name, url, icon }) => {
-					// locally cast it to a component that accepts a `size` prop
-					const IconComponent = icon as React.ComponentType<{ size?: string }>;
+				<div>
+					<Link href="/home">
+						<h1>The Tower</h1>
+					</Link>
+					{socialLinks.map(({ name, url, icon }) => {
+						// locally cast it to a component that accepts a `size` prop
+						const IconComponent = icon as React.ComponentType<{ size?: string }>;
 
-					return (
-						<a key={name} href={url} target="_blank" rel="noopener noreferrer" aria-label={name}>
-							<IconComponent size="2.2em" />
-						</a>
-					);
-				})}
-
+						return (
+							<a key={name} href={url} target="_blank" rel="noopener noreferrer" className="socials-icon" aria-label={name}>
+								<IconComponent size="2.2em" />
+							</a>
+						);
+					})}
+				</div>
 				<Link
 					href="https://docs.google.com/forms/d/e/1FAIpQLSeine_aZUId0y2OjY2FZyJ93ZliGQZos-6c3VwkPg2IhXsGfg/viewform?usp=sf_link"
-					legacyBehavior
+					className="home-btn"
 				>
-					<a className="home-btn">Report problem »</a>
+					Report problem »
 				</Link>
 			</div>
 			<div className="bottom">

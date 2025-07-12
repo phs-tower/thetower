@@ -1,7 +1,7 @@
 /** @format */
 
 :root {
-	--background: #eee;
+	--background: #fff;
 	--primary: black;
 	--accent-light: #c1d2d9;
 	--accent: #061b40;
@@ -13,13 +13,16 @@
 	--font-sans: "Neue Montreal Regular";
 	--font-sans-bold: "Neue Montreal Medium";
 }
+
+body {
+	background: var(--background);
+}
+
 a {
 	color: black;
 }
 main {
-	display: block;
 	margin-top: 4vh;
-	margin-inline: calc(max(2.5vw, 16px));
 }
 
 // .banner {
@@ -107,19 +110,37 @@ footer {
 		height: 3px;
 	}
 
+	.top {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+
+		> div {
+			display: flex;
+			flex-direction: row;
+			align-items: end;
+
+			.socials-icon {
+				position: relative;
+				bottom: 0.5rem;
+			}
+		}
+	}
+
 	.top h1 {
 		font-family: Canterbury;
 		font-size: xxx-large;
+		user-select: none;
 		float: left;
 		padding-right: 10px;
 		font-weight: normal;
 	}
-
-	.top a {
-		display: inline-block;
-		position: relative;
-		padding-top: 2.5vh;
-	}
+	// .top a:not(:has(h1)) {
+	// 	display: inline-block;
+	// 	position: relative;
+	// 	padding-top: 2.5vh;
+	// }
 
 	.top .home-btn {
 		color: #274370;
@@ -141,6 +162,13 @@ footer {
 
 	span {
 		padding-bottom: 2vh;
+	}
+}
+
+main a {
+	color: rgb(24, 101, 208);
+	&:hover {
+		color: rgb(94, 150, 229);
 	}
 }
 
@@ -267,4 +295,12 @@ a {
 	&:hover {
 		color: #888;
 	}
+}
+
+main {
+	max-width: 150ch;
+	// margin-inline:auto;
+	padding-inline: 2rem;
+	// box-sizing: border-box;
+	margin-inline: auto;
 }

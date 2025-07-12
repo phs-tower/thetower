@@ -169,7 +169,7 @@ export default function Category({ search, articles, sidebar, sort, section }: P
 	return (
 		<div className="category">
 			<Head>
-				<title>{`Search: ${expandCategorySlug(search)} | The Tower`}</title>
+				<title>{`Search${expandCategorySlug(search) && `: ${expandCategorySlug(search)}`} | The Tower`}</title>
 			</Head>
 
 			<style jsx>{`
@@ -247,7 +247,7 @@ export default function Category({ search, articles, sidebar, sort, section }: P
 				}
 			`}</style>
 
-			<h1>Search: &quot;{expandCategorySlug(search)}&quot;</h1>
+			<h1>Search{expandCategorySlug(search) ? `: "${expandCategorySlug(search)}"` : ""}</h1>
 
 			<div style={{ textAlign: "center", marginBottom: ".6rem", position: "relative" }}>
 				<span className="icon">🔎︎</span>

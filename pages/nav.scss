@@ -12,7 +12,7 @@ nav {
 	--masthead-height: 6rem;
 	$mobile: 970px;
 	$smaller: 600px;
-
+	z-index: 100000000000; // no way they get above this
 	position: sticky;
 	top: calc(-1 * (var(--masthead-height) + 1rem + 1px));
 
@@ -38,11 +38,7 @@ nav {
 		}
 	}
 
-	div.nav-inner {
-		z-index: 10;
-		position: relative;
-		background: var(--accent-dark);
-	}
+	background: var(--accent-dark);
 
 	#links {
 		display: flex;
@@ -72,11 +68,11 @@ nav {
 			display: block;
 			position: absolute;
 			bottom: calc(1rem - 2px);
-			right: calc(0.5rem);
+			right: 0.5rem;
 			width: 0;
 			height: 2px;
 			background: var(--text-light);
-			transition: width 0.5s;
+			transition: width 0.25s;
 		}
 
 		> a:has(i)::before {
@@ -95,38 +91,42 @@ nav {
 			transition: transform 0.5s;
 		}
 
-		&:hover {
-			@keyframes fade-in {
-				0% {
-					opacity: 0;
+		@media screen and (min-width: $mobile) {
+			&:hover {
+				@keyframes fade-in {
+					0% {
+						opacity: 0;
+					}
+					100% {
+						opacity: 1;
+					}
 				}
-				100% {
-					opacity: 1;
+				.dropdown {
+					animation: 0.5s ease 1 normal both fade-in;
+					display: block;
 				}
-			}
-			.dropdown {
-				animation: 0.5s ease 1 normal both fade-in;
-				display: block;
-			}
-			> a::before {
-				left: 0.5rem;
-				width: calc(100% - 1rem);
-			}
-			> a:has(i)::before {
-				width: calc(100% - 1rem - 2ch);
-			}
-			> a > i {
-				transform: rotate(-180deg);
+				> a::before {
+					left: 0.5rem;
+					width: calc(100% - 1rem);
+				}
+				> a:has(i)::before {
+					width: calc(100% - 1rem - 2ch);
+				}
+				> a > i {
+					transform: rotate(-180deg);
+				}
 			}
 		}
 
-		@media screen and (max-width: 1064px) {
+		@media screen and (max-width: 1064px) and (min-width: 970px) {
 			> a > i {
 				display: none;
 			}
+			> a:has(i)::before {
+				right: 0.5rem;
+			}
 			&:hover > a:has(i)::before {
 				width: calc(100% - 1rem);
-				right: calc(0.5rem);
 			}
 		}
 	}
@@ -200,7 +200,7 @@ nav {
 		gap: 0.5rem;
 	}
 	.right-stuff {
-		align-items: end;
+		align-items: flex-end;
 	}
 
 	#menu {
@@ -233,6 +233,7 @@ nav {
 		align-items: center;
 		border: 1px solid white;
 		border-radius: 0.25rem;
+		height: 2rem;
 		&:has(:focus) {
 			border: 2px solid rgb(94, 150, 229);
 		}
@@ -256,8 +257,8 @@ nav {
 		}
 		button {
 			width: 2rem;
-			height: 2rem;
 			border: none;
+			border-radius: 0 0.25rem 0.25rem 0;
 		}
 	}
 	#masthead {
@@ -280,5 +281,90 @@ nav {
 
 	.search-box {
 		display: block;
+	}
+
+	@media screen and (max-width: $mobile) {
+		&:has(#menu[data-open="true"]) {
+			#links {
+				position: fixed;
+				inset: 0;
+				top: calc(var(--masthead-height) + 1rem);
+				display: block;
+				background: var(--accent-dark);
+				padding-inline: 2rem;
+				overflow: auto;
+				color-scheme: dark;
+				.section-link > a {
+					font-weight: 600;
+					display: flex;
+					justify-content: space-between;
+					i {
+						width: 24px;
+					}
+				}
+				a {
+					font-family: var(--font-serif-header);
+					text-align: left;
+					&:hover {
+						background: white;
+						color: var(--accent-dark);
+					}
+				}
+				a::before {
+					display: none;
+				}
+				.dropdown {
+					z-index: 100;
+					position: static;
+
+					a {
+						padding-inline: 1rem;
+						color: #ccc;
+						border: none;
+						&:hover {
+							color: black;
+						}
+					}
+				}
+
+				.section-link i[data-open="true"] {
+					transform: rotate(-180deg);
+				}
+
+				.section-link:has(i[data-open="true"]) .dropdown {
+					display: block;
+					opacity: 1;
+					background: none;
+					box-shadow: none;
+					width: unset;
+					padding: unset;
+					margin: unset;
+				}
+			}
+		}
+	}
+
+	#menu i {
+		transform: rotate(0deg);
+		transition: transform 0.2s;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 1rem;
+		height: 1rem;
+	}
+
+	#menu[data-open="true"] i {
+		transform: rotate(180deg);
+	}
+
+	#menu[data-open="true"] {
+		background: #fff4;
+	}
+}
+
+@media screen and (max-width: 970px) {
+	body:has(#menu[data-open="true"]) {
+		overflow: hidden;
 	}
 }

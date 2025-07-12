@@ -39,6 +39,7 @@ export default function SubBanner({ title }: Props) {
 					padding: 0.3rem;
 					font-family: ${styles.font.sans};
 					font-size: 1rem;
+					color: black;
 					// text-align: center;
 				}
 
@@ -49,7 +50,6 @@ export default function SubBanner({ title }: Props) {
 
 				hr {
 					position-x: absolute;
-					width: 90vw;
 					align-self: center;
 					background-color: #ccc;
 					border: none;
@@ -57,8 +57,6 @@ export default function SubBanner({ title }: Props) {
 					margin-bottom: 1vh;
 					height: 3px;
 					right: 0;
-					margin-left: 5vw;
-					margin-right: 5vw;
 				}
 			`}</style>
 			<div className="sub-banner">
