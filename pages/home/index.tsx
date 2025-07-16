@@ -11,6 +11,8 @@ import { getFrontpageArticles, getIdOfNewest, getSpreadsByCategory } from "~/lib
 import SubBanner from "~/components/subbanner.client";
 import { SectionContainer, VanguardContainer } from "~/components/sectioncontainer.client";
 
+import sponsorStyles from "./sponsor.module.scss";
+
 export async function getStaticProps() {
 	const articles = await getFrontpageArticles();
 	const vang = await getSpreadsByCategory("vanguard", 6, await getIdOfNewest("vanguard", null), 0);
@@ -85,10 +87,10 @@ export default function FrontPage({ articles, vang }: Props) {
 					<div style={{ display: "flex", marginLeft: "5vw", marginRight: "5vw", gap: "1rem" }}>
 						<Image src="/assets/white-tower.png" width={309} height={721} alt="Tower logo" style={{ width: "15rem", height: "auto" }} />
 						<div>
-							<h2 style={{ marginTop: "2.5rem", marginBottom: "2.5rem", textAlign: "left" }}>
+							<h2 style={{ marginTop: "1.5rem", marginBottom: "1.5rem", textAlign: "left" }}>
 								The Tower is Princeton High School&apos;s student-run newspaper.
 							</h2>
-							<p style={{ textAlign: "left", fontSize: "2.5rem" }}>
+							<p style={{ textAlign: "left", fontSize: "1.5rem" }}>
 								Since 1928, the Tower has been reporting on the inner workings of PHS, the district, and the cultural and athletic
 								events that affect the student body.
 								<br /> <br />
@@ -113,21 +115,27 @@ export default function FrontPage({ articles, vang }: Props) {
 			<div id="vang-container">
 				<VanguardContainer desc="The most creative section, with the format changing each issue." spreads={vang} />
 			</div>
-			{/* <div className="dark-banner">
-				<div id="dark-banner-content">
-					<hr />
-					<h1 style={{ marginTop: "2.5rem" }}> Thank you to our sponsors for supporting us!</h1>
-					<Image
-						src="/assets/milk-cookies.png"
-						width={2500}
-						height={2500}
-						alt="Milk & Cookies"
-						style={{ width: "25rem", height: "auto", marginBottom: "1rem" }}
-					/>
-					<hr />
-				</div>
-			</div> */}
+
+			<SponsorBanner />
 			<SubBanner title="Consider subscribing to The Tower." />
+		</div>
+	);
+}
+
+function SponsorBanner() {
+	return (
+		<div className={sponsorStyles.banner}>
+			<h1 style={{ marginTop: "2.5rem" }}> Thank you to our sponsors for supporting us!</h1>
+			<div className={sponsorStyles["sponsor-list"]}>
+				<Link href="https://milkncookies.online/">
+					<Image src="/assets/milk-cookies.png" width={2500} height={2500} alt="Milk & Cookies" />
+				</Link>
+				{/* Add other sponsors here once we get them */}
+			</div>
+			<i>
+				Interested in sponsoring? Contact <Link href="mailto:phstowersenioreditors@gmail.com">phstowersenioreditors@gmail.com</Link> for more
+				info
+			</i>
 		</div>
 	);
 }

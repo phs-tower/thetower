@@ -21,6 +21,7 @@ body {
 a {
 	color: black;
 }
+
 main {
 	margin-top: 4vh;
 }
@@ -119,7 +120,7 @@ footer {
 		> div {
 			display: flex;
 			flex-direction: row;
-			align-items: end;
+			align-items: flex-end;
 
 			.socials-icon {
 				position: relative;
@@ -136,6 +137,7 @@ footer {
 		padding-right: 10px;
 		font-weight: normal;
 	}
+
 	// .top a:not(:has(h1)) {
 	// 	display: inline-block;
 	// 	position: relative;
@@ -167,6 +169,7 @@ footer {
 
 main a {
 	color: rgb(24, 101, 208);
+
 	&:hover {
 		color: rgb(94, 150, 229);
 	}
@@ -292,6 +295,7 @@ main a {
 
 a {
 	color: black;
+
 	&:hover {
 		color: #888;
 	}
@@ -303,4 +307,10 @@ main {
 	padding-inline: 2rem;
 	// box-sizing: border-box;
 	margin-inline: auto;
+}
+
+.sponsor-list {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
 }
