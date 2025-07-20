@@ -33,8 +33,6 @@ input[type="submit"],
 input[type="file"],
 select,
 ::file-selector-button {
-	background: none;
-	border: var(--accent-dark) 1px solid;
 	font-family: var(--font-serif-text);
 }
 
