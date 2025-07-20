@@ -97,18 +97,6 @@ export default function CategoryPage(props: Props) {
 					border-bottom: 3px double black;
 					margin-bottom: 1vh;
 				}
-				/* The mobile toggle button is hidden by default */
-				.sidebar-toggle {
-					display: none;
-					margin-bottom: 0.6rem;
-					background: ${styles.color.accent};
-					color: white;
-					border: none;
-					padding: 0.4rem 0.75rem;
-					font-size: 1rem;
-					border-radius: 5px;
-					cursor: pointer;
-				}
 				.grid {
 					display: grid;
 					/* On desktop, 2.25fr for main, 0.75fr for sidebar */
@@ -144,9 +132,6 @@ export default function CategoryPage(props: Props) {
 				}
 
 				@media (max-width: 1000px) {
-					.sidebar-toggle {
-						display: inline-block;
-					}
 					.grid {
 						/* If showSidebar is false => second column is 0 (hidden). If showSidebar is true => second column is 0.6fr	(makes the sidebar smaller relative to main).*/
 						grid-template-columns: ${showSidebar ? "1fr 0.6fr" : "1fr 0"};

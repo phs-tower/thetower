@@ -16,6 +16,23 @@
 		font-size: 1.2rem;
 	}
 
+	input {
+		border-radius: 0;
+		border: 1px solid var(--accent-dark);
+	}
+
+	input[type="file"] {
+		// background: red;
+		padding: 0;
+		margin: 0;
+		height: 2rem;
+		border: none;
+	}
+
+	::file-selector-button {
+		height: 2rem;
+	}
+
 	strong {
 		font-family: $font-header;
 	}
@@ -36,39 +53,39 @@
 		margin-right: 10px;
 	}
 
-	:global(blockquote) {
+	blockquote {
 		border-left: 3px solid lightgray;
 		padding-left: 5px;
 	}
 
-	:global(blockquote p) {
+	blockquote p {
 		font-size: 1.6rem !important;
 		font-family: "Neue Montreal Regular" !important;
 		font-weight: normal !important;
 	}
 
-	:global(pre) {
+	pre {
 		background-color: lightgray;
 	}
 
-	:global(code) {
+	code {
 		font-family: monospace;
 		font-size: 1rem;
 	}
 
-	:global(a) {
+	a {
 		text-decoration: underline;
 		font-size: 1.25rem;
 	}
 
-	:global(p) {
+	p {
 		font-family: $font-text;
 		font-size: 1.25rem;
 		margin-top: 3vh;
 		margin-bottom: 3vh;
 	}
 
-	:global(strong) {
+	strong {
 		font-family: $font-header;
 		font-size: 1.25rem;
 	}

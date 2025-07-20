@@ -24,14 +24,17 @@ nav {
 		color: white;
 		gap: 1ch;
 		align-items: center;
+
 		i {
 			display: inline;
 		}
+
 		span {
 			font-family: var(--font-sans);
 			color: white;
 			font-size: 1rem;
 		}
+
 		&:hover {
 			cursor: pointer;
 			background: #fff4;
@@ -45,6 +48,7 @@ nav {
 		justify-content: center;
 		gap: 0.5rem;
 		font-family: var(--font-sans);
+
 		@media screen and (max-width: $mobile) {
 			display: none;
 		}
@@ -52,9 +56,11 @@ nav {
 
 	.section-link {
 		position: relative;
+
 		a {
 			display: block;
 		}
+
 		// Top-level categories
 		> a {
 			padding: 1rem 0.5rem;
@@ -62,6 +68,7 @@ nav {
 			position: relative;
 			color: var(--text-light);
 		}
+
 		// The underline on top-level categories
 		> a::before {
 			content: "";
@@ -97,21 +104,26 @@ nav {
 					0% {
 						opacity: 0;
 					}
+
 					100% {
 						opacity: 1;
 					}
 				}
+
 				.dropdown {
 					animation: 0.5s ease 1 normal both fade-in;
 					display: block;
 				}
+
 				> a::before {
 					left: 0.5rem;
 					width: calc(100% - 1rem);
 				}
+
 				> a:has(i)::before {
 					width: calc(100% - 1rem - 2ch);
 				}
+
 				> a > i {
 					transform: rotate(-180deg);
 				}
@@ -122,9 +134,11 @@ nav {
 			> a > i {
 				display: none;
 			}
+
 			> a:has(i)::before {
 				right: 0.5rem;
 			}
+
 			&:hover > a:has(i)::before {
 				width: calc(100% - 1rem);
 			}
@@ -143,8 +157,10 @@ nav {
 		box-sizing: border-box;
 		text-align: center;
 		box-shadow: 0 0 2rem #0008;
+
 		a {
 			padding: 0.5rem 0;
+
 			&:hover {
 				color: #888;
 			}
@@ -164,16 +180,19 @@ nav {
 		padding-block: 0.5rem;
 		border-bottom: solid white 1px;
 		box-sizing: border-box;
+
 		#masthead {
 			position: relative;
 			z-index: 10;
 			padding: 0;
 			height: var(--masthead-height);
 		}
+
 		#masthead img {
 			height: var(--masthead-height);
 		}
 	}
+
 	.masthead-sides {
 		position: absolute;
 		display: flex;
@@ -181,6 +200,7 @@ nav {
 		justify-content: space-between;
 		left: 1rem;
 		right: 1rem;
+
 		a,
 		p {
 			color: white;
@@ -193,12 +213,14 @@ nav {
 		display: flex;
 		align-items: center;
 	}
+
 	.right-stuff,
 	#paper-info {
 		display: flex;
 		flex-direction: column;
 		gap: 0.5rem;
 	}
+
 	.right-stuff {
 		align-items: flex-end;
 	}
@@ -210,12 +232,15 @@ nav {
 	@media screen and (max-width: $mobile) {
 		--masthead-height: 4rem;
 		top: 0;
+
 		#paper-info {
 			display: none;
 		}
+
 		#menu {
 			display: flex;
 		}
+
 		.right-stuff .subscribe {
 			display: none;
 		}
@@ -223,6 +248,7 @@ nav {
 
 	@media screen and (max-width: $smaller) {
 		--masthead-height: 2rem;
+
 		#masthead img {
 			display: none;
 		}
@@ -234,9 +260,13 @@ nav {
 		border: 1px solid white;
 		border-radius: 0.25rem;
 		height: 2rem;
-		&:has(:focus) {
-			border: 2px solid rgb(94, 150, 229);
+
+		@media screen and (min-width: 680px) {
+			&:has(:focus-visible) {
+				border: 2px solid rgb(94, 150, 229);
+			}
 		}
+
 		input {
 			background: none;
 			border: none;
@@ -245,6 +275,7 @@ nav {
 			height: 2rem;
 			padding: 0.5rem;
 			box-sizing: border-box;
+
 			&:focus-visible {
 				outline: none;
 			}
@@ -255,17 +286,31 @@ nav {
 				display: none;
 			}
 		}
+
 		button {
 			width: 2rem;
 			border: none;
-			border-radius: 0 0.25rem 0.25rem 0;
+			// border-radius: 0 0.25rem 0.25rem 0;
+			border-radius: 0;
+			position: static;
+		}
+
+		@media screen and (max-width: 680px) {
+			position: relative;
+			top: 0;
+
+			&:active {
+				top: 2px;
+			}
 		}
 	}
+
 	#masthead {
 		display: flex;
 		flex-direction: row;
 		align-items: center;
 		gap: calc(var(--masthead-height) / 8);
+
 		h1 {
 			color: white;
 			font-weight: normal;
@@ -275,6 +320,7 @@ nav {
 			@media screen and (max-width: 360px) {
 				display: none;
 			}
+
 			user-select: none;
 		}
 	}
@@ -294,25 +340,31 @@ nav {
 				padding-inline: 2rem;
 				overflow: auto;
 				color-scheme: dark;
+
 				.section-link > a {
 					font-weight: 600;
 					display: flex;
 					justify-content: space-between;
+
 					i {
 						width: 24px;
 					}
 				}
+
 				a {
 					font-family: var(--font-serif-header);
 					text-align: left;
+
 					&:hover {
 						background: white;
 						color: var(--accent-dark);
 					}
 				}
+
 				a::before {
 					display: none;
 				}
+
 				.dropdown {
 					z-index: 100;
 					position: static;
@@ -321,6 +373,7 @@ nav {
 						padding-inline: 1rem;
 						color: #ccc;
 						border: none;
+
 						&:hover {
 							color: black;
 						}

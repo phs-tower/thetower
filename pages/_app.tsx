@@ -4,7 +4,6 @@ import type { AppProps, NextWebVitalsMetric } from "next/app";
 import Head from "next/head";
 import Link from "next/link";
 import { useEffect, useState } from "react"; // <-- ADDED for useEffect, useState
-import Button from "~/components/button.client";
 import "~/styles/styles.scss";
 import styles from "~/lib/styles";
 import { useRouter } from "next/router";
@@ -161,7 +160,11 @@ function Masthead() {
 			<div className="masthead-sides">
 				<div className="left-stuff">
 					<div id="paper-info">
-						<Link href={pdfLink}>Print Edition</Link>
+						<span>
+							<Link href={pdfLink} className="underline-animation">
+								Print Edition
+							</Link>
+						</span>
 						<p>{displayFullDate().toUpperCase()}</p>
 					</div>
 					<button id="menu" data-open={menuOpen} onClick={() => setMenuOpen(!menuOpen)}>
@@ -306,68 +309,6 @@ function Footer() {
 				Aryan Singla &apos;27
 			</span>
 		</footer>
-	);
-}
-
-function NavBar() {
-	return (
-		<nav>
-			<Button
-				name="☰"
-				href="#"
-				className="showMenu"
-				onClick={() => {
-					const menu = document.querySelector(".menu");
-					if (menu) menu.classList.toggle("show");
-					// omg i cant decide if i love this or hate it
-				}}
-			/>
-			<div className="menu">
-				<Button name="NEWS & FEATURES" href="/category/news-features">
-					<Link href="/category/news-features/phs-profiles">PHS Profiles</Link>
-				</Button>
-
-				<Button name="MULTIMEDIA" href="/category/multimedia" />
-
-				<Button name="OPINIONS" href="/category/opinions">
-					<Link href="/category/opinions/editorials">Editorials</Link>
-					<hr />
-					<Link href="/category/opinions/cheers-jeers">Cheers & Jeers</Link>
-				</Button>
-
-				<Button name="VANGUARD" href="/category/vanguard">
-					<Link href="/category/vanguard">Spreads</Link>
-					<hr />
-					<Link href="/category/vanguard/vanguard">Articles</Link>
-				</Button>
-
-				<Button name="ARTS & ENTERTAINMENT" href="/category/arts-entertainment">
-					<Link href="/category/arts-entertainment/student-artists">Student Artists</Link>
-				</Button>
-
-				<Button name="SPORTS" href="/category/sports">
-					<Link href="/category/sports/student-athletes">Student Athletes</Link>
-				</Button>
-
-				{/* <Button name="CROSSWORD" href="/games/crossword">
-					<Link href="/games/crossword/archive">Past Crosswords</Link>
-				</Button> */}
-
-				<Button name="ABOUT" href="/about">
-					<Link href="/about/2025">2025 Staff</Link>
-					<hr />
-					<Link href="/about/2024">2024 Staff</Link>
-					<hr />
-					<Link href="/about/2023">2023 Staff</Link>
-					<hr />
-					<Link href="/about/2022">2022 Staff</Link>
-				</Button>
-
-				<Button name="ARCHIVES" href="/archives">
-					{/* <Link href="/category/special/nsi">New Student Issues</Link> */}
-				</Button>
-			</div>
-		</nav>
 	);
 }
 

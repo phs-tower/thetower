@@ -29,10 +29,12 @@ section.content {
 	margin-inline: auto;
 	max-width: 80ch;
 	padding-inline: 2rem;
+
 	img {
 		width: 100%;
 		height: auto;
 	}
+
 	p {
 		font-family: var(--font-serif-text);
 		margin-block: 3vh;
@@ -47,6 +49,7 @@ section.content {
 .return-to-category-container {
 	position: sticky;
 	top: 8rem;
+
 	@media screen and (max-width: 970px) {
 		position: relative;
 		top: unset;
@@ -65,13 +68,24 @@ a.return-to-category {
 	background: var(--background);
 	color: var(--accent-dark);
 	letter-spacing: 0.05em;
+
 	&:hover {
 		background: var(--accent-dark);
 		color: white;
 	}
+
 	// For the up-right arrow on the button (fa free doesn't have up-right :( )
 	i:global(.fa-arrow-up) {
 		transform: rotate(45deg);
+		transition: transform ease-in;
+	}
+
+	&:active {
+		top: -1.8rem;
+	}
+
+	&:hover i:global(.fa-arrow-up) {
+		transform: translate(2px, -2px) rotate(45deg);
 	}
 }
 

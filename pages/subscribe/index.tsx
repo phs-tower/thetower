@@ -39,19 +39,6 @@ export default function Subscribe({ articles }: Props) {
 					font-family: ${styles.font.serifText};
 				}
 
-				/* mobile toggle button (hidden by default) */
-				.sidebar-toggle {
-					display: none;
-					margin-bottom: 0.6rem;
-					background: ${styles.color.accent};
-					color: white;
-					border: none;
-					padding: 0.5rem 0.75rem;
-					font-size: 1rem;
-					border-radius: 5px;
-					cursor: pointer;
-				}
-
 				/* grid wrapper for letter + sidebar */
 				.grid {
 					display: grid;
@@ -146,10 +133,6 @@ export default function Subscribe({ articles }: Props) {
 				@media screen and (max-width: 1000px) {
 					.subscribe-page {
 						padding: 1.25rem 1rem;
-					}
-
-					.sidebar-toggle {
-						display: inline-block;
 					}
 
 					.grid {
