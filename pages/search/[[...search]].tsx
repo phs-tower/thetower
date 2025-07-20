@@ -169,7 +169,7 @@ export default function Category({ search, articles, sidebar, sort, section }: P
 	return (
 		<div className="category">
 			<Head>
-				<title>{`Search: ${expandCategorySlug(search)} | The Tower`}</title>
+				<title>{`Search${expandCategorySlug(search) && `: ${expandCategorySlug(search)}`} | The Tower`}</title>
 			</Head>
 
 			<style jsx>{`
@@ -206,14 +206,14 @@ export default function Category({ search, articles, sidebar, sort, section }: P
 					background: white;
 					border: 1px solid #ccc;
 					border-radius: 5px;
-					margin-top: 0.5rem;
+					margin-top: 0.3rem;
 					box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 					list-style: none;
 					padding: 0;
 					z-index: 10;
 				}
 				.suggestions li {
-					padding: 0.8rem 1.2rem;
+					padding: 0.5rem 0.75rem;
 					cursor: pointer;
 					border-bottom: 1px solid #eee;
 					text-align: left;
@@ -223,9 +223,9 @@ export default function Category({ search, articles, sidebar, sort, section }: P
 					background-color: #f0f0f0;
 				}
 				.meta {
-					font-size: 0.9rem;
+					font-size: 0.5rem;
 					color: #666;
-					margin-top: 0.25rem;
+					margin-top: 0.15rem;
 				}
 				.meta a {
 					text-decoration: underline;
@@ -237,7 +237,7 @@ export default function Category({ search, articles, sidebar, sort, section }: P
 				.icon {
 					width: 35px;
 					height: 35px;
-					font-size: 2rem;
+					font-size: 1.25rem;
 					border-radius: 5px 0px 0px 5px;
 					transform: scaleX(-1);
 					color: ${styles.color.primary};
@@ -247,9 +247,9 @@ export default function Category({ search, articles, sidebar, sort, section }: P
 				}
 			`}</style>
 
-			<h1>Search: &quot;{expandCategorySlug(search)}&quot;</h1>
+			<h1>Search{expandCategorySlug(search) ? `: "${expandCategorySlug(search)}"` : ""}</h1>
 
-			<div style={{ textAlign: "center", marginBottom: "1rem", position: "relative" }}>
+			<div style={{ textAlign: "center", marginBottom: ".6rem", position: "relative" }}>
 				<span className="icon">🔎︎</span>
 				<input
 					ref={inputRef}
@@ -265,8 +265,8 @@ export default function Category({ search, articles, sidebar, sort, section }: P
 					onKeyDown={handleKeyDown}
 					placeholder="Search articles, authors, or photo credits..."
 					style={{
-						padding: "1rem",
-						fontSize: "1.5rem",
+						padding: ".6rem",
+						fontSize: "1rem",
 						width: "60%",
 						border: "1px solid #ccc",
 						borderRadius: "5px",
@@ -281,9 +281,9 @@ export default function Category({ search, articles, sidebar, sort, section }: P
 						updateFilter(value, selectedSection);
 					}}
 					style={{
-						marginLeft: "1rem",
-						padding: "0.8rem",
-						fontSize: "1.4rem",
+						marginLeft: ".6rem",
+						padding: "0.5rem",
+						fontSize: "1rem",
 						borderRadius: "5px",
 					}}
 				>
@@ -300,9 +300,9 @@ export default function Category({ search, articles, sidebar, sort, section }: P
 						updateFilter(undefined, val);
 					}}
 					style={{
-						marginLeft: "1rem",
-						padding: "0.8rem",
-						fontSize: "1.4rem",
+						marginLeft: ".6rem",
+						padding: "0.5rem",
+						fontSize: "1rem",
 						borderRadius: "5px",
 						width: "auto",
 						maxWidth: "60%",
@@ -329,7 +329,7 @@ export default function Category({ search, articles, sidebar, sort, section }: P
 								}}
 							>
 								<strong>{s.type === "article" ? s.title : s.name}</strong>{" "}
-								{s.type !== "article" && <span style={{ fontSize: "0.9rem", color: "#777" }}>(Contributor)</span>}
+								{s.type !== "article" && <span style={{ fontSize: "0.6rem", color: "#777" }}>(Contributor)</span>}
 							</li>
 						))}
 					</ul>
@@ -342,7 +342,7 @@ export default function Category({ search, articles, sidebar, sort, section }: P
 						const sectionLabel = sections.find(sec => sec.value === article.category)?.label || article.category;
 
 						return (
-							<div key={article.id} style={{ marginBottom: "2rem" }}>
+							<div key={article.id} style={{ marginBottom: "1.25rem" }}>
 								<div className="meta">
 									<Link href={`/category/${encodeURIComponent(article.category)}`}>{sectionLabel}</Link> –{" "}
 									{new Date(article.year, article.month - 1).toLocaleString("default", {

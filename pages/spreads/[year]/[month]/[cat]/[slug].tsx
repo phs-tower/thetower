@@ -63,11 +63,11 @@ export default function SpreadPage({ spread }: Props) {
 					display: flex;
 					flex-direction: column;
 					align-items: center;
-					padding: 2rem;
+					padding: 1.25rem;
 					position: relative;
 				}
 				h1 {
-					margin-bottom: 1.5rem;
+					margin-bottom: 1rem;
 					text-align: center;
 				}
 				.pdf-container {
@@ -79,8 +79,8 @@ export default function SpreadPage({ spread }: Props) {
 					border: 2px solid ${styles.color.darkAccent};
 					background-color: white;
 					color: black;
-					padding: 0.5rem 1.4rem;
-					font-size: 1.4rem;
+					padding: 0.3rem 1rem;
+					font-size: 1rem;
 					font-family: ${styles.font.sans};
 					border-radius: 5px;
 					transition: 0.25s;
@@ -101,7 +101,7 @@ export default function SpreadPage({ spread }: Props) {
 					.category-label {
 						position: static !important;
 						text-align: center;
-						margin-bottom: 1rem;
+						margin-bottom: 0.6rem;
 					}
 				}
 			`}</style>
@@ -111,8 +111,8 @@ export default function SpreadPage({ spread }: Props) {
 				className="category-label"
 				style={{
 					position: !isMobile && scrolledPast ? "fixed" : "absolute",
-					top: !isMobile && scrolledPast ? "7rem" : "-2rem",
-					right: !isMobile && scrolledPast ? "7rem" : "1.9rem",
+					top: !isMobile && scrolledPast ? "4.5rem" : "-1.25rem",
+					right: !isMobile && scrolledPast ? "4.5rem" : "1.2rem",
 					zIndex: 1000,
 				}}
 			>

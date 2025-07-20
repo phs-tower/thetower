@@ -442,7 +442,7 @@ export default function Upload() {
 						boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
 						zIndex: 1000,
 						animation: "fadeIn 0.3s ease",
-						fontSize: "1.4rem",
+						fontSize: "1rem",
 					}}
 				>
 					{isCompressing ? "Compressing image..." : compressionSummary}
@@ -608,10 +608,10 @@ export default function Upload() {
 								<h1
 									style={{
 										fontFamily: "Minion Pro Medium, Courier New",
-										fontSize: "4rem",
+										fontSize: "2.5rem",
 										fontWeight: "bold",
 										textAlign: "center",
-										marginBottom: "0.15rem",
+										marginBottom: "0.1rem",
 									}}
 								>
 									{formData.title}
@@ -623,12 +623,12 @@ export default function Upload() {
 								<p
 									style={{
 										fontFamily: "Neue Montreal Regular",
-										fontSize: "2rem",
+										fontSize: "1.6rem",
 										color: "#8b8b8b",
 										marginBottom:
 											formData.authors && !(category === "opinions" && formData.subcategory === "editorials")
-												? "0.5rem"
-												: "2rem",
+												? "0.3rem"
+												: "1.25rem",
 										textAlign: "center",
 									}}
 								>
@@ -641,9 +641,9 @@ export default function Upload() {
 								<div
 									style={{
 										fontFamily: "Neue Montreal Regular",
-										fontSize: "1.6rem",
+										fontSize: "1rem",
 										color: "#8b8b8b",
-										marginBottom: "1.5rem",
+										marginBottom: "1rem",
 										textAlign: "center",
 									}}
 								>
@@ -652,7 +652,7 @@ export default function Upload() {
 											key={i}
 											style={{
 												fontFamily: "Neue Montreal Regular",
-												fontSize: "1.6rem",
+												fontSize: "1rem",
 												color: "#8b8b8b",
 											}}
 										>
@@ -661,9 +661,9 @@ export default function Upload() {
 												<span
 													style={{
 														fontFamily: "Neue Montreal Regular",
-														fontSize: "1.6rem",
+														fontSize: "1rem",
 														color: "#8b8b8b",
-														margin: "0 0.4rem",
+														margin: "0 0.25rem",
 													}}
 												>
 													•
@@ -742,7 +742,7 @@ export default function Upload() {
 					textAlign: "right",
 				}}
 			>
-				<span className={`upload-status ${uploadStatus}`} style={{ fontSize: "2rem", transition: "color 2s ease" }}>
+				<span className={`upload-status ${uploadStatus}`} style={{ fontSize: "1.6rem", transition: "color 2s ease" }}>
 					{isSaving ? (
 						<>
 							Saving...
@@ -764,7 +764,7 @@ export default function Upload() {
 					)}
 				</span>
 				<br />
-				<span style={{ fontSize: "1rem", color: "#8b8b8b" }}>(Saves are stored for a maximum of 3 days)</span>
+				<span style={{ fontSize: ".6rem", color: "#8b8b8b" }}>(Saves are stored for a maximum of 3 days)</span>
 			</div>
 
 			{/* Keyframes for spinner and error animation */}

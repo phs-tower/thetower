@@ -66,21 +66,21 @@ export default function Archive(props: Props) {
 				#crossword-container {
 					display: grid;
 					grid-template-columns: repeat(5, 1fr);
-					gap: 2rem; /*  this adds space between BOTH rows and columns */
-					padding-top: 2rem;
+					gap: 1.25rem; /*  this adds space between BOTH rows and columns */
+					padding-top: 1.25rem;
 				}
 
 				#loadmore {
-					border-radius: 2rem;
+					border-radius: 1.25rem;
 					font-family: ${styles.font.sans};
-					font-size: 1.6rem;
+					font-size: 1rem;
 					color: black;
 					background-color: white;
 					border-style: solid;
 					border-color: ${styles.color.darkAccent};
-					padding: 0.5rem;
-					padding-left: 0.75rem;
-					padding-right: 0.75rem;
+					padding: 0.3rem;
+					padding-left: 0.5rem;
+					padding-right: 0.5rem;
 					transition: 0.25s;
 				}
 

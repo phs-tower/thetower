@@ -14,19 +14,58 @@
 	--font-sans-bold: "Neue Montreal Medium";
 }
 
-main {
-	display: block;
-	margin-top: 4vh;
-	// apparently we set 1rem != 16px??? which is rly goofy and we should probs fix at some point
-	margin-inline: calc(max(2.5vw, 16px));
+body {
+	background: var(--background);
+	font-family: var(--font-serif-text);
 }
 
-.banner {
-	margin: 0px;
-	padding-top: 0px;
+button {
 	position: relative;
-	background-color: var(--background);
+	transition: all 0.2s;
+	top: 0;
+
+	&:active {
+		top: 0.2rem;
+	}
 }
+
+input[type="submit"],
+input[type="file"],
+select,
+::file-selector-button {
+	background: none;
+	border: var(--accent-dark) 1px solid;
+	font-family: var(--font-serif-text);
+}
+
+select {
+	height: 2rem;
+}
+
+input[type="submit"],
+::file-selector-button {
+	transition: background 0.2s;
+
+	&:hover {
+		background: #0002;
+		cursor: pointer;
+	}
+}
+
+a {
+	color: black;
+}
+
+main {
+	margin-top: 4vh;
+}
+
+// .banner {
+// 	margin: 0px;
+// 	padding-top: 0px;
+// 	position: relative;
+// 	background-color: var(--background);
+// }
 
 .image {
 	display: block;
@@ -106,88 +145,87 @@ footer {
 		height: 3px;
 	}
 
-	.top h1 {
-		font-family: Canterbury;
-		font-size: xxx-large;
-		float: left;
-		padding-right: 10px;
-		font-weight: normal;
-	}
+	.top {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		gap: 1rem;
+		flex-wrap: wrap;
 
-	.top a {
-		display: inline-block;
-		position: relative;
-		padding-top: 2.5vh;
-	}
+		> div {
+			display: flex;
+			flex-direction: row;
+			align-items: flex-end;
 
-	.top .home-btn {
-		color: #274370;
-		float: right;
-		margin-right: 2.5vh;
+			.socials-icon {
+				position: relative;
+				bottom: 0.5rem;
+			}
+		}
+
+		.home-btn {
+			color: #274370;
+			float: right;
+			margin-right: 2.5vh;
+			display: block;
+		}
+
+		h1 {
+			font-family: Canterbury;
+			font-size: xxx-large;
+			user-select: none;
+			float: left;
+			padding-right: 10px;
+			font-weight: normal;
+		}
 	}
 
 	.bottom {
 		margin: 1vh;
 		display: grid;
 		grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
-	}
+		gap: 1rem;
 
-	@media screen and (max-width: 700px) {
-		.bottom {
+		@media screen and (max-width: 700px) {
 			grid-template-columns: 1fr;
+
+			div {
+				display: flex;
+				flex-direction: column;
+				// justify-content: center;
+				align-items: center;
+
+				b {
+					font-size: 1.25rem;
+					text-decoration: underline;
+				}
+
+				br {
+					// height: 0;
+					display: none;
+				}
+			}
 		}
 	}
+
+	// @media screen and (max-width: 700px) {
+	// 	.bottom {
+	// 		grid-template-columns: 1fr;
+	// 	}
+	// }
 
 	span {
 		padding-bottom: 2vh;
 	}
 }
 
-// .banner, nav {
-// 	background-color: var(--accent-dark);
-// 	color: var(--accent-light);
-// }
+main a {
+	color: rgb(24, 101, 208);
 
-nav {
-	display: block;
-	background-color: var(--background);
-	margin-bottom: 2vh;
-	text-align: center;
-	width: 100%;
-	border-bottom: 1px solid var(--accent-light);
-	position: sticky;
-	top: 0;
-	z-index: 10;
-
-	hr {
-		background-color: #ccc;
-		border: none;
-		height: 1px;
-		margin-top: 5px;
-		margin-bottom: 5px;
+	&:hover {
+		color: rgb(94, 150, 229);
 	}
-
-	.menu {
-		display: contents;
-	}
-
-	@media screen and (max-width: 1000px) {
-		.menu {
-			display: none;
-		}
-
-		.show {
-			display: contents;
-		}
-	}
-}
-
-h1#big-title {
-	font-family: "Canterbury";
-	font-weight: normal;
-	text-align: center;
-	color: var(--accent);
-	font-size: 6rem;
 }
 
 // From /home
@@ -195,8 +233,6 @@ h1#big-title {
 .mosaic {
 	display: grid;
 	grid-gap: 10px;
-	margin-left: 0vw;
-	margin-right: 0vw;
 }
 
 .triple {
@@ -246,10 +282,7 @@ h1#big-title {
 }
 
 .section-header {
-	/* font-family: ${styles.font.serifHeader};
-					font-style: italic; */
 	text-align: center;
-	/* font-weight: bold; */
 }
 
 #vang-container h3 {
@@ -259,4 +292,66 @@ h1#big-title {
 #vang-container object {
 	width: 50vw;
 	height: 70vh;
+}
+
+a {
+	color: black;
+
+	&:hover {
+		color: #888;
+	}
+}
+
+main {
+	max-width: 150ch;
+	padding-inline: 2rem;
+	// box-sizing: border-box;
+	margin-inline: auto;
+}
+
+.sponsor-list {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+}
+
+// This controls all the fancy underlines OTHER than the nav bar (see nav.scss for that :) )
+a.underline-animation {
+	position: relative;
+
+	&::before {
+		content: "";
+		display: block;
+		position: absolute;
+		background: white;
+		height: 2px;
+		bottom: -2px;
+		right: 0;
+		width: 0;
+
+		transition: width 0.2s;
+	}
+
+	&:hover::before {
+		width: 100%;
+		left: 0;
+	}
+}
+
+/* The mobile toggle button is hidden by default */
+.sidebar-toggle {
+	display: none;
+	margin-bottom: 0.6rem;
+
+	background: var(--accent);
+	color: white;
+	border: none;
+	padding: 0.4rem 0.75rem;
+	font-size: 1rem;
+	border-radius: 5px;
+	cursor: pointer;
+
+	@media screen and (max-width: 1000px) {
+		display: inline-block;
+	}
 }

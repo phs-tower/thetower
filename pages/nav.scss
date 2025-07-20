@@ -1,0 +1,423 @@
+/** @format */
+
+:root {
+	--text-light: #eee;
+}
+
+* {
+	transition: all 0.2s;
+}
+
+nav {
+	--masthead-height: 6rem;
+	$mobile: 970px;
+	$smaller: 600px;
+	z-index: 100000000000; // no way they get above this
+	position: sticky;
+	top: calc(-1 * (var(--masthead-height) + 1rem + 1px));
+
+	button {
+		height: 2rem;
+		border: solid 1px white;
+		background: none;
+		border-radius: 0.25rem;
+		color: white;
+		gap: 1ch;
+		align-items: center;
+
+		i {
+			display: inline;
+		}
+
+		span {
+			font-family: var(--font-sans);
+			color: white;
+			font-size: 1rem;
+		}
+
+		&:hover {
+			cursor: pointer;
+			background: #fff4;
+		}
+	}
+
+	background: var(--accent-dark);
+
+	#links {
+		display: flex;
+		justify-content: center;
+		gap: 0.5rem;
+		font-family: var(--font-sans);
+
+		@media screen and (max-width: $mobile) {
+			display: none;
+		}
+	}
+
+	.section-link {
+		position: relative;
+
+		a {
+			display: block;
+		}
+
+		// Top-level categories
+		> a {
+			padding: 1rem 0.5rem;
+			display: block;
+			position: relative;
+			color: var(--text-light);
+		}
+
+		// The underline on top-level categories
+		> a::before {
+			content: "";
+			display: block;
+			position: absolute;
+			bottom: calc(1rem - 2px);
+			right: 0.5rem;
+			width: 0;
+			height: 2px;
+			background: var(--text-light);
+			transition: width 0.25s;
+		}
+
+		> a:has(i)::before {
+			right: calc(0.5rem + 2ch);
+		}
+
+		> a > i {
+			margin-left: 0.5ch;
+			font-size: 0.75rem;
+			line-height: 1.5rem;
+			width: 1rem;
+			text-align: center;
+
+			transform: rotate(0deg);
+
+			transition: transform 0.5s;
+		}
+
+		@media screen and (min-width: $mobile) {
+			&:hover {
+				@keyframes fade-in {
+					0% {
+						opacity: 0;
+					}
+
+					100% {
+						opacity: 1;
+					}
+				}
+
+				.dropdown {
+					animation: 0.5s ease 1 normal both fade-in;
+					display: block;
+				}
+
+				> a::before {
+					left: 0.5rem;
+					width: calc(100% - 1rem);
+				}
+
+				> a:has(i)::before {
+					width: calc(100% - 1rem - 2ch);
+				}
+
+				> a > i {
+					transform: rotate(-180deg);
+				}
+			}
+		}
+
+		@media screen and (max-width: 1064px) and (min-width: 970px) {
+			> a > i {
+				display: none;
+			}
+
+			> a:has(i)::before {
+				right: 0.5rem;
+			}
+
+			&:hover > a:has(i)::before {
+				width: calc(100% - 1rem);
+			}
+		}
+	}
+
+	.dropdown {
+		position: absolute;
+		padding-inline: 1rem;
+		background: #fff;
+
+		display: none;
+		opacity: 0;
+
+		min-width: calc(max(20ch, 100%));
+		box-sizing: border-box;
+		text-align: center;
+		box-shadow: 0 0 2rem #0008;
+
+		a {
+			padding: 0.5rem 0;
+
+			&:hover {
+				color: #888;
+			}
+
+			&:not(:last-child) {
+				border-bottom: 1px solid #888;
+			}
+		}
+	}
+
+	.header {
+		display: flex;
+		position: relative;
+		flex-direction: row;
+		justify-content: center;
+		align-items: center;
+		padding-block: 0.5rem;
+		border-bottom: solid white 1px;
+		box-sizing: border-box;
+
+		#masthead {
+			position: relative;
+			z-index: 10;
+			padding: 0;
+			height: var(--masthead-height);
+		}
+
+		#masthead img {
+			height: var(--masthead-height);
+		}
+	}
+
+	.masthead-sides {
+		position: absolute;
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		left: 1rem;
+		right: 1rem;
+
+		a,
+		p {
+			color: white;
+			font-size: 1rem;
+			font-family: var(--font-sans);
+		}
+	}
+
+	.left-stuff {
+		display: flex;
+		align-items: center;
+	}
+
+	.right-stuff,
+	#paper-info {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+	}
+
+	.right-stuff {
+		align-items: flex-end;
+	}
+
+	#menu {
+		display: none;
+	}
+
+	@media screen and (max-width: $mobile) {
+		--masthead-height: 4rem;
+		top: 0;
+
+		#paper-info {
+			display: none;
+		}
+
+		#menu {
+			display: flex;
+		}
+
+		.right-stuff .subscribe {
+			display: none;
+		}
+	}
+
+	@media screen and (max-width: $smaller) {
+		--masthead-height: 2rem;
+
+		#masthead img {
+			display: none;
+		}
+	}
+
+	.search-box {
+		display: flex;
+		align-items: center;
+		border: 1px solid white;
+		border-radius: 0.25rem;
+		height: 2rem;
+
+		@media screen and (min-width: 680px) {
+			&:has(:focus-visible) {
+				border: 2px solid rgb(94, 150, 229);
+			}
+		}
+
+		input {
+			background: none;
+			border: none;
+			color: #eee;
+			font-size: 1rem;
+			height: 2rem;
+			padding: 0.5rem;
+			box-sizing: border-box;
+
+			&:focus-visible {
+				outline: none;
+			}
+
+			width: calc(min(15vw, 19ch));
+
+			@media screen and (max-width: 680px) {
+				display: none;
+			}
+		}
+
+		button {
+			width: 2rem;
+			border: none;
+			// border-radius: 0 0.25rem 0.25rem 0;
+			border-radius: 0;
+			position: static;
+		}
+
+		@media screen and (max-width: 680px) {
+			position: relative;
+			top: 0;
+
+			&:active {
+				top: 2px;
+			}
+		}
+	}
+
+	#masthead {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		gap: calc(var(--masthead-height) / 8);
+
+		h1 {
+			color: white;
+			font-weight: normal;
+			font-family: Canterbury;
+			font-size: var(--masthead-height);
+
+			@media screen and (max-width: 360px) {
+				display: none;
+			}
+
+			user-select: none;
+		}
+	}
+
+	.search-box {
+		display: block;
+	}
+
+	@media screen and (max-width: $mobile) {
+		&:has(#menu[data-open="true"]) {
+			#links {
+				position: fixed;
+				inset: 0;
+				top: calc(var(--masthead-height) + 1rem);
+				display: block;
+				background: var(--accent-dark);
+				padding-inline: 2rem;
+				overflow: auto;
+				color-scheme: dark;
+
+				.section-link > a {
+					font-weight: 600;
+					display: flex;
+					justify-content: space-between;
+
+					i {
+						width: 24px;
+					}
+				}
+
+				a {
+					font-family: var(--font-serif-header);
+					text-align: left;
+
+					&:hover {
+						background: white;
+						color: var(--accent-dark);
+					}
+				}
+
+				a::before {
+					display: none;
+				}
+
+				.dropdown {
+					z-index: 100;
+					position: static;
+
+					a {
+						padding-inline: 1rem;
+						color: #ccc;
+						border: none;
+
+						&:hover {
+							color: black;
+						}
+					}
+				}
+
+				.section-link i[data-open="true"] {
+					transform: rotate(-180deg);
+				}
+
+				.section-link:has(i[data-open="true"]) .dropdown {
+					display: block;
+					opacity: 1;
+					background: none;
+					box-shadow: none;
+					width: unset;
+					padding: unset;
+					margin: unset;
+				}
+			}
+		}
+	}
+
+	#menu i {
+		transform: rotate(0deg);
+		transition: transform 0.2s;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 1rem;
+		height: 1rem;
+	}
+
+	#menu[data-open="true"] i {
+		transform: rotate(180deg);
+	}
+
+	#menu[data-open="true"] {
+		background: #fff4;
+	}
+}
+
+@media screen and (max-width: 970px) {
+	body:has(#menu[data-open="true"]) {
+		overflow: hidden;
+	}
+}

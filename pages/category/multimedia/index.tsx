@@ -112,13 +112,13 @@ export default function Multimedia({ videos: initialVideos, pods: initialPods }:
 					box-sizing: border-box;
 				}
 				.loadmore {
-					border-radius: 2rem;
+					border-radius: 1.25rem;
 					font-family: ${styles.font.sans};
-					font-size: 1.6rem;
+					font-size: 1rem;
 					color: black;
 					background-color: white;
 					border: 1px solid ${styles.color.darkAccent};
-					padding: 0.5rem 0.75rem;
+					padding: 0.3rem 0.5rem;
 					transition: 0.25s;
 					cursor: pointer;
 				}
@@ -136,16 +136,16 @@ export default function Multimedia({ videos: initialVideos, pods: initialPods }:
 				.social-icons {
 					display: flex;
 					align-items: center;
-					gap: 0.5rem;
+					gap: 0.3rem;
 					margin-top: 0;
 					margin-bottom: 0;
 					color: #444;
 				}
 
 				.social-icons .follow-text {
-					font-size: 1.35rem;
+					font-size: 1rem;
 					font-family: ${styles.font.sans};
-					margin-right: 0.5rem;
+					margin-right: 0.3rem;
 					color: #444;
 				}
 

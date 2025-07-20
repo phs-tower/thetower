@@ -14,6 +14,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { article } from "@prisma/client";
 
+import articleStyles from "./article.module.scss";
+
 // 👇 Extend article manually to include contentInfo
 interface ExtendedArticle {
 	id: number;
@@ -72,6 +74,25 @@ export async function getServerSideProps({ params }: Params) {
 	return { props: { article: processedArticle } };
 }
 
+function ReturnToCategoryButton({ isMobile, scrolledPast, category }: { isMobile: boolean; scrolledPast: boolean; category: string }) {
+	const categoryLabels: { [key: string]: string } = {
+		"news-features": "NEWS & FEATURES",
+		opinions: "OPINIONS",
+		vanguard: "VANGUARD",
+		sports: "SPORTS",
+		"arts-entertainment": "ARTS & ENTERTAINMENT",
+		crossword: "CROSSWORD",
+	};
+	return (
+		// Animate the return to category button a bit more nicely
+		<div className={articleStyles["return-to-category-container"]}>
+			<Link href={`/category/${category}`} className={articleStyles["return-to-category"]}>
+				{categoryLabels[category] || category.toUpperCase()} <i className="fa-solid fa-arrow-up"></i>
+			</Link>
+		</div>
+	);
+}
+
 export default function Article({ article }: Props) {
 	const photoName = (() => {
 		if (!article.contentInfo) return null;
@@ -115,176 +136,24 @@ export default function Article({ article }: Props) {
 	}, [isMobile]);
 
 	const category = article.category;
-	const categoryLabels: { [key: string]: string } = {
-		"news-features": "NEWS & FEATURES",
-		opinions: "OPINIONS",
-		vanguard: "VANGUARD",
-		sports: "SPORTS",
-		"arts-entertainment": "ARTS & ENTERTAINMENT",
-		crossword: "CROSSWORD",
-	};
 
 	return (
-		<div className="article">
+		<>
 			<Head>
 				<title>{`${article.title} | The Tower`}</title>
 				<meta property="og:title" content={article.title + " | The Tower"} />
 				<meta property="og:description" content="Read more about this article!" />
 			</Head>
 
-			<style jsx>{`
-				.article {
-					display: flex;
-					flex-direction: column;
-					align-items: center;
-					position: relative;
-				}
-
-				.article .main-img {
-					width: 55vw;
-					height: 70vh;
-					position: relative;
-				}
-
-				.article .img {
-					width: 48vw;
-					height: 60vh;
-					position: relative;
-				}
-
-				.article .content {
-					margin-top: 5vh;
-					max-width: 50vw;
-				}
-
-				.category-button {
-					border: 2px solid ${styles.color.darkAccent};
-					background-color: white;
-					color: black;
-					padding: 0.5rem 1.4rem;
-					font-size: 1.4rem;
-					font-family: ${styles.font.sans};
-					border-radius: 5px;
-					transition: 0.25s;
-					text-transform: uppercase;
-					letter-spacing: 0.05em;
-					display: inline-block;
-					text-align: center;
-					cursor: pointer;
-					text-decoration: none;
-				}
-
-				.category-button:hover {
-					background-color: ${styles.color.darkAccent};
-					color: white;
-					text-decoration: none;
-				}
-
-				.main-article:not(h1, h2, h3, blockquote p)::first-letter {
-					initial-letter: 3;
-					margin-right: 10px;
-				}
-
-				@media screen and (max-width: 1000px) {
-					.article .content {
-						max-width: 100vw;
-						margin-left: 10px;
-						margin-right: 10px;
-					}
-
-					.category-label {
-						position: static;
-						text-align: center;
-						margin-bottom: 1rem;
-					}
-
-					.category-label p {
-						text-align: center;
-					}
-
-					.main-article:not(h1, h2, h3, blockquote p)::first-letter {
-						initial-letter: 1;
-						margin-right: 0px;
-					}
-				}
-
-				:global(.article .content p) {
-					font-family: ${styles.font.serifText};
-				}
-
-				:global(.article .content strong) {
-					font-family: ${styles.font.serifHeader};
-				}
-
-				:global(.article p) {
-					margin-top: 3vh;
-					margin-bottom: 3vh;
-				}
-
-				.article .titleblock {
-					display: block;
-					text-align: center;
-				}
-
-				:global(.main-article blockquote) {
-					border-left: 3px solid lightgray;
-					padding-left: 5px;
-				}
-
-				:global(.main-article blockquote p) {
-					font-size: 2.5rem !important;
-					font-family: "Neue Montreal Regular" !important;
-				}
-
-				:global(.main-article pre) {
-					background-color: lightgray;
-				}
-
-				:global(.main-article code) {
-					font-family: monospace;
-					font-size: 1.6rem;
-				}
-
-				:global(.main-article a) {
-					text-decoration: underline;
-					font-size: 2rem;
-				}
-			`}</style>
-
 			{/* Category top-right */}
-			<div
-				className="category-label"
-				// I'm about to commit so many crimes 😭 what did css do to deserve this
-				style={{
-					position: !isMobile && scrolledPast ? "fixed" : "absolute",
-					top: !isMobile && scrolledPast ? "7.5rem" : isMobile ? "-10rem" : "-1.7rem", // ← fallback if not mobile and not scrolled
-					right:
-						!isMobile && scrolledPast
-							? window.innerWidth > 2000
-								? "7.1rem"
-								: window.innerWidth < 1136
-								? "4.8rem"
-								: window.innerWidth < 1400 && window.innerWidth > 1000
-								? "5.2rem"
-								: "5.8rem"
-							: "2rem",
-					zIndex: 0,
-				}}
-			>
-				{/* Switch <Link><a> for <Link> (Link always renders as <a> now :) ) */}
+			<ReturnToCategoryButton isMobile={isMobile} scrolledPast={scrolledPast} category={category} />
 
-				<Link href={`/category/${category}`} className="category-button">
-					{categoryLabels[category] || category.toUpperCase()} ↗
-				</Link>
-			</div>
-
-			<section className="content">
-				<div className="titleblock">
+			<section className={articleStyles["content"]}>
+				<div className={articleStyles["titleblock"]}>
 					<h1>{article.title}</h1>
-					<span style={{ fontFamily: styles.font.sans }}>{displayDate(article.year, article.month)}</span>
-
+					<span className={articleStyles["date"]}>{displayDate(article.year, article.month)}</span>
 					{article.authors.length > 0 && (
-						<section className="authors">
+						<section className={articleStyles["authors"]}>
 							{article.authors.map((author, index) => (
 								<>
 									<CreditLink key={index} author={author} />
@@ -301,23 +170,22 @@ export default function Article({ article }: Props) {
 				<div>
 					{article.img && (
 						<>
-							<Image src={article.img} width={1000} height={1000} alt={article.img} style={{ width: "100%", height: "auto" }} />
+							<Image src={article.img} width={1000} height={1000} alt={article.img} />
 							{article.contentInfo && <PhotoCredit contentInfo={article.contentInfo} />}
 						</>
 					)}
 				</div>
 
 				{article.markdown ? (
-					<div className="main-article" dangerouslySetInnerHTML={{ __html: article.content }} />
+					<div className={articleStyles["main-article"]} dangerouslySetInnerHTML={{ __html: article.content }} />
 				) : (
-					<div className="main-article">
+					<div className={articleStyles["main-article"]}>
 						{article.content.split("\n").map((paragraph, index) => {
 							if (paragraph.startsWith("@img=")) {
 								const src = paragraph.substring(5).trim();
-								if (src) {
-									return <Image key={index} src={src} alt="" width={1000} height={600} style={{ width: "100%", height: "auto" }} />;
-								}
-								return null;
+								if (!src) return null;
+
+								return <Image key={index} src={src} alt="" width={1000} height={600} />;
 							}
 							return paragraph.charCodeAt(0) !== 13 ? <p key={index}>{paragraph.replace("&lt;", "<").replace("&gt;", ">")}</p> : null;
 						})}
@@ -326,6 +194,6 @@ export default function Article({ article }: Props) {
 			</section>
 
 			<SubBanner title="Subscribing helps us make more articles like this." />
-		</div>
+		</>
 	);
 }

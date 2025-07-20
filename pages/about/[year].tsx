@@ -3,6 +3,8 @@
 import Head from "next/head";
 import CreditLink from "~/components/credit.client";
 
+import styles from "./about.module.scss";
+
 type Member = {
 	name: string;
 	position: string;
@@ -43,45 +45,29 @@ export async function getStaticProps({ params }: Params) {
 
 export default function Year({ year, sections }: Props) {
 	return (
-		<div className="about">
+		<div className={styles.about}>
 			<Head>
 				<title>{`${year} Staff | The Tower`}</title>
 				<meta property="og:title" content={`About the ${year} staff | The Tower`} />
 				<meta property="og:description" content={`About the ${year} staff of the Tower`} />
 			</Head>
-			<style jsx>{`
-				.about {
-					margin-left: 9%;
-					margin-right: 9%;
-					text-align: center;
-				}
-				h1 {
-					text-align: center;
-					border-bottom: 3px solid gainsboro;
-				}
-				h2 {
-					margin-top: 4vh;
-					margin-bottom: 1vh;
-				}
-			`}</style>
-			{/* omg this is disgusting ^^^ */}
 			<h1>{year} Staff</h1>
 			{sections.map((section, index) => (
 				<>
 					<h2 key={index}>{section.name}</h2>
 					{section.members.map((member, index) => (
-						<>
+						<div className={styles.editor} key={index}>
 							<CreditLink key={index} author={member.name} />
-							<span style={{ fontSize: "18px" }}>, {member.position}</span>
+							<span>, {member.position}</span>
 							<br />
-						</>
+						</div>
 					))}
 				</>
 			))}
 			<h2>Advisors</h2>
-			<span style={{ fontSize: "18px" }}>Lauren King</span>
+			<span>Lauren King</span>
 			<br></br>
-			<span style={{ fontSize: "18px" }}>Doug Levandowski</span>
+			<span>Doug Levandowski</span>
 		</div>
 	);
 }

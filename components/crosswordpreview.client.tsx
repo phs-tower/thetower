@@ -14,8 +14,8 @@ export function CrosswordPreview(props: Props) {
 		<div>
 			<style jsx>{`
 				.crossword-preview {
-					width: 20rem;
-					height: 11rem;
+					width: 12rem;
+					height: 6.875rem;
 					background-color: #f0f0f0;
 					text-align: center;
 				}
@@ -26,7 +26,7 @@ export function CrosswordPreview(props: Props) {
 				}
 
 				.date {
-					padding-top: 2.5rem;
+					padding-top: 1.5rem;
 				}
 			`}</style>
 			<Link legacyBehavior href={`/games/crossword/${props.id}`}>

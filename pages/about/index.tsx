@@ -1,44 +1,17 @@
 /** @format */
 
 import Head from "next/head";
-import styles from "~/lib/styles";
+// import styles from "~/lib/styles";
+import styles from "./about.module.scss";
 
 export default function About() {
 	return (
-		<div className="about">
+		<div className={styles.about}>
 			<Head>
 				<title>About | The Tower</title>
 				<meta property="og:title" content="About | The Tower" />
 				<meta property="og:description" content="About the Tower" />
 			</Head>
-			<style jsx>{`
-				.about {
-					max-width: 100vw;
-					min-height: 100vh;
-				}
-				h1 {
-					text-align: center;
-					border-bottom: 3px solid gainsboro;
-					margin-bottom: 4vh;
-					/* font-weight: bold; */
-				}
-
-				h2 {
-					text-align: center;
-				}
-
-				p {
-					margin-left: 24vw;
-				}
-				p,
-				b {
-					max-width: 45vw;
-					/* font-family: ${styles.font.serifText}, ${styles.font.stack}; */
-				}
-				b {
-					/* font-size: large; */
-				}
-			`}</style>
 			{/* ^^^ Again, this is hella ugly... and we shouldn't need declarations in this many places if we were just consistent lol */}
 			<h1>About</h1>
 			<h2>Mission Statement</h2>

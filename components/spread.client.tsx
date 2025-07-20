@@ -25,7 +25,7 @@ export default function Spread({ spread }: Props) {
 				}
 
 				a {
-					font-size: 2.5rem;
+					font-size: 1.5rem;
 				}
 
 				a:hover {
