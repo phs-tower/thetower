@@ -155,7 +155,15 @@ function Masthead() {
 		<div className="header">
 			<Link href="/home" id="masthead">
 				<img src="/assets/tower-short.png" draggable="false" />
-				<h1 id="masthead-text">The Tower</h1>
+				<h1
+					id="masthead-text"
+					style={{
+						fontSize: "clamp(1.2rem, 4vw, 1.8rem)",
+						margin: 0,
+					}}
+				>
+					The Tower
+				</h1>
 			</Link>
 			<div className="masthead-sides">
 				<div className="left-stuff">
@@ -209,7 +217,7 @@ export default function App({ Component, pageProps }: AppProps) {
 			</Head>
 			{/* <Banner /> */}
 			<Nav />
-			<main className="content">
+			<main className="content" style={{ maxWidth: "1200px", margin: "0 auto" }}>
 				<Component {...pageProps} />
 			</main>
 			<Footer />

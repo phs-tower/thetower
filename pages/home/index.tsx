@@ -48,7 +48,12 @@ export default function FrontPage({ articles, vang }: Props) {
 						{/* <ArticlePreview article={articles["opinions"][2]} style="box" size="large" /> */}
 					</div>
 					<div>
-						<ArticlePreview article={articles["featured"][0]} style="box" size="featured" />
+						<div style={{ height: "32rem" }}>
+							<ArticlePreview article={articles["featured"][0]} style="box" size="featured" />
+						</div>
+						<div style={{ marginTop: "3rem" }}>
+							<ArticlePreview article={articles["opinions"][2]} style="box" size="large" />
+						</div>
 					</div>
 					<div>
 						{/* <h3 className="section-header">SPORTS</h3> */}
@@ -125,7 +130,7 @@ export default function FrontPage({ articles, vang }: Props) {
 function SponsorBanner() {
 	return (
 		<div className={sponsorStyles.banner}>
-			<h1 style={{ marginTop: "2.5rem" }}> Thank you to our sponsors for supporting us!</h1>
+			<h1 style={{ marginTop: "2.5rem", fontSize: "clamp(1.2rem, 4vw, 2rem)" }}> Thank you to our sponsors for supporting us!</h1>
 			<div className={sponsorStyles["sponsor-list"]}>
 				<Link href="https://milkncookies.online/">
 					<Image src="/assets/milk-cookies.png" width={2500} height={2500} alt="Milk & Cookies" />
