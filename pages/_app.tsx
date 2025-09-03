@@ -3,7 +3,7 @@
 import type { AppProps, NextWebVitalsMetric } from "next/app";
 import Head from "next/head";
 import Link from "next/link";
-import { useEffect, useState } from "react"; // <-- ADDED for useEffect, useState
+import { useEffect, useState } from "react";
 import "~/styles/styles.scss";
 import styles from "~/lib/styles";
 import { useRouter } from "next/router";
@@ -103,8 +103,7 @@ function Masthead() {
 	const [menuX, setMenuX] = useState(false);
 	const router = useRouter();
 
-	// I HATE YOU NEXTJS FAJSHJHDALKHFKJLAHSKHKDJAFHK WHY IS IT THIS ASFJDHKJLFDHKJ TO AFHKJHKDJHKL I JUST WANT TO FDHLKHDKF
-	// (btw this is so that the sections menu closes once you go to a new section)
+	// Close sections menu when navigating
 	const [startLocation, setStartLocation] = useState(usePathname());
 	const path = usePathname();
 	if (startLocation != path) {
@@ -158,7 +157,7 @@ function Masthead() {
 				<h1
 					id="masthead-text"
 					style={{
-						fontSize: "clamp(1.2rem, 4vw, 1.8rem)",
+						fontSize: "clamp(1.6rem, 5vw, 2.6rem)",
 						margin: 0,
 					}}
 				>
@@ -221,13 +220,41 @@ export default function App({ Component, pageProps }: AppProps) {
 				<Component {...pageProps} />
 			</main>
 			<Footer />
+
+			{/* Center dropdowns directly under parent tabs */}
+			<style jsx global>{`
+				nav #links .section-link {
+					position: relative;
+					padding-bottom: 0;
+				}
+				nav #links .section-link .dropdown {
+					position: absolute;
+					top: calc(100% - 0.5rem);
+					left: 50%;
+					transform: translateX(-50%);
+					display: none;
+					background: #fff;
+					border: 1px solid rgba(0, 0, 0, 0.08);
+					border-radius: 6px;
+					box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+					padding: 0.4rem 0.6rem;
+					white-space: nowrap;
+					z-index: 1000;
+					max-width: calc(100vw - 40px);
+				}
+				nav #links .section-link:hover .dropdown,
+				nav #links .section-link .dropdown:hover {
+					display: block;
+				}
+				nav #links .section-link .dropdown a {
+					display: block;
+					padding: 0.35rem 0.6rem;
+				}
+			`}</style>
 		</>
 	);
 }
 
-// ======================
-// FOOTER BELOW
-// ======================
 function Footer() {
 	return (
 		<footer>
@@ -238,9 +265,7 @@ function Footer() {
 						<h1>The Tower</h1>
 					</Link>
 					{socialLinks.map(({ name, url, icon }) => {
-						// locally cast it to a component that accepts a `size` prop
 						const IconComponent = icon as React.ComponentType<{ size?: string }>;
-
 						return (
 							<a key={name} href={url} target="_blank" rel="noopener noreferrer" className="socials-icon" aria-label={name}>
 								<IconComponent size="2.2em" />
