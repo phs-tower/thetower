@@ -263,6 +263,8 @@ export default function App({ Component, pageProps }: AppProps) {
 					padding: 0.35rem 0.6rem;
 				}
 			`}</style>
+			<Analytics />
+			<SpeedInsights />
 		</>
 	);
 }
