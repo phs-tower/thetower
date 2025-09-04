@@ -137,6 +137,24 @@ export default function Article({ article }: Props) {
 
 	const category = article.category;
 
+	// Per-article view tracking (one bump per article per tab session)
+	useEffect(() => {
+		if (typeof window === "undefined") return;
+		if (!article?.id) return;
+
+		// Avoid double-counting in the same tab/session
+		const key = `article-tracked:${article.id}`;
+		if (sessionStorage.getItem(key)) return;
+		sessionStorage.setItem(key, "1");
+
+		// Send articleId to API so it increments both site_analytics and article_analytics
+		fetch("/api/track", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ articleId: article.id }),
+		}).catch(() => {});
+	}, [article?.id]);
+
 	return (
 		<>
 			<Head>

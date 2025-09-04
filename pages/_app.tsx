@@ -208,6 +208,18 @@ function Masthead() {
 }
 
 export default function App({ Component, pageProps }: AppProps) {
+	const router = useRouter();
+
+	useEffect(() => {
+		if (typeof window === "undefined") return;
+
+		const key = `site-tracked:${router.asPath}`;
+		if (sessionStorage.getItem(key)) return;
+		sessionStorage.setItem(key, "1");
+
+		fetch("/api/track", { method: "POST" }).catch(() => {});
+	}, [router.asPath]);
+
 	return (
 		<>
 			<Head>
