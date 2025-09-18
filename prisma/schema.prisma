@@ -21,7 +21,6 @@ model article {
   featured    Boolean? @default(false)
   markdown    Boolean? @default(false)
   contentInfo String?  @map("content-info")
-  spotifyUrl  String?  @db.VarChar
 }
 
 model spreads {
