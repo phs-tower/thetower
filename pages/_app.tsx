@@ -23,18 +23,31 @@ type Subsection = {
 
 function SectionLink({ href, name: section, subsections }: { href: string; name: string; subsections?: Subsection[] }) {
 	const [open, setOpen] = useState(false);
+	const [isMobileWidth, setIsMobileWidth] = useState(false);
+
+	useEffect(() => {
+		const update = () => setIsMobileWidth(window.innerWidth <= 970);
+		update();
+		window.addEventListener("resize", update);
+		return () => window.removeEventListener("resize", update);
+	}, []);
+
+	useEffect(() => {
+		if (!isMobileWidth) setOpen(false);
+	}, [isMobileWidth]);
+
 	const handleTopClick = (e: React.MouseEvent) => {
-		// On mobile, tapping the top-level item should toggle the dropdown instead of navigating
-		if (typeof window !== "undefined" && window.innerWidth <= 970 && subsections?.length) {
+		if (isMobileWidth && subsections?.length) {
 			e.preventDefault();
 			setOpen(o => !o);
 		}
 	};
+
 	return (
 		<div className="section-link" data-open={open ? "true" : "false"}>
 			<Link href={href} onClick={handleTopClick}>
 				{section}
-				{subsections && (
+				{subsections && isMobileWidth && (
 					<i
 						className="fa-solid fa-chevron-down"
 						onClick={e => {
@@ -44,11 +57,15 @@ function SectionLink({ href, name: section, subsections }: { href: string; name:
 						data-open={open}
 					/>
 				)}
+				{subsections && !isMobileWidth && <i className="fa-solid fa-chevron-down" aria-hidden="true" />}
 			</Link>
 			{subsections && (
 				<div className="dropdown">
-					{/* Include the category itself as a selectable option */}
-					<Link href={href}>{section}</Link>
+					{isMobileWidth && (
+						<Link href={href} className="category-self">
+							{section}
+						</Link>
+					)}
 					{subsections.map((subsection, i) => (
 						<Link key={i} href={subsection.href}>
 							{subsection.name}

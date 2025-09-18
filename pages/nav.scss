@@ -169,6 +169,11 @@ nav {
 				border-bottom: 1px solid #888;
 			}
 		}
+
+		/* Hide the self-link by default (desktop) */
+		a.category-self {
+			display: none;
+		}
 	}
 
 	.header {
@@ -403,6 +408,16 @@ nav {
 						&:hover {
 							color: black;
 						}
+					}
+
+					/* Show and highlight the self-link on mobile */
+					a.category-self {
+						display: block;
+						color: #fff;
+						font-weight: 700;
+						text-transform: uppercase;
+						padding: 0.6rem 1rem;
+						border-bottom: 1px solid #666;
 					}
 				}
 
