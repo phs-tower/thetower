@@ -82,6 +82,7 @@ export default function PhotoCredit({ contentInfo }: Props) {
 
 				p :global(a.photoLink:hover) {
 					text-decoration-line: underline !important;
+					color: rgb(94, 150, 229) !important; /* blueish hover like author links */
 				}
 			`}</style>
 

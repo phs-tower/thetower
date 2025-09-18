@@ -24,6 +24,7 @@ export default function CreditLink({ author, small, font }: Props) {
 				}
 				a:hover {
 					text-decoration: underline;
+					color: rgb(94, 150, 229) !important; /* blueish hover */
 				}
 			`}</style>
 			<Link legacyBehavior className="credit-link" href={"/credit/" + encodeURI(author)}>

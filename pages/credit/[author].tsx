@@ -42,8 +42,7 @@ export default function Credit({ author, articles }: Props) {
 
 			<style jsx>{`
 				.credit {
-					max-width: 85vw;
-					margin: auto;
+					max-width: 100%;
 				}
 				h1 {
 					text-align: center;
@@ -59,13 +58,17 @@ export default function Credit({ author, articles }: Props) {
 				}
 			`}</style>
 
-			<h1>{author}&apos;s Work</h1>
+			<div className="page-grid">
+				<div className="center-column">
+					<h1>{author}&apos;s Work</h1>
 
-			{articles.length > 0 ? (
-				articles.map(article => <ArticlePreview key={article.id} article={article} style="row" size="small" />)
-			) : (
-				<p className="empty">No work found with this name.</p>
-			)}
+					{articles.length > 0 ? (
+						articles.map(article => <ArticlePreview key={article.id} article={article} style="row" size="small" shrinkThumb />)
+					) : (
+						<p className="empty">No work found with this name.</p>
+					)}
+				</div>
+			</div>
 		</div>
 	);
 }

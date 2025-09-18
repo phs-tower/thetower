@@ -48,10 +48,10 @@ export default function FrontPage({ articles, vang }: Props) {
 						{/* <ArticlePreview article={articles["opinions"][2]} style="box" size="large" /> */}
 					</div>
 					<div>
-						<div style={{ height: "32rem" }}>
+						<div style={{ marginBottom: "1rem" }}>
 							<ArticlePreview article={articles["featured"][0]} style="box" size="featured" />
 						</div>
-						<div style={{ marginTop: "3rem" }}>
+						<div style={{ marginTop: "1rem", maxWidth: "90%", marginLeft: "5%", marginRight: "5%" }}>
 							<ArticlePreview article={articles["opinions"][2]} style="box" size="large" />
 						</div>
 					</div>

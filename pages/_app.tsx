@@ -23,16 +23,23 @@ type Subsection = {
 
 function SectionLink({ href, name: section, subsections }: { href: string; name: string; subsections?: Subsection[] }) {
 	const [open, setOpen] = useState(false);
+	const handleTopClick = (e: React.MouseEvent) => {
+		// On mobile, tapping the top-level item should toggle the dropdown instead of navigating
+		if (typeof window !== "undefined" && window.innerWidth <= 970 && subsections?.length) {
+			e.preventDefault();
+			setOpen(o => !o);
+		}
+	};
 	return (
-		<div className="section-link">
-			<Link href={href}>
+		<div className="section-link" data-open={open ? "true" : "false"}>
+			<Link href={href} onClick={handleTopClick}>
 				{section}
 				{subsections && (
 					<i
 						className="fa-solid fa-chevron-down"
 						onClick={e => {
 							e.preventDefault();
-							setOpen(!open);
+							setOpen(o => !o);
 						}}
 						data-open={open}
 					/>
@@ -40,6 +47,8 @@ function SectionLink({ href, name: section, subsections }: { href: string; name:
 			</Link>
 			{subsections && (
 				<div className="dropdown">
+					{/* Include the category itself as a selectable option */}
+					<Link href={href}>{section}</Link>
 					{subsections.map((subsection, i) => (
 						<Link key={i} href={subsection.href}>
 							{subsection.name}
@@ -169,7 +178,7 @@ function Masthead() {
 					<div id="paper-info">
 						<span>
 							<Link href={pdfLink} className="underline-animation">
-								Print Edition
+								PRINT EDITION
 							</Link>
 						</span>
 						<p>{displayFullDate().toUpperCase()}</p>
@@ -220,6 +229,12 @@ export default function App({ Component, pageProps }: AppProps) {
 		fetch("/api/track", { method: "POST" }).catch(() => {});
 	}, [router.asPath]);
 
+	// Consistent 3.5% side padding on all pages except article pages (leave articles as-is)
+	const isArticle = router.pathname.startsWith("/articles");
+	const mainStyle = isArticle
+		? ({ maxWidth: "1200px", margin: "0 auto", paddingInline: "1rem" } as const)
+		: ({ maxWidth: "100%", margin: 0, paddingInline: "3.5%" } as const);
+
 	return (
 		<>
 			<Head>
@@ -228,39 +243,41 @@ export default function App({ Component, pageProps }: AppProps) {
 			</Head>
 			{/* <Banner /> */}
 			<Nav />
-			<main className="content" style={{ maxWidth: "1200px", margin: "0 auto" }}>
+			<main className="content" style={mainStyle}>
 				<Component {...pageProps} />
 			</main>
 			<Footer />
 
-			{/* Center dropdowns directly under parent tabs */}
+			{/* Center dropdowns under tabs on desktop only */}
 			<style jsx global>{`
-				nav #links .section-link {
-					position: relative;
-					padding-bottom: 0;
-				}
-				nav #links .section-link .dropdown {
-					position: absolute;
-					top: calc(100% - 0.5rem);
-					left: 50%;
-					transform: translateX(-50%);
-					display: none;
-					background: #fff;
-					border: 1px solid rgba(0, 0, 0, 0.08);
-					border-radius: 6px;
-					box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
-					padding: 0.4rem 0.6rem;
-					white-space: nowrap;
-					z-index: 1000;
-					max-width: calc(100vw - 40px);
-				}
-				nav #links .section-link:hover .dropdown,
-				nav #links .section-link .dropdown:hover {
-					display: block;
-				}
-				nav #links .section-link .dropdown a {
-					display: block;
-					padding: 0.35rem 0.6rem;
+				@media (min-width: 971px) {
+					nav #links .section-link {
+						position: relative;
+						padding-bottom: 0;
+					}
+					nav #links .section-link .dropdown {
+						position: absolute;
+						top: calc(100% - 0.5rem);
+						left: 50%;
+						transform: translateX(-50%);
+						display: none;
+						background: #fff;
+						border: 1px solid rgba(0, 0, 0, 0.08);
+						border-radius: 6px;
+						box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+						padding: 0.4rem 0.6rem;
+						white-space: nowrap;
+						z-index: 1000;
+						max-width: calc(100vw - 40px);
+					}
+					nav #links .section-link:hover .dropdown,
+					nav #links .section-link .dropdown:hover {
+						display: block;
+					}
+					nav #links .section-link .dropdown a {
+						display: block;
+						padding: 0.35rem 0.6rem;
+					}
 				}
 			`}</style>
 			<Analytics />

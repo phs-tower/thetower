@@ -277,37 +277,52 @@ export async function getArticlesExceptCategory(cat: string) {
 }
 
 export async function getArticlesBySearch(query: string | string[]) {
-	if (!prisma) return [];
-
 	const safeQuery = Array.isArray(query) ? query[0] : query;
+	if (!prisma) return [];
+	if (!safeQuery || !safeQuery.trim()) return [];
+
+	// Case-insensitive partial match for names inside the authors[] array
+	const likeParam = `%${safeQuery.replace(/[%_]/g, s => "\\" + s)}%`;
+	const authorIdRows = await prisma.$queryRaw<{ id: number }[]>`
+		SELECT id
+		FROM "article"
+		WHERE EXISTS (
+			SELECT 1
+			FROM unnest("authors") AS a(name)
+			WHERE a.name ILIKE ${likeParam}
+		)
+	`;
+	const authorIds = authorIdRows.map(r => r.id);
+
+	// Build OR conditions, including case-insensitive text search and author matches
+	const orConditions: Prisma.articleWhereInput[] = [
+		{
+			title: {
+				contains: safeQuery,
+				mode: "insensitive",
+			},
+		},
+		{
+			content: {
+				contains: safeQuery,
+				mode: "insensitive",
+			},
+		},
+		{
+			contentInfo: {
+				contains: safeQuery,
+				mode: "insensitive",
+			},
+		},
+	];
+
+	if (authorIds.length) {
+		orConditions.push({ id: { in: authorIds } });
+	}
 
 	return await prisma.article.findMany({
 		where: {
-			OR: [
-				{
-					title: {
-						contains: safeQuery,
-						mode: "insensitive",
-					},
-				},
-				{
-					content: {
-						contains: safeQuery,
-						mode: "insensitive",
-					},
-				},
-				{
-					authors: {
-						has: safeQuery,
-					},
-				},
-				{
-					contentInfo: {
-						contains: safeQuery,
-						mode: "insensitive",
-					},
-				},
-			],
+			OR: orConditions,
 		},
 		orderBy: {
 			id: "desc",
@@ -342,34 +357,39 @@ export async function getArticlesBySubcategory(subcat: string, take: number, off
 
 export async function getArticlesByAuthor(author: string) {
 	if (!prisma) return [];
-	const decoded = decodeURI(author);
-	const nameParts = decoded.split(" ").filter(Boolean);
+	const decoded = decodeURI(author).trim();
+	if (!decoded) return [];
 
-	const contentInfoConditions = nameParts.map(part => ({
-		contentInfo: {
-			contains: part,
-			mode: Prisma.QueryMode.insensitive, // ✅ fix is here
-		},
-	}));
+	// 1) Strict author match: exact name in authors[] (case-insensitive)
+	const exactAuthorRows = await prisma.$queryRaw<{ id: number }[]>`
+        SELECT id
+        FROM "article"
+        WHERE published = true
+        AND EXISTS (
+            SELECT 1
+            FROM unnest("authors") AS a(name)
+            WHERE lower(a.name) = lower(${decoded})
+        )
+    `;
 
-	const articles = await prisma.article.findMany({
-		orderBy: [{ year: "desc" }, { month: "desc" }],
-		where: {
-			published: true,
-			OR: [
-				{
-					authors: {
-						has: decoded,
-					},
-				},
-				{
-					AND: contentInfoConditions,
-				},
-			],
-		},
+	// 2) Photo credit match: content-info begins with Photo/Image/Graphic and contains the name
+	const photoCreditRows = await prisma.$queryRaw<{ id: number }[]>`
+        SELECT id
+        FROM "article"
+        WHERE published = true
+        AND "content-info" IS NOT NULL
+        AND "content-info" ~* '^(photo|image|graphic)\s*:'
+        AND "content-info" ILIKE '%' || ${decoded} || '%'
+    `;
+
+	const ids = Array.from(new Set([...exactAuthorRows.map(r => r.id), ...photoCreditRows.map(r => r.id)]));
+
+	if (!ids.length) return [];
+
+	return await prisma.article.findMany({
+		where: { id: { in: ids } },
+		orderBy: [{ year: "desc" }, { month: "desc" }, { id: "desc" }],
 	});
-
-	return articles;
 }
 
 export async function getSpreadsByCategory(category: string, take: number, offsetCursor: number, skip: number) {

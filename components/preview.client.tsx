@@ -13,6 +13,11 @@ interface Props {
 	category?: boolean;
 	style?: "box" | "row";
 	size?: "small" | "medium" | "large" | "featured" | "category-list";
+	/**
+	 * If true, render the thumbnail at its natural aspect without stretching,
+	 * capped to a smaller max size (used for search results).
+	 */
+	shrinkThumb?: boolean;
 }
 
 // Utility: Extract photographer name from contentInfo
@@ -32,7 +37,7 @@ function getPhotographerName(contentInfo?: string | null): string | null {
 	return null;
 }
 
-export default function ArticlePreview({ article, category, style = "row", size = "medium" }: Props) {
+export default function ArticlePreview({ article, category, style = "row", size = "medium", shrinkThumb = false }: Props) {
 	if (!article) return <></>;
 
 	let charlen = 0;
@@ -86,6 +91,8 @@ export default function ArticlePreview({ article, category, style = "row", size 
 					display: grid;
 					padding: 1px;
 					border: none;
+					position: relative;
+					overflow: hidden; /* avoid title hover/underline bleeding across cards */
 				}
 				.article-preview.box.small {
 					display: grid;
@@ -99,6 +106,8 @@ export default function ArticlePreview({ article, category, style = "row", size 
 					border-bottom: 1px solid gainsboro;
 					// grid-template-columns: 1fr 1.5fr;
 					grid-gap: 1vw;
+					position: relative;
+					overflow: hidden; /* avoid hover artifacts */
 				}
 				.article-preview.row.small {
 					display: grid;
@@ -134,13 +143,13 @@ export default function ArticlePreview({ article, category, style = "row", size 
 					/* font-size: smaller; */
 				}
 				.title {
-					/* font-weight: 800;
+					/* font-weight: 1000;
 					font-family: ${styles.font.serifHeader}, sans-serif; */
 					font-weight: bold;
 				}
 
 				.title a {
-					line-height: 0.95;
+					line-height: 1.1; /* prevent hover underline from overlapping neighbors */
 				}
 
 				.title a:hover {
@@ -150,8 +159,12 @@ export default function ArticlePreview({ article, category, style = "row", size 
 
 				.title .featured {
 					/* font-family: ${styles.font.serifHeader}, sans-serif; */
-					font-size: 2.5rem;
+					font-size: 2rem; /* slightly smaller */
 					color: ${styles.color.primary} !important !important !important;
+					display: -webkit-box;
+					-webkit-line-clamp: 3;
+					-webkit-box-orient: vertical;
+					overflow: hidden;
 				}
 
 				@media (max-width: 1000px) {
@@ -162,8 +175,12 @@ export default function ArticlePreview({ article, category, style = "row", size 
 
 				.title .large {
 					/* font-family: ${styles.font.serifHeader}, sans-serif; */
-					font-size: 1.5rem;
+					font-size: 1.3rem; /* slightly smaller */
 					color: ${styles.color.primary} !important !important !important;
+					display: -webkit-box;
+					-webkit-line-clamp: 2;
+					-webkit-box-orient: vertical;
+					overflow: hidden;
 				}
 				.title .medium {
 					/* font-family: ${styles.font.serifHeader}, sans-serif;
@@ -195,6 +212,12 @@ export default function ArticlePreview({ article, category, style = "row", size 
 					border-radius: 0px;
 					box-shadow: 0px 5px 12px #00000022;
 				}
+				.authors {
+					font-size: 1.1rem; /* slightly smaller */
+					white-space: nowrap;
+					overflow: hidden;
+					text-overflow: ellipsis;
+				}
 				.article-preview > .large-preview {
 					background-color: white;
 					padding: 10px;
@@ -204,6 +227,11 @@ export default function ArticlePreview({ article, category, style = "row", size 
 				.article-preview > .large-preview:hover {
 					background-color: #f0f0f077;
 					transition-duration: 0.1s;
+				}
+
+				/* Keep featured text aligned with featured image (image has 5% side margins) */
+				.featured-preview > div:last-child {
+					padding-inline: 5%;
 				}
 				.article-preview > .medium-preview {
 					display: contents;
@@ -229,8 +257,12 @@ export default function ArticlePreview({ article, category, style = "row", size 
 					grid-template-columns: 1fr !important;
 				}
 
-				.img-wrapper {
+				/* Only add side margin in row layout; boxes should be flush */
+				.article-preview.row .img-wrapper {
 					margin-right: 1.25rem;
+				}
+				.article-preview.box .img-wrapper {
+					margin-right: 0;
 				}
 			`}</style>
 			<div className={size + "-preview"}>
@@ -245,15 +277,25 @@ export default function ArticlePreview({ article, category, style = "row", size 
 							width={1000}
 							height={1000}
 							alt="Image"
-							style={{
-								width: "100%",
-								height: "100%",
-								maxWidth: `${size == "featured" ? "90%" : "16rem"}`,
-								maxHeight: `${size == "featured" ? "90%" : "16rem"}`,
-								marginLeft: "5%",
-								marginRight: "5%",
-								objectFit: "cover",
-							}}
+							style={
+								shrinkThumb
+									? {
+											width: "auto",
+											height: "auto",
+											maxWidth: "180px",
+											maxHeight: "120px",
+											objectFit: "contain",
+									  }
+									: {
+											width: "100%",
+											height: size == "featured" ? "100%" : "16rem",
+											maxWidth: size == "featured" ? "90%" : "100%",
+											maxHeight: size == "featured" ? "90%" : "16rem",
+											marginLeft: size == "featured" ? "5%" : "0",
+											marginRight: size == "featured" ? "5%" : "0",
+											objectFit: "cover",
+									  }
+							}
 						/>
 					) : (
 						<Image
@@ -261,7 +303,18 @@ export default function ArticlePreview({ article, category, style = "row", size 
 							width={309}
 							height={721}
 							alt="Image"
-							style={{ width: "16rem", height: "16rem", objectFit: "cover", backgroundColor: "black" }}
+							style={
+								shrinkThumb
+									? {
+											width: "auto",
+											height: "auto",
+											maxWidth: "180px",
+											maxHeight: "120px",
+											objectFit: "contain",
+											backgroundColor: "black",
+									  }
+									: { width: "16rem", height: "16rem", objectFit: "cover", backgroundColor: "black" }
+							}
 						/>
 					)}
 				</div>

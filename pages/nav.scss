@@ -18,10 +18,10 @@ nav {
 
 	button {
 		height: 2rem;
-		border: solid 1px white;
+		border: solid 1px black;
 		background: none;
 		border-radius: 0.25rem;
-		color: white;
+		color: black;
 		gap: 1ch;
 		align-items: center;
 
@@ -31,13 +31,13 @@ nav {
 
 		span {
 			font-family: var(--font-sans);
-			color: white;
+			color: black;
 			font-size: 1rem;
 		}
 
 		&:hover {
 			cursor: pointer;
-			background: #fff4;
+			background: #00000015;
 		}
 	}
 
@@ -178,7 +178,8 @@ nav {
 		justify-content: center;
 		align-items: center;
 		padding-block: 0.5rem;
-		border-bottom: solid white 1px;
+		background: var(--background);
+		border-bottom: solid #ddd 1px;
 		box-sizing: border-box;
 
 		#masthead {
@@ -190,6 +191,8 @@ nav {
 
 		#masthead img {
 			height: var(--masthead-height);
+			/* Ensure the tower logo is visible on white header */
+			filter: invert(1);
 		}
 	}
 
@@ -203,7 +206,7 @@ nav {
 
 		a,
 		p {
-			color: white;
+			color: black;
 			font-size: 1rem;
 			font-family: var(--font-sans);
 		}
@@ -223,6 +226,28 @@ nav {
 
 	.right-stuff {
 		align-items: flex-end;
+	}
+
+	/* Subscribe button: match SubBanner hover (darken) */
+	.right-stuff .subscribe {
+		border: 2px solid var(--accent-dark);
+		background: var(--background);
+		color: black;
+		padding-inline: 0.5rem;
+	}
+
+	.right-stuff .subscribe:hover {
+		background: var(--accent-dark);
+		color: white;
+	}
+
+	/* Ensure inner text flips color on hover */
+	.right-stuff .subscribe span {
+		color: black;
+	}
+
+	.right-stuff .subscribe:hover span {
+		color: white;
 	}
 
 	#menu {
@@ -257,7 +282,7 @@ nav {
 	.search-box {
 		display: flex;
 		align-items: center;
-		border: 1px solid white;
+		border: 1px solid black;
 		border-radius: 0.25rem;
 		height: 2rem;
 
@@ -270,7 +295,7 @@ nav {
 		input {
 			background: none;
 			border: none;
-			color: #eee;
+			color: #111;
 			font-size: 1rem;
 			height: 2rem;
 			padding: 0.5rem;
@@ -293,6 +318,7 @@ nav {
 			// border-radius: 0 0.25rem 0.25rem 0;
 			border-radius: 0;
 			position: static;
+			color: black;
 		}
 
 		@media screen and (max-width: 680px) {
@@ -312,7 +338,7 @@ nav {
 		gap: calc(var(--masthead-height) / 8);
 
 		h1 {
-			color: white;
+			color: black;
 			font-weight: normal;
 			font-family: Canterbury;
 			font-size: var(--masthead-height);
@@ -384,7 +410,8 @@ nav {
 					transform: rotate(-180deg);
 				}
 
-				.section-link:has(i[data-open="true"]) .dropdown {
+				.section-link:has(i[data-open="true"]) .dropdown,
+				.section-link[data-open="true"] .dropdown {
 					display: block;
 					opacity: 1;
 					background: none;
@@ -412,7 +439,7 @@ nav {
 	}
 
 	#menu[data-open="true"] {
-		background: #fff4;
+		background: #00000015;
 	}
 }
 

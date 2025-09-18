@@ -15,7 +15,7 @@ section.content .titleblock {
 	}
 
 	.authors {
-		font-size: 1rem;
+		font-size: 1.15rem;
 	}
 }
 
@@ -27,7 +27,7 @@ section.content .titleblock {
 section.content {
 	margin-top: 4rem;
 	margin-inline: auto;
-	max-width: 80ch;
+	max-width: 90ch;
 	padding-inline: 2rem;
 
 	img {
@@ -47,12 +47,13 @@ section.content {
 }
 
 .return-to-category-container {
-	position: sticky;
-	top: 8rem;
+	/* Keep at top; don't follow scroll */
+	position: relative;
+	top: 0;
 
 	@media screen and (max-width: 970px) {
 		position: relative;
-		top: unset;
+		top: 0;
 	}
 }
 
@@ -87,6 +88,19 @@ a.return-to-category {
 	&:hover i:global(.fa-arrow-up) {
 		transform: translate(2px, -2px) rotate(45deg);
 	}
+}
+
+/* Constrain bottom subscribe banner to article width */
+.bottom-subscribe {
+	/* Match home page banner width: full-bleed with same side padding */
+	position: relative;
+	left: 50%;
+	right: 50%;
+	width: 100vw;
+	margin-left: -50vw;
+	margin-right: -50vw;
+	padding-inline: 3.5%;
+	box-sizing: border-box;
 }
 
 .main-article {

@@ -252,8 +252,8 @@ export default function Category({ search, articles, sidebar, sort, section }: P
 					background-color: #f0f0f0;
 				}
 				.meta {
-					font-size: 1rem;
-					color: #444;
+					font-size: 0.95rem;
+					color: #6b7280; /* grayish */
 					margin-top: 0.15rem;
 					font-weight: 600;
 				}
@@ -411,7 +411,7 @@ export default function Category({ search, articles, sidebar, sort, section }: P
 										year: "numeric",
 									})}
 								</div>
-								<ArticlePreview article={article} style="row" size="small" />
+								<ArticlePreview article={article} style="row" size="category-list" />
 							</div>
 						);
 					})}
@@ -433,7 +433,7 @@ function SidebarArticles({ sidebar }: SidebarProps) {
 	return (
 		<>
 			{sidebar.map(article => (
-				<ArticlePreview key={article.id} article={article} style="row" size="small" category />
+				<ArticlePreview key={article.id} article={article} style="row" size="small" category shrinkThumb />
 			))}
 		</>
 	);

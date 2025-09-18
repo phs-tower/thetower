@@ -219,10 +219,10 @@ footer {
 }
 
 main a {
-	color: rgb(24, 101, 208);
+	color: rgb(0, 0, 0);
 
 	&:hover {
-		color: rgb(94, 150, 229);
+		color: rgb(67, 68, 69);
 	}
 }
 
@@ -230,13 +230,35 @@ main a {
 
 .mosaic {
 	display: grid;
-	grid-gap: 10px;
+	/* Bring side columns closer to the middle */
+	gap: -1rem;
+	grid-gap: 0.2rem;
 }
 
 .triple {
 	display: grid;
-	grid-gap: 10px;
+	/* Bring side columns closer to the middle */
+	gap: -0.2rem;
+	grid-gap: 0.2rem;
 	grid-template-columns: 0.625fr 1.75fr 0.625fr;
+}
+
+/* Reusable grid to align pages to the home layout */
+.page-grid {
+	display: grid;
+	grid-template-columns: 0.625fr 1.75fr 0.625fr; /* match home .triple */
+	grid-gap: 0.2rem;
+}
+.page-grid .center-column {
+	grid-column: 2;
+}
+@media screen and (max-width: 1000px) {
+	.page-grid {
+		grid-template-columns: 1fr;
+	}
+	.page-grid .center-column {
+		grid-column: 1;
+	}
 }
 
 .one {
@@ -321,7 +343,7 @@ a.underline-animation {
 		content: "";
 		display: block;
 		position: absolute;
-		background: white;
+		background: currentColor;
 		height: 2px;
 		bottom: -2px;
 		right: 0;

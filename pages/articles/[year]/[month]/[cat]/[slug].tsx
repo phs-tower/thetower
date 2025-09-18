@@ -16,6 +16,40 @@ import { article } from "@prisma/client";
 
 import articleStyles from "./article.module.scss";
 
+function toSpotifyEmbedSrc(raw?: string | null): string | null {
+	if (!raw) return null;
+	const trimmed = raw.trim();
+	// Support spotify:episode:ID or spotify:track:ID
+	if (trimmed.startsWith("spotify:")) {
+		const parts = trimmed.split(":"); // ["spotify","episode","ID"]
+		if (parts.length >= 3 && (parts[1] === "episode" || parts[1] === "track")) {
+			return `https://open.spotify.com/embed/${parts[1]}/${parts[2]}`;
+		}
+	}
+	try {
+		const u = new URL(trimmed);
+		// Expect /episode/{id} or /track/{id}
+		const segments = u.pathname.split("/").filter(Boolean);
+		if (segments.length >= 2 && (segments[0] === "episode" || segments[0] === "track")) {
+			const type = segments[0];
+			const id = segments[1];
+			return `https://open.spotify.com/embed/${type}/${id}`;
+		}
+		// Fallback regex if URL parsing above fails to match
+		const m = trimmed.match(/(episode|track)\/([A-Za-z0-9]+)/);
+		if (m) {
+			return `https://open.spotify.com/embed/${m[1]}/${m[2]}`;
+		}
+	} catch (_e) {
+		// Not a valid URL; attempt simple fallback parse
+		const m = trimmed.match(/(episode|track)\/([A-Za-z0-9]+)/);
+		if (m) {
+			return `https://open.spotify.com/embed/${m[1]}/${m[2]}`;
+		}
+	}
+	return null;
+}
+
 // 👇 Extend article manually to include contentInfo
 interface ExtendedArticle {
 	id: number;
@@ -31,6 +65,7 @@ interface ExtendedArticle {
 	featured: boolean;
 	markdown: boolean;
 	contentInfo?: string | null;
+	spotifyUrl?: string | null;
 }
 
 interface Props {
@@ -64,6 +99,7 @@ export async function getServerSideProps({ params }: Params) {
 		featured: raw.featured ?? false,
 		markdown: raw.markdown ?? false,
 		contentInfo: raw.contentInfo ?? null,
+		spotifyUrl: (raw as any).spotifyUrl ?? null,
 	};
 
 	if (processedArticle.markdown) {
@@ -186,6 +222,25 @@ export default function Article({ article }: Props) {
 				<br />
 
 				<div>
+					{/* Spotify read‑aloud embed below authors, above image */}
+					{(() => {
+						const src =
+							toSpotifyEmbedSrc((article as any).spotifyUrl) ||
+							toSpotifyEmbedSrc(article.contentInfo ?? undefined) ||
+							toSpotifyEmbedSrc(article.content ?? undefined);
+						return src ? (
+							<iframe
+								style={{ borderRadius: 12, width: "100%" }}
+								src={src}
+								height={152}
+								frameBorder={0}
+								allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+								loading="lazy"
+								title="Listen while you read"
+							/>
+						) : null;
+					})()}
+
 					{article.img && (
 						<>
 							<Image src={article.img} width={1000} height={1000} alt={article.img} />
