@@ -1,0 +1,377 @@
+/** @format */
+
+:root {
+	--background: #fff;
+	--primary: black;
+	--accent-light: #c1d2d9;
+	--accent: #061b40;
+	--accent-dark: #031025;
+
+	--font-stack: "Courier New";
+	--font-serif-header: "Minion Pro Medium";
+	--font-serif-text: "Minion Pro Regular";
+	--font-sans: "Neue Montreal Regular";
+	--font-sans-bold: "Neue Montreal Medium";
+}
+
+body {
+	background: var(--background);
+	font-family: var(--font-serif-text);
+}
+
+button {
+	position: relative;
+	transition: all 0.2s;
+	top: 0;
+
+	&:active {
+		top: 0.2rem;
+	}
+}
+
+input[type="submit"],
+input[type="file"],
+select,
+::file-selector-button {
+	font-family: var(--font-serif-text);
+}
+
+select {
+	height: 2rem;
+}
+
+input[type="submit"],
+::file-selector-button {
+	transition: background 0.2s;
+
+	&:hover {
+		background: #0002;
+		cursor: pointer;
+	}
+}
+
+a {
+	color: black;
+}
+
+main {
+	margin-top: 4vh;
+}
+
+// .banner {
+// 	margin: 0px;
+// 	padding-top: 0px;
+// 	position: relative;
+// 	background-color: var(--background);
+// }
+
+.image {
+	display: block;
+	margin-left: auto;
+	text-align: center;
+	margin: 0px;
+	padding: 0;
+}
+
+.image:hover {
+	cursor: pointer;
+}
+
+.sub {
+	position: absolute;
+	left: 1vw;
+	top: 5px;
+	bottom: 5px;
+}
+
+.search {
+	position: absolute;
+	right: 1vw;
+	bottom: 20px;
+
+	input {
+		width: 200px;
+		height: 30px;
+		border: 1px solid var(--accent);
+		border-radius: 5px 0px 0px 5px;
+		padding: 5px;
+		font-family: var(--font-sans);
+		font-size: 1.6rem;
+		box-sizing: border-box;
+		vertical-align: middle;
+		color: var(--accent);
+	}
+}
+
+.search input::placeholder {
+	color: var(--accent-light);
+}
+
+.search button {
+	width: 30px;
+	height: 29.5px;
+	border: 1px solid var(--accent);
+	border-radius: 5px 0px 0px 5px;
+	transform: scaleX(-1);
+	background-color: var(--accent);
+	color: #fff;
+	cursor: pointer;
+	box-sizing: border-box;
+	padding: 5px;
+	vertical-align: middle;
+}
+
+@media screen and (max-width: 1000px) {
+	.sub,
+	.search input {
+		display: none;
+	}
+}
+
+footer {
+	display: grid;
+	padding-top: 2vh;
+	width: 90vw;
+	margin-left: 5vw;
+
+	hr {
+		align-self: center;
+		background-color: #ccc;
+		border: none;
+		margin-top: 3vh;
+		margin-bottom: 1vh;
+		height: 3px;
+	}
+
+	.top {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		gap: 1rem;
+		flex-wrap: wrap;
+
+		> div {
+			display: flex;
+			flex-direction: row;
+			align-items: flex-end;
+
+			.socials-icon {
+				position: relative;
+				bottom: 0.5rem;
+			}
+		}
+
+		.home-btn {
+			color: #274370;
+			float: right;
+			margin-right: 2.5vh;
+			display: block;
+		}
+
+		h1 {
+			font-family: Canterbury;
+			font-size: xxx-large;
+			user-select: none;
+			float: left;
+			padding-right: 10px;
+			font-weight: normal;
+		}
+	}
+
+	.bottom {
+		margin: 1vh;
+		display: grid;
+		grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+		gap: 1rem;
+
+		@media screen and (max-width: 700px) {
+			grid-template-columns: 1fr;
+
+			div {
+				display: flex;
+				flex-direction: column;
+				// justify-content: center;
+				align-items: center;
+
+				b {
+					font-size: 1.25rem;
+					text-decoration: underline;
+				}
+
+				br {
+					// height: 0;
+					display: none;
+				}
+			}
+		}
+	}
+
+	// @media screen and (max-width: 700px) {
+	// 	.bottom {
+	// 		grid-template-columns: 1fr;
+	// 	}
+	// }
+
+	span {
+		padding-bottom: 2vh;
+	}
+}
+
+main a {
+	color: rgb(0, 0, 0);
+
+	&:hover {
+		color: rgb(67, 68, 69);
+	}
+}
+
+// From /home
+
+.mosaic {
+	display: grid;
+	/* Bring side columns closer to the middle */
+	gap: -1rem;
+	grid-gap: 0.2rem;
+}
+
+.triple {
+	display: grid;
+	/* Bring side columns closer to the middle */
+	gap: -0.2rem;
+	grid-gap: 0.2rem;
+	grid-template-columns: 0.625fr 1.75fr 0.625fr;
+}
+
+/* Reusable grid to align pages to the home layout */
+.page-grid {
+	display: grid;
+	grid-template-columns: 0.625fr 1.75fr 0.625fr; /* match home .triple */
+	grid-gap: 0.2rem;
+}
+.page-grid .center-column {
+	grid-column: 2;
+}
+@media screen and (max-width: 1000px) {
+	.page-grid {
+		grid-template-columns: 1fr;
+	}
+	.page-grid .center-column {
+		grid-column: 1;
+	}
+}
+
+.one {
+	padding-bottom: 10px;
+	border-bottom: 1px solid gainsboro;
+	display: none;
+}
+
+@media (max-width: 1000px) {
+	.triple {
+		display: none;
+	}
+
+	.one {
+		display: block;
+	}
+}
+
+.three {
+	padding-top: 10px;
+	border-top: 1px solid gainsboro;
+}
+
+.dark-banner {
+	position: relative;
+	background-color: var(--accent-dark);
+	width: 100vw;
+	left: -2.5vw;
+	padding-top: 2.5rem;
+	padding-bottom: 2.5rem;
+}
+
+.dark-banner * {
+	color: var(--background);
+	text-align: center;
+}
+
+#dark-banner-content {
+	margin-left: 7.5rem;
+	margin-right: 7.5rem;
+}
+
+.section-header {
+	text-align: center;
+}
+
+#vang-container h3 {
+	font-family: var(--font-sans);
+}
+
+#vang-container object {
+	width: 50vw;
+	height: 70vh;
+}
+
+a {
+	color: black;
+
+	&:hover {
+		color: #888;
+	}
+}
+
+main {
+	max-width: 150ch;
+	padding-inline: 2rem;
+	// box-sizing: border-box;
+	margin-inline: auto;
+}
+
+.sponsor-list {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+}
+
+// This controls all the fancy underlines OTHER than the nav bar (see nav.scss for that :) )
+a.underline-animation {
+	position: relative;
+
+	&::before {
+		content: "";
+		display: block;
+		position: absolute;
+		background: currentColor;
+		height: 2px;
+		bottom: -2px;
+		right: 0;
+		width: 0;
+
+		transition: width 0.2s;
+	}
+
+	&:hover::before {
+		width: 100%;
+		left: 0;
+	}
+}
+
+/* The mobile toggle button is hidden by default */
+.sidebar-toggle {
+	display: none;
+	margin-bottom: 0.6rem;
+
+	background: var(--accent);
+	color: white;
+	border: none;
+	padding: 0.4rem 0.75rem;
+	font-size: 1rem;
+	border-radius: 5px;
+	cursor: pointer;
+
+	@media screen and (max-width: 1000px) {
+		display: inline-block;
+	}
+}

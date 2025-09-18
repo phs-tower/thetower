@@ -7,8 +7,8 @@ import { remark } from "remark";
 import html from "remark-html";
 import confetti from "canvas-confetti";
 import imageCompression from "browser-image-compression";
-import dayjs from "dayjs"; // for month/year
 import styles from "./index.module.scss";
+import { displayDate } from "~/lib/utils";
 
 // Utility: Convert data URL to File (if needed)
 function dataURLtoFile(dataurl: string, filename: string): File {
@@ -16,7 +16,7 @@ function dataURLtoFile(dataurl: string, filename: string): File {
 	const mimeMatch = arr[0].match(/:(.*?);/);
 	if (!mimeMatch) throw new Error("Invalid data URL");
 	const mime = mimeMatch[1];
-	const bstr = atob(arr[1]);
+	const bstr: any = atob(arr[1]);
 	let n = bstr.length;
 	const u8arr = new Uint8Array(n);
 	while (n--) {
@@ -78,21 +78,22 @@ export default function Upload() {
 
 	useEffect(() => {
 		setHydrated(true);
-		setMonthYear(dayjs().format("MMMM, YYYY"));
+		setMonthYear(displayDate());
 
 		// Load saved data from localStorage if saved within 3 days
 		const stored = localStorage.getItem("uploadFormData");
 		const timestamp = localStorage.getItem("uploadFormTimestamp");
-		if (stored && timestamp) {
-			const ts = parseInt(timestamp, 10);
-			if (Date.now() - ts < THREE_DAYS_MS) {
-				const loaded = JSON.parse(stored);
-				setFormData(loaded);
-				if (loaded.category) setCategory(loaded.category);
-			} else {
-				localStorage.removeItem("uploadFormData");
-				localStorage.removeItem("uploadFormTimestamp");
-			}
+
+		if (!(stored && timestamp)) return;
+
+		const ts = parseInt(timestamp, 10);
+		if (Date.now() - ts < THREE_DAYS_MS) {
+			const loaded = JSON.parse(stored);
+			setFormData(loaded);
+			if (loaded.category) setCategory(loaded.category);
+		} else {
+			localStorage.removeItem("uploadFormData");
+			localStorage.removeItem("uploadFormTimestamp");
 		}
 	}, []);
 
@@ -176,14 +177,15 @@ export default function Upload() {
 			return;
 		}
 
-		// 🔥 If image is larger than 4.5MB, compress it immediately
-		if (file.size > 4.5 * 1024 * 1024) {
+		// 🔥 If image is larger than 2.5MB, compress it immediately
+		if (file.size > 2.5 * 1024 * 1024) {
 			try {
 				setIsCompressing(true); // 🚀 start compressing
 				const options = {
-					maxSizeMB: 3, // Try compressing to ~3MB
-					maxWidthOrHeight: 3000,
+					maxSizeMB: 2, // Try compressing to ~2MB
+					maxWidthOrHeight: 2000,
 					useWebWorker: true,
+					fileType: "webp",
 				};
 				const originalSize = file.size;
 				const compressed = await imageCompression(file, options);
@@ -374,8 +376,9 @@ export default function Upload() {
 				alert("Image too big! Trying image compression...");
 				try {
 					const options = {
-						maxSizeMB: 5,
+						maxSizeMB: 4,
 						maxWidthOrHeight: 3000,
+						fileType: "webp",
 						useWebWorker: true,
 					};
 					const compressedFile = await imageCompression(formData.img, options);
@@ -421,7 +424,7 @@ export default function Upload() {
 	return (
 		<div>
 			<Head>
-				<title>{`Upload Articles | The Tower`}</title>
+				<title>Upload Articles | The Tower</title>
 				<meta property="og:title" content="Upload Articles | The Tower" />
 				<meta property="og:description" content="Section editors upload content here." />
 			</Head>
@@ -439,7 +442,7 @@ export default function Upload() {
 						boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
 						zIndex: 1000,
 						animation: "fadeIn 0.3s ease",
-						fontSize: "1.4rem",
+						fontSize: "1rem",
 					}}
 				>
 					{isCompressing ? "Compressing image..." : compressionSummary}
@@ -531,9 +534,9 @@ export default function Upload() {
 					<div id={styles["std-sections"]} style={{ display: category === "vanguard" || category === "multimedia" ? "none" : "block" }}>
 						<h3>Article</h3>
 						<p>
-							<strong>Header image</strong> (JPG, JPEG, PNG, or GIF only):
+							<strong>Header image</strong> (JPG, JPEG, PNG, WEBP, or GIF only):
 						</p>
-						<input type="file" accept=".jpg,.jpeg,.png,.gif" onChange={updateImage} />
+						<input type="file" accept=".jpg,.jpeg,.png,.gif,.webp" onChange={updateImage} />
 						<br />
 						<br />
 						{/* If a header image is attached, show a resizable Header Info field */}
@@ -605,10 +608,10 @@ export default function Upload() {
 								<h1
 									style={{
 										fontFamily: "Minion Pro Medium, Courier New",
-										fontSize: "4rem",
+										fontSize: "2.5rem",
 										fontWeight: "bold",
 										textAlign: "center",
-										marginBottom: "0.15rem",
+										marginBottom: "0.1rem",
 									}}
 								>
 									{formData.title}
@@ -620,12 +623,12 @@ export default function Upload() {
 								<p
 									style={{
 										fontFamily: "Neue Montreal Regular",
-										fontSize: "2rem",
+										fontSize: "1.6rem",
 										color: "#8b8b8b",
 										marginBottom:
 											formData.authors && !(category === "opinions" && formData.subcategory === "editorials")
-												? "0.5rem"
-												: "2rem",
+												? "0.3rem"
+												: "1.25rem",
 										textAlign: "center",
 									}}
 								>
@@ -638,9 +641,9 @@ export default function Upload() {
 								<div
 									style={{
 										fontFamily: "Neue Montreal Regular",
-										fontSize: "1.6rem",
+										fontSize: "1rem",
 										color: "#8b8b8b",
-										marginBottom: "1.5rem",
+										marginBottom: "1rem",
 										textAlign: "center",
 									}}
 								>
@@ -649,7 +652,7 @@ export default function Upload() {
 											key={i}
 											style={{
 												fontFamily: "Neue Montreal Regular",
-												fontSize: "1.6rem",
+												fontSize: "1rem",
 												color: "#8b8b8b",
 											}}
 										>
@@ -658,9 +661,9 @@ export default function Upload() {
 												<span
 													style={{
 														fontFamily: "Neue Montreal Regular",
-														fontSize: "1.6rem",
+														fontSize: "1rem",
 														color: "#8b8b8b",
-														margin: "0 0.4rem",
+														margin: "0 0.25rem",
 													}}
 												>
 													•
@@ -739,7 +742,7 @@ export default function Upload() {
 					textAlign: "right",
 				}}
 			>
-				<span className={`upload-status ${uploadStatus}`} style={{ fontSize: "2rem", transition: "color 2s ease" }}>
+				<span className={`upload-status ${uploadStatus}`} style={{ fontSize: "1.6rem", transition: "color 2s ease" }}>
 					{isSaving ? (
 						<>
 							Saving...
@@ -761,7 +764,7 @@ export default function Upload() {
 					)}
 				</span>
 				<br />
-				<span style={{ fontSize: "1rem", color: "#8b8b8b" }}>(Saves are stored for a maximum of 3 days)</span>
+				<span style={{ fontSize: ".6rem", color: "#8b8b8b" }}>(Saves are stored for a maximum of 3 days)</span>
 			</div>
 
 			{/* Keyframes for spinner and error animation */}

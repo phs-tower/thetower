@@ -119,18 +119,7 @@ export default function Subcategory(props: Props) {
 					border-bottom: 3px double black;
 					margin-bottom: 1vh;
 				}
-				/* Mobile toggle button */
-				.sidebar-toggle {
-					display: none;
-					margin-bottom: 1rem;
-					background: ${styles.color.accent};
-					color: white;
-					border: none;
-					padding: 0.6rem 1.2rem;
-					font-size: 1.4rem;
-					border-radius: 5px;
-					cursor: pointer;
-				}
+
 				.grid {
 					display: grid;
 					grid-template-columns: 2.25fr 0.75fr;
@@ -147,13 +136,13 @@ export default function Subcategory(props: Props) {
 					transition: opacity 0.2s, border 0.2s;
 				}
 				#loadmore {
-					border-radius: 2rem;
+					border-radius: 1.25rem;
 					font-family: ${styles.font.sans};
-					font-size: 1.6rem;
+					font-size: 1rem;
 					color: black;
 					background-color: white;
 					border: 1px solid ${styles.color.darkAccent};
-					padding: 0.5rem 0.75rem;
+					padding: 0.3rem 0.5rem;
 					transition: 0.25s;
 				}
 				#loadmore:hover {
@@ -165,9 +154,6 @@ export default function Subcategory(props: Props) {
 				}
 
 				@media (max-width: 1000px) {
-					.sidebar-toggle {
-						display: inline-block;
-					}
 					.grid {
 						/* hide or show sidebar based on state */
 						grid-template-columns: ${showSidebar ? "1fr 0.6fr" : "1fr 0"};

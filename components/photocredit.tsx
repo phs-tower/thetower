@@ -60,17 +60,17 @@ export default function PhotoCredit({ contentInfo }: Props) {
 			<style jsx>{`
 				.photoCredit {
 					font-family: ${styles.font.sans};
-					font-size: 1.8rem;
+					font-size: 1.1rem;
 					color: #5e5e5e;
-					margin-top: 0.6rem; /* closer to image */
-					margin-bottom: 0.1rem; /* tighter with context */
+					margin-top: 0.4rem; /* closer to image */
+					margin-bottom: 0.05rem; /* tighter with context */
 				}
 
 				.photoContext {
 					font-family: ${styles.font.sans};
-					font-size: 1.6rem;
+					font-size: 1rem;
 					color: #8b8b8b;
-					margin-bottom: 1.2rem;
+					margin-bottom: 0.75rem;
 					margin-top: 0; /* no extra gap */
 					white-space: pre-line;
 				}
@@ -82,6 +82,7 @@ export default function PhotoCredit({ contentInfo }: Props) {
 
 				p :global(a.photoLink:hover) {
 					text-decoration-line: underline !important;
+					color: rgb(94, 150, 229) !important; /* blueish hover like author links */
 				}
 			`}</style>
 

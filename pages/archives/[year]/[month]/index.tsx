@@ -36,12 +36,6 @@ export default function Index({ articles, year, month }: Props) {
 	return (
 		<div>
 			<style jsx>{`
-				.mosaic {
-					display: grid;
-					grid-gap: 10px;
-					margin-left: 1vw;
-					margin-right: 1vw;
-				}
 				.triple {
 					display: grid;
 					grid-gap: 10px;
@@ -51,14 +45,6 @@ export default function Index({ articles, year, month }: Props) {
 					.triple {
 						grid-template-columns: 1fr;
 					}
-				}
-				.one {
-					padding-bottom: 10px;
-					border-bottom: 1px solid gainsboro;
-				}
-				.three {
-					padding-top: 10px;
-					border-top: 1px solid gainsboro;
 				}
 			`}</style>
 			<Head>

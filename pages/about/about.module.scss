@@ -1,0 +1,26 @@
+/** @format */
+
+.about {
+	text-align: center;
+
+	h1 {
+		border-bottom: 3px solid gainsboro;
+	}
+
+	h2 {
+		margin-top: 2rem;
+		margin-bottom: 0.25rem;
+	}
+
+	p,
+	b {
+		max-width: 80ch;
+		margin-inline: auto;
+		text-align: left;
+	}
+
+	.editor,
+	.editor span {
+		font-size: 1.25rem;
+	}
+}

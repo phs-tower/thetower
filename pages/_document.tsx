@@ -24,9 +24,11 @@ export default class TowerDocument extends Document {
 					<meta property="og:type" content="website" />
 					<meta name="robots" content="index, follow" />
 					<meta name="keywords" content="Newspaper, PHS, Princeton, The Tower, Tower" />
+
+					<link rel="icon" href="/favicon.ico" sizes="32x32" />
+					<script src="https://kit.fontawesome.com/73bd27aadc.js" crossOrigin="anonymous" defer />
 				</Head>
 				<body>
-					<style>{`body { height: 100%; }`}</style>
 					<Main />
 					<NextScript />
 				</body>
