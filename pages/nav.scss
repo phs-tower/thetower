@@ -6,7 +6,13 @@
 
 nav {
 	--bg-col: var(--accent-dark);
-	--top-bg-col: transparent;
+	--top-bg-col: white;
+	--top-fg-col: black;
+
+	@media screen and (max-width: 970px) {
+		--top-bg-col: var(--accent-dark);
+		--top-fg-col: white;
+	}
 	--fg-col: white;
 	--text-light: #eee;
 	--masthead-height: 5rem;
@@ -18,7 +24,7 @@ nav {
 
 	button {
 		height: 2rem;
-		border: solid 1px var(--fg-col);
+		border: solid 1px var(--top-fg-col);
 		background: none;
 		border-radius: 0.25rem;
 		color: var(--fg-col);
@@ -31,7 +37,7 @@ nav {
 
 		span {
 			font-family: var(--font-sans);
-			color: var(--fg-col);
+			color: var(--top-fg-col);
 			font-size: 1rem;
 		}
 
@@ -42,14 +48,6 @@ nav {
 	}
 
 	background: var(--bg-col);
-
-	/* Restrict transitions to interactive elements rather than every node */
-	button,
-	.section-link > a,
-	.dropdown a,
-	#menu {
-		transition: color 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
-	}
 
 	// this has practically no performance impact :) (esp compared to the amount of images we're loading)
 	* {
@@ -198,6 +196,7 @@ nav {
 		padding-block: 0.5rem;
 		border-bottom: solid #ddd 1px;
 		box-sizing: border-box;
+		background: var(--top-bg-col);
 
 		#masthead {
 			position: relative;
@@ -209,7 +208,9 @@ nav {
 		#masthead img {
 			height: var(--masthead-height);
 			/* Ensure the tower logo is visible on white header */
-			// filter: invert(1);
+			@media screen and (min-width: 970.00001px) {
+				filter: invert(1);
+			}
 		}
 	}
 
@@ -223,7 +224,7 @@ nav {
 
 		a,
 		p {
-			color: var(--fg-col);
+			color: var(--top-fg-col);
 			font-size: 1rem;
 			font-family: var(--font-sans);
 		}
@@ -245,27 +246,27 @@ nav {
 		align-items: flex-end;
 	}
 
-	// /* Subscribe button: match SubBanner hover (darken) */
-	// .right-stuff .subscribe {
-	// 	border: 2px solid var(--accent-dark);
-	// 	background: var(--background);
-	// 	color: black;
-	// 	padding-inline: 0.5rem;
-	// }
+	/* Subscribe button: match SubBanner hover (darken) */
+	.right-stuff .subscribe {
+		border: 2px solid var(--accent-dark);
+		background: var(--background);
+		color: black;
+		padding-inline: 0.5rem;
+	}
 
-	// .right-stuff .subscribe:hover {
-	// 	background: var(--accent-dark);
-	// 	color: white;
-	// }
+	.right-stuff .subscribe:hover {
+		background: var(--accent-dark);
+		color: white;
+	}
 
-	// /* Ensure inner text flips color on hover */
-	// .right-stuff .subscribe span {
-	// 	color: black;
-	// }
+	/* Ensure inner text flips color on hover */
+	.right-stuff .subscribe span {
+		color: black;
+	}
 
-	// .right-stuff .subscribe:hover span {
-	// 	color: white;
-	// }
+	.right-stuff .subscribe:hover span {
+		color: white;
+	}
 
 	#menu {
 		display: none;
@@ -299,7 +300,7 @@ nav {
 	.search-box {
 		display: flex;
 		align-items: center;
-		border: 1px solid var(--fg-col);
+		border: 1px solid var(--top-fg-col);
 		border-radius: 0.25rem;
 		height: 2rem;
 
@@ -312,7 +313,7 @@ nav {
 		input {
 			background: none;
 			border: none;
-			color: var(--fg-col);
+			color: var(--top-fg-col);
 			font-size: 1rem;
 			height: 2rem;
 			padding: 0.5rem;
@@ -334,7 +335,7 @@ nav {
 			border: none;
 			border-radius: 0;
 			position: static;
-			color: var(--fg-col);
+			color: var(--top-fg-col);
 		}
 
 		@media screen and (max-width: 680px) {
@@ -354,7 +355,7 @@ nav {
 		gap: calc(var(--masthead-height) / 8);
 
 		h1 {
-			color: var(--fg-col);
+			color: var(--top-fg-col);
 			font-weight: normal;
 			font-family: Canterbury;
 			font-size: calc(min(var(--masthead-height), 3rem));
@@ -411,16 +412,6 @@ nav {
 					z-index: 100;
 					position: static;
 
-					a {
-						padding-inline: 1rem;
-						color: #ccc;
-						border: none;
-
-						&:hover {
-							color: black;
-						}
-					}
-
 					/* Show and highlight the self-link on mobile */
 					a.category-self {
 						display: block;
@@ -429,6 +420,16 @@ nav {
 						text-transform: uppercase;
 						padding: 0.6rem 1rem;
 						border-bottom: 1px solid #666;
+					}
+
+					a {
+						padding-inline: 1rem;
+						color: #ccc;
+						border: none;
+
+						&:hover {
+							color: black;
+						}
 					}
 				}
 
@@ -458,6 +459,7 @@ nav {
 		justify-content: center;
 		width: 1rem;
 		height: 1rem;
+		color: var(--top-fg-col);
 	}
 
 	#menu[data-open="true"] i {
