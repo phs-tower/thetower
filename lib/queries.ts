@@ -6,6 +6,8 @@ import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { StorageApiError } from "@supabase/storage-js";
 import { readFile } from "fs/promises";
 import formidable from "formidable";
+import path from "path";
+import { randomUUID } from "crypto";
 
 let yolo = false;
 
@@ -522,23 +524,58 @@ export async function uploadMulti(info: { format: string; src_id: string; month:
 
 export async function uploadFile(file: formidable.File, bucket: string) {
 	if (!supabase) throw new Error("not happening");
+
 	const fileContent = await readFile(file.filepath);
-	console.log("filename: ", file.originalFilename);
-	let regex = file.originalFilename ? file.originalFilename.replaceAll(/(?!\.png|\.jpg|\.jpeg|\.gif)\.|\s/g, "-") : "";
-	console.log("filename after regex:", regex);
-	const { data, error } = await supabase.storage.from(bucket).upload(regex, fileContent, { contentType: file.mimetype || "file/unknown" });
+	const originalName = file.originalFilename || "upload";
+	const mimeType = file.mimetype || "application/octet-stream";
+
+	// minimal mime → ext map (extend if you need more)
+	const EXT_FROM_MIME: Record<string, string> = {
+		"image/jpeg": "jpg",
+		"image/png": "png",
+		"image/gif": "gif",
+		"image/webp": "webp",
+		"application/pdf": "pdf",
+	};
+
+	// try mimetype first; fall back to original filename’s ext; finally "bin"
+	const extFromMime = EXT_FROM_MIME[mimeType];
+	const extFromName = path.extname(originalName).slice(1).toLowerCase();
+	const ext = (extFromMime || extFromName || "bin").replace(/[^a-z0-9]/gi, "") || "bin";
+
+	// sanitize base (strip ext, slugify, trim length)
+	const base =
+		path
+			.basename(originalName, path.extname(originalName))
+			.toLowerCase()
+			.replace(/[^a-z0-9-_]+/gi, "-")
+			.replace(/-+/g, "-")
+			.replace(/^-|-$/g, "")
+			.slice(0, 60) || "upload";
+
+	// folder by year/month + unique suffix prevents 409s
+	const now = new Date();
+	const key = [now.getFullYear(), String(now.getMonth() + 1).padStart(2, "0"), `${base}-${Date.now()}-${randomUUID().slice(0, 8)}.${ext}`].join(
+		"/"
+	);
+
+	console.log("Uploading to:", bucket, key);
+
+	const { data, error } = await supabase.storage.from(bucket).upload(key, fileContent, { contentType: mimeType, upsert: false });
+
 	if (error) {
 		console.error("Could not upload file: ", error);
 
+		// Supabase storage errors sometimes expose `statusCode` (string) or `status` (number)
 		// @ts-ignore
-		// error.statusCode exists but for some reason ts says it doesn't
-		if (error.statusCode == "409") return { code: 409, message: "A file with that name already exists. Has your co-editor uploaded for you?" };
-
+		const status = error.status ?? error.statusCode ?? 500;
+		if (String(status) === "409") {
+			return { code: 409, message: "A file with that name already exists. (Key collision)" };
+		}
 		// @ts-ignore
-		// error.error & error.message exist but for some reason ts says they don't
-		return { code: 500, message: `Unexpected problem in the server! Message: "${error.error}: ${error.message}". Contact Online editor(s).` };
-	} else {
-		console.log("File uploaded to ", data.fullPath);
-		return { code: 200, message: supabase.storage.from(bucket).getPublicUrl(data.path).data.publicUrl };
+		return { code: Number(status) || 500, message: `${error.name || "UploadError"}: ${error.message}` };
 	}
+
+	const pub = supabase.storage.from(bucket).getPublicUrl(data.path);
+	return { code: 200, message: pub.data.publicUrl };
 }

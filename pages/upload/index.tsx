@@ -163,56 +163,65 @@ export default function Upload() {
 		setFormData({ ...formData, contentInfo: e.target.value });
 	}
 
-	// Update image: Accept only valid image types; max size 50 MB.
+	// Update image: Always compress to ~1MB (WebP). Accept only valid image types; max size 50 MB.
 	async function updateImage(e: ChangeEvent<HTMLInputElement>) {
 		if (!e.target.files || !e.target.files[0]) return;
-		let file = e.target.files[0];
+		let original = e.target.files[0];
 
-		const validExtensions = [".jpg", ".jpeg", ".png", ".gif"];
-		const nameLower = file.name.toLowerCase();
+		const validExtensions = [".jpg", ".jpeg", ".png", ".gif", ".webp"];
+		const nameLower = original.name.toLowerCase();
 		if (!validExtensions.some(ext => nameLower.endsWith(ext))) {
-			alert("Invalid file format. Please select a JPG, JPEG, PNG, or GIF file.");
+			alert("Invalid file format. Please select a JPG, JPEG, PNG, WEBP, or GIF file.");
 			e.target.value = "";
 			setFormData({ ...formData, img: null, imgData: null, imgName: null });
 			return;
 		}
 
-		// 🔥 If image is larger than 2.5MB, compress it immediately
-		if (file.size > 2.5 * 1024 * 1024) {
-			try {
-				setIsCompressing(true); // 🚀 start compressing
-				const options = {
-					maxSizeMB: 2, // Try compressing to ~2MB
-					maxWidthOrHeight: 2000,
-					useWebWorker: true,
-					fileType: "webp",
-				};
-				const originalSize = file.size;
-				const compressed = await imageCompression(file, options);
+		try {
+			setIsCompressing(true);
+			const originalSize = original.size;
 
-				const beforeMB = (originalSize / 1024 / 1024).toFixed(2);
-				const afterMB = (compressed.size / 1024 / 1024).toFixed(2);
-
-				setCompressionSummary(`Compressed: ${beforeMB}MB → ${afterMB}MB`);
-				file = compressed;
-			} catch (err) {
-				console.warn("Image compression failed, using original:", err);
-			} finally {
-				setIsCompressing(false); // ✅ done compressing
-			}
-		}
-
-		// Read the (compressed or original) file
-		const reader = new FileReader();
-		reader.onload = () => {
-			setFormData({
-				...formData,
-				img: file,
-				imgData: reader.result as string,
-				imgName: file.name,
+			// Force a ~1MB target, WebP output for size efficiency
+			const compressed = await imageCompression(original, {
+				maxSizeMB: 1,
+				maxWidthOrHeight: 2400,
+				fileType: "image/webp",
+				useWebWorker: true,
+				initialQuality: 0.85,
 			});
-		};
-		reader.readAsDataURL(file);
+
+			const beforeMB = (originalSize / 1024 / 1024).toFixed(2);
+			const afterMB = (compressed.size / 1024 / 1024).toFixed(2);
+			setCompressionSummary(`Compressed: ${beforeMB}MB → ${afterMB}MB`);
+
+			// Read compressed file as data URL for preview
+			const reader = new FileReader();
+			reader.onload = () => {
+				setFormData({
+					...formData,
+					img: compressed,
+					imgData: reader.result as string,
+					imgName: original.name,
+				});
+			};
+			reader.readAsDataURL(compressed);
+		} catch (err) {
+			console.warn("Image compression failed, using original:", err);
+
+			// Fallback to original file if compression fails
+			const reader = new FileReader();
+			reader.onload = () => {
+				setFormData({
+					...formData,
+					img: original,
+					imgData: reader.result as string,
+					imgName: original.name,
+				});
+			};
+			reader.readAsDataURL(original);
+		} finally {
+			setIsCompressing(false);
+		}
 	}
 
 	// Update PDF spread (for Vanguard)
@@ -371,23 +380,23 @@ export default function Upload() {
 		try {
 			let { response, data } = await attemptUpload(fd, 1);
 
-			// If image upload returns 413 (Payload Too Large) and an image exists, try compressing
+			// If image upload returns 413 (Payload Too Large) and an image exists, try harder compression (~0.8MB)
 			if (response.status === 413 && formData.img) {
-				alert("Image too big! Trying image compression...");
+				alert("Image too big! Retrying with stronger compression...");
 				try {
-					const options = {
-						maxSizeMB: 4,
-						maxWidthOrHeight: 3000,
-						fileType: "webp",
+					const harder = await imageCompression(formData.img, {
+						maxSizeMB: 0.8,
+						maxWidthOrHeight: 2000,
+						fileType: "image/webp",
 						useWebWorker: true,
-					};
-					const compressedFile = await imageCompression(formData.img, options);
-					fd.set("img", compressedFile);
+						initialQuality: 0.8,
+					});
+					fd.set("img", harder);
 					const attempt = await attemptUpload(fd, 1);
 					response = attempt.response;
 					data = attempt.data;
 				} catch (compressionError: any) {
-					alert("Image compression failed: " + compressionError.message + ". Trying original file...");
+					console.warn("Second compression failed, retrying original:", compressionError);
 					fd.set("img", formData.img);
 					const attempt = await attemptUpload(fd, 1);
 					response = attempt.response;
@@ -433,14 +442,14 @@ export default function Upload() {
 				<div
 					style={{
 						position: "fixed",
-						top: "20px",
+						top: "96px", // <-- was 20px; move below masthead OR keep 20px
 						right: "20px",
 						backgroundColor: "#333",
 						color: "white",
 						padding: "10px 20px",
 						borderRadius: "8px",
-						boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
-						zIndex: 1000,
+						boxShadow: "0 4px 8px rgba(0,0,0,0.2)",
+						zIndex: 100000000001, // <-- bump above your nav
 						animation: "fadeIn 0.3s ease",
 						fontSize: "1rem",
 					}}

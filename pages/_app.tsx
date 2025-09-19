@@ -60,9 +60,11 @@ function SectionLink({ href, name: section, subsections, isMobile }: { href: str
 						className="fa-solid fa-chevron-down"
 						onClick={e => {
 							e.preventDefault();
+							e.stopPropagation(); // <-- avoid double toggle from the Link
 							setOpen(prev => !prev);
 						}}
 						data-open={open}
+						aria-hidden="true"
 					/>
 				)}
 				{hasDropdown && !isMobile && <i className="fa-solid fa-chevron-down" aria-hidden="true" />}
