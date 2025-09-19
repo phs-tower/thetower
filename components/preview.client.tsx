@@ -241,53 +241,73 @@ export default function ArticlePreview({ article, category, style = "row", size 
 
 				@media (max-width: 1000px) {
 					.title .featured {
-						font-size: clamp(1.6rem, 6.8vw, 2.3rem);
+						font-size: clamp(1.35rem, 4.6vw, 1.65rem);
 						-webkit-line-clamp: 4;
 					}
 
 					.title .large {
-						font-size: clamp(1.1rem, 4.8vw, 1.45rem);
+						font-size: clamp(1.08rem, 4vw, 1.3rem);
+					}
+
+					.title .small {
+						font-size: clamp(0.98rem, 3.6vw, 1.15rem);
 					}
 
 					.article-preview.box {
-						padding: clamp(0.85rem, 4vw, 1.2rem);
+						padding: clamp(0.75rem, 3.25vw, 1.1rem);
+						margin-left: clamp(-0.85rem, -3vw, -1.15rem);
+						margin-right: clamp(-0.85rem, -3vw, -1.15rem);
 					}
 
 					.article-preview.box .img-wrapper {
 						margin-right: 0;
-						margin-bottom: 0.75rem;
+						margin-bottom: 0.65rem;
 					}
 
 					.article-preview.box .authors {
-						font-size: 0.96rem;
+						font-size: 0.92rem;
 						white-space: normal;
 					}
 
-					.article-preview.box.featured .preview-image {
-						max-width: 100% !important;
-						max-height: clamp(17rem, 65vw, 22rem) !important;
+					.article-preview.box .preview-image {
+						max-width: 106% !important;
 						height: auto !important;
-						margin-left: 0 !important;
-						margin-right: 0 !important;
-						border-radius: 0.75rem;
+						margin-left: -3% !important;
+						margin-right: -3% !important;
+						border-radius: 0.65rem;
+						object-fit: cover !important;
+					}
+
+					.article-preview.box.featured {
+						margin-left: clamp(-1.25rem, -4.5vw, -1.5rem);
+						margin-right: clamp(-1.25rem, -4.5vw, -1.5rem);
+						padding: clamp(0.85rem, 3.6vw, 1.25rem);
+					}
+
+					.article-preview.box.featured .preview-image {
+						max-width: 118% !important;
+						max-height: clamp(16rem, 58vw, 20.5rem) !important;
+						margin-left: -6.5% !important;
+						margin-right: -6.5% !important;
+						border-radius: 0.85rem;
 					}
 
 					.article-preview.box.large .preview-image {
-						max-height: 12rem !important;
+						max-height: 11.5rem !important;
 					}
 
 					.article-preview.box.small .preview-image {
-						max-height: 9.5rem !important;
+						max-height: 9rem !important;
 					}
 
 					.featured-preview > div:last-child {
-						padding-inline: clamp(1rem, 5vw, 1.5rem);
+						padding-inline: clamp(0.9rem, 3.75vw, 1.35rem);
 					}
 
 					.article-preview > .category-list-preview {
 						display: grid;
 						grid-template-columns: 0.6fr 1fr;
-						column-gap: 1rem;
+						column-gap: 0.8rem;
 					}
 				}
 
