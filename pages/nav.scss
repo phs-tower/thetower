@@ -6,9 +6,10 @@
 
 nav {
 	--bg-col: var(--accent-dark);
+	--top-bg-col: transparent;
 	--fg-col: white;
 	--text-light: #eee;
-	--masthead-height: 6rem;
+	--masthead-height: 5rem;
 	$mobile: 970px;
 	$smaller: 600px;
 	z-index: 100000000000; // no way they get above this
@@ -356,7 +357,7 @@ nav {
 			color: var(--fg-col);
 			font-weight: normal;
 			font-family: Canterbury;
-			font-size: var(--masthead-height);
+			font-size: calc(min(var(--masthead-height), 3rem));
 
 			@media screen and (max-width: 360px) {
 				display: none;
