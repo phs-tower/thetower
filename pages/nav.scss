@@ -6,8 +6,9 @@
 
 nav {
 	--bg-col: var(--accent-dark);
+
 	--top-bg-col: white;
-	--top-fg-col: black;
+	--top-fg-col: var(--accent-dark);
 
 	@media screen and (max-width: 970px) {
 		--top-bg-col: var(--accent-dark);
@@ -248,24 +249,17 @@ nav {
 
 	/* Subscribe button: match SubBanner hover (darken) */
 	.right-stuff .subscribe {
-		border: 2px solid var(--accent-dark);
-		background: var(--background);
-		color: black;
+		border-color: var(--top-fg-col);
 		padding-inline: 0.5rem;
-	}
-
-	.right-stuff .subscribe:hover {
-		background: var(--accent-dark);
-		color: white;
-	}
-
-	/* Ensure inner text flips color on hover */
-	.right-stuff .subscribe span {
-		color: black;
-	}
-
-	.right-stuff .subscribe:hover span {
-		color: white;
+		span {
+			color: var(--top-fg-col);
+		}
+		&:hover {
+			background: var(--top-fg-col);
+			span {
+				color: var(--top-bg-col);
+			}
+		}
 	}
 
 	#menu {
