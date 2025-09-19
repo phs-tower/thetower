@@ -272,8 +272,26 @@ main a {
 		display: none;
 	}
 
+	.mosaic {
+		gap: 1rem;
+		grid-gap: 1rem;
+	}
+
 	.one {
-		display: block;
+		display: grid;
+		gap: 1.5rem;
+		padding-inline: clamp(1rem, 5vw, 1.6rem);
+	}
+
+	.one .article-preview.box {
+		border-radius: 1rem;
+		border: 1px solid #e7e7e7;
+		box-shadow: 0px 10px 24px rgba(0, 0, 0, 0.06);
+		background: #ffffff;
+	}
+
+	.one .article-preview.box.featured {
+		padding-bottom: 1.25rem;
 	}
 }
 

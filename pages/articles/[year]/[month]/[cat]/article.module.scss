@@ -128,3 +128,50 @@ a.return-to-category {
 		font-size: 1.25rem;
 	}
 }
+
+@media screen and (max-width: 900px) {
+	section.content {
+		margin-top: 3rem;
+		max-width: 100%;
+		width: 100%;
+		margin-inline: 0;
+		padding-inline: clamp(1rem, 4vw, 1.5rem);
+	}
+
+	section.content .titleblock {
+		text-align: left;
+
+		h1 {
+			font-size: clamp(2rem, 6.5vw, 2.6rem);
+			line-height: 1.2;
+			margin-bottom: 0.75rem;
+		}
+
+		.date {
+			font-size: 0.95rem;
+		}
+
+		.authors {
+			font-size: 1rem;
+		}
+	}
+
+	.main-article:not(h1, h2, h3, blockquote p)::first-letter {
+		initial-letter: inherit;
+		margin-right: 0;
+	}
+
+	section.content p {
+		font-size: 1.05rem;
+		line-height: 1.75;
+		word-spacing: 0.015em;
+	}
+
+	.main-article a {
+		font-size: 1.05rem;
+	}
+
+	.main-article blockquote p {
+		font-size: 1.2rem !important;
+	}
+}

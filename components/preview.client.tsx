@@ -167,12 +167,6 @@ export default function ArticlePreview({ article, category, style = "row", size 
 					overflow: hidden;
 				}
 
-				@media (max-width: 1000px) {
-					.title .featured {
-						/* font-size: x-large; */
-					}
-				}
-
 				.title .large {
 					/* font-family: ${styles.font.serifHeader}, sans-serif; */
 					font-size: 1.3rem; /* slightly smaller */
@@ -246,9 +240,54 @@ export default function ArticlePreview({ article, category, style = "row", size 
 				}
 
 				@media (max-width: 1000px) {
+					.title .featured {
+						font-size: clamp(1.6rem, 6.8vw, 2.3rem);
+						-webkit-line-clamp: 4;
+					}
+
+					.title .large {
+						font-size: clamp(1.1rem, 4.8vw, 1.45rem);
+					}
+
+					.article-preview.box {
+						padding: clamp(0.85rem, 4vw, 1.2rem);
+					}
+
+					.article-preview.box .img-wrapper {
+						margin-right: 0;
+						margin-bottom: 0.75rem;
+					}
+
+					.article-preview.box .authors {
+						font-size: 0.96rem;
+						white-space: normal;
+					}
+
+					.article-preview.box.featured .preview-image {
+						max-width: 100% !important;
+						max-height: clamp(17rem, 65vw, 22rem) !important;
+						height: auto !important;
+						margin-left: 0 !important;
+						margin-right: 0 !important;
+						border-radius: 0.75rem;
+					}
+
+					.article-preview.box.large .preview-image {
+						max-height: 12rem !important;
+					}
+
+					.article-preview.box.small .preview-image {
+						max-height: 9.5rem !important;
+					}
+
+					.featured-preview > div:last-child {
+						padding-inline: clamp(1rem, 5vw, 1.5rem);
+					}
+
 					.article-preview > .category-list-preview {
 						display: grid;
-						grid-template-columns: 0.5fr 1fr;
+						grid-template-columns: 0.6fr 1fr;
+						column-gap: 1rem;
 					}
 				}
 
