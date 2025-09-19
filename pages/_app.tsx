@@ -395,8 +395,8 @@ function Footer() {
 			<hr />
 			<span>© 2017-2025 The Tower</span>
 			<span>
-				Site by Luke Tong &apos;23, Jieruei Chang &apos;24, Henry Langmack &apos;25, Ayush Shrivastava &apos;25, Anita Ndubisi &apos;26, and
-				Aryan Singla &apos;27
+				Site by Luke Tong &apos;23, Jieruei Chang &apos;24, Henry Langmack &apos;25, Ayush Shrivastava &apos;25, Anita Ndubisi &apos;26, Om
+				Mehta &apos;26, and Aryan Singla &apos;27
 			</span>
 		</footer>
 	);

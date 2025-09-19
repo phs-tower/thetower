@@ -352,7 +352,7 @@ nav {
 			color: var(--top-fg-col);
 			font-weight: normal;
 			font-family: Canterbury;
-			font-size: calc(min(var(--masthead-height), 2.6rem));
+			font-size: calc(min(var(--masthead-height), 2.8rem));
 
 			@media screen and (max-width: 360px) {
 				display: none;
