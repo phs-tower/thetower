@@ -181,7 +181,7 @@ export default function Category({ search, articles, sidebar, sort, section }: P
 	};
 
 	return (
-		<div className="category">
+		<div className="category search-page">
 			<Head>
 				<title>{`Search${expandCategorySlug(search) && `: ${expandCategorySlug(search)}`} | The Tower`}</title>
 			</Head>
@@ -200,6 +200,37 @@ export default function Category({ search, articles, sidebar, sort, section }: P
 					grid-template-columns: 2fr 1fr;
 					grid-column-gap: 2vw;
 				}
+				:global(.search-page .article-preview > .category-list-preview) {
+					display: grid;
+					grid-template-columns: minmax(21rem, 3.5fr) minmax(0, 4fr);
+					column-gap: 1.75rem;
+					align-items: start;
+				}
+				:global(.search-page .article-preview.row.category-list .img-wrapper) {
+					display: flex;
+					justify-content: flex-start;
+					margin-right: 0 !important;
+				}
+				:global(.search-page .article-preview.row.category-list .img-wrapper span) {
+					display: block !important;
+					width: 100% !important;
+				}
+				:global(.search-page .article-preview.row.category-list .preview-image) {
+					width: 100% !important;
+					height: auto !important;
+					max-width: 24.5rem !important;
+					max-height: 13rem !important;
+					object-fit: cover !important;
+					border-radius: 0;
+					box-shadow: 0px 5px 12px #00000022;
+				}
+				:global(.search-page .article-preview.row.category-list.noimg .preview-image) {
+					object-fit: contain !important;
+					background: black;
+				}
+				:global(.search-page .article-preview.row.category-list .title) {
+					margin-top: 0;
+				}
 				.grid .sidebar {
 					margin-top: 2vh;
 					padding-left: 1vw;
@@ -211,6 +242,16 @@ export default function Category({ search, articles, sidebar, sort, section }: P
 				@media screen and (max-width: 1000px) {
 					.grid .sidebar {
 						display: none;
+					}
+				}
+				@media screen and (max-width: 900px) {
+					:global(.search-page .article-preview > .category-list-preview) {
+						grid-template-columns: 1fr;
+						row-gap: 1.5rem;
+					}
+					:global(.search-page .article-preview.row.category-list .preview-image) {
+						max-width: 100% !important;
+						max-height: 12rem !important;
 					}
 				}
 				.search-wrap {
@@ -433,7 +474,7 @@ function SidebarArticles({ sidebar }: SidebarProps) {
 	return (
 		<>
 			{sidebar.map(article => (
-				<ArticlePreview key={article.id} article={article} style="row" size="small" category shrinkThumb />
+				<ArticlePreview key={article.id} article={article} style="row" size="small" category />
 			))}
 		</>
 	);

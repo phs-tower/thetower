@@ -56,6 +56,49 @@ export default function Credit({ author, articles }: Props) {
 					font-size: 1.1rem;
 					margin-top: 5vh;
 				}
+				:global(.credit .article-preview.row.small) {
+					display: grid;
+					grid-template-columns: minmax(13.5rem, 17rem) 1fr;
+					gap: 2.25rem;
+					align-items: center;
+				}
+				:global(.credit .article-preview.row.small .img-wrapper) {
+					display: flex;
+					justify-content: center;
+				}
+				:global(.credit .article-preview.row.small .img-wrapper span) {
+					display: block !important;
+					width: 100% !important;
+				}
+				:global(.credit .article-preview.row.small .preview-image) {
+					width: 100% !important;
+					height: auto !important;
+					max-width: 17rem !important;
+					max-height: 12.5rem !important;
+					object-fit: cover !important;
+					border-radius: 0;
+					box-shadow: 0px 5px 12px #00000022;
+				}
+				:global(.credit .article-preview.row.small.noimg .preview-image) {
+					object-fit: contain !important;
+					background: black;
+				}
+				:global(.credit .article-preview.row.small .title) {
+					margin-top: 0;
+				}
+				@media (max-width: 900px) {
+					:global(.credit .article-preview.row.small) {
+						grid-template-columns: 1fr;
+						gap: 1.5rem;
+					}
+					:global(.credit .article-preview.row.small .img-wrapper) {
+						justify-content: flex-start;
+					}
+					:global(.credit .article-preview.row.small .preview-image) {
+						max-width: 100% !important;
+						max-height: 15rem !important;
+					}
+				}
 			`}</style>
 
 			<div className="page-grid">
