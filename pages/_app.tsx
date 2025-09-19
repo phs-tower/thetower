@@ -4,6 +4,7 @@ import type { AppProps, NextWebVitalsMetric } from "next/app";
 import Head from "next/head";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import type { MouseEvent } from "react";
 import "~/styles/styles.scss";
 import styles from "~/lib/styles";
 import { useRouter } from "next/router";
@@ -21,25 +22,32 @@ type Subsection = {
 	href: string;
 };
 
-function SectionLink({ href, name: section, subsections }: { href: string; name: string; subsections?: Subsection[] }) {
+function useIsMobileWidth(maxWidth = 970) {
+	const [isMobile, setIsMobile] = useState(() => (typeof window !== "undefined" ? window.innerWidth <= maxWidth : false));
+
+	useEffect(() => {
+		if (typeof window === "undefined") return;
+		const handleResize = () => setIsMobile(window.innerWidth <= maxWidth);
+		handleResize();
+		window.addEventListener("resize", handleResize);
+		return () => window.removeEventListener("resize", handleResize);
+	}, [maxWidth]);
+
+	return isMobile;
+}
+
+function SectionLink({ href, name: section, subsections, isMobile }: { href: string; name: string; subsections?: Subsection[]; isMobile: boolean }) {
 	const [open, setOpen] = useState(false);
-	const [isMobileWidth, setIsMobileWidth] = useState(false);
+	const hasDropdown = Boolean(subsections?.length);
 
 	useEffect(() => {
-		const update = () => setIsMobileWidth(window.innerWidth <= 970);
-		update();
-		window.addEventListener("resize", update);
-		return () => window.removeEventListener("resize", update);
-	}, []);
+		if (!isMobile) setOpen(false);
+	}, [isMobile]);
 
-	useEffect(() => {
-		if (!isMobileWidth) setOpen(false);
-	}, [isMobileWidth]);
-
-	const handleTopClick = (e: React.MouseEvent) => {
-		if (isMobileWidth && subsections?.length) {
+	const handleTopClick = (e: MouseEvent<HTMLAnchorElement>) => {
+		if (isMobile && hasDropdown) {
 			e.preventDefault();
-			setOpen(o => !o);
+			setOpen(prev => !prev);
 		}
 	};
 
@@ -47,21 +55,21 @@ function SectionLink({ href, name: section, subsections }: { href: string; name:
 		<div className="section-link" data-open={open ? "true" : "false"}>
 			<Link href={href} onClick={handleTopClick}>
 				{section}
-				{subsections && isMobileWidth && (
+				{hasDropdown && isMobile && (
 					<i
 						className="fa-solid fa-chevron-down"
 						onClick={e => {
 							e.preventDefault();
-							setOpen(o => !o);
+							setOpen(prev => !prev);
 						}}
 						data-open={open}
 					/>
 				)}
-				{subsections && !isMobileWidth && <i className="fa-solid fa-chevron-down" aria-hidden="true" />}
+				{hasDropdown && !isMobile && <i className="fa-solid fa-chevron-down" aria-hidden="true" />}
 			</Link>
 			{subsections && (
 				<div className="dropdown">
-					{isMobileWidth && (
+					{isMobile && (
 						<Link href={href} className="category-self">
 							{section}
 						</Link>
@@ -78,6 +86,8 @@ function SectionLink({ href, name: section, subsections }: { href: string; name:
 }
 
 export function Nav() {
+	const isMobile = useIsMobileWidth();
+
 	return (
 		<nav>
 			<Masthead />
@@ -86,8 +96,9 @@ export function Nav() {
 					href="/category/news-features"
 					name="NEWS & FEATURES"
 					subsections={[{ name: "PHS Profiles", href: "/category/news-features/phs-profiles" }]}
+					isMobile={isMobile}
 				/>
-				<SectionLink href="/category/multimedia" name="MULTIMEDIA" />
+				<SectionLink href="/category/multimedia" name="MULTIMEDIA" isMobile={isMobile} />
 				<SectionLink
 					href="/category/opinions"
 					name="OPINIONS"
@@ -95,17 +106,20 @@ export function Nav() {
 						{ name: "Editorials", href: "/category/opinions/editorials" },
 						{ name: "Cheers & Jeers", href: "/category/opinions/cheers-jeers" },
 					]}
+					isMobile={isMobile}
 				/>
-				<SectionLink href="/category/vanguard" name="VANGUARD" />
+				<SectionLink href="/category/vanguard" name="VANGUARD" isMobile={isMobile} />
 				<SectionLink
 					href="/category/arts-entertainment"
 					name="ARTS & ENTERTAINMENT"
 					subsections={[{ name: "Student Artists", href: "/category/arts-entertainment/student-artists" }]}
+					isMobile={isMobile}
 				/>
 				<SectionLink
 					href="/category/sports"
 					name="SPORTS"
 					subsections={[{ name: "Student Athletes", href: "/category/sports/student-athletes" }]}
+					isMobile={isMobile}
 				/>
 				<SectionLink
 					href="/about"
@@ -116,8 +130,9 @@ export function Nav() {
 						{ name: "2023 Staff", href: "/about/2023" },
 						{ name: "2022 Staff", href: "/about/2022" },
 					]}
+					isMobile={isMobile}
 				/>
-				<SectionLink href="/archives" name="ARCHIVES" />
+				<SectionLink href="/archives" name="ARCHIVES" isMobile={isMobile} />
 			</div>
 		</nav>
 	);
