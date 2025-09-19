@@ -273,6 +273,7 @@ export default function ArticlePreview({ article, category, style = "row", size 
 					{" "}
 					{article.img?.includes(".") ? (
 						<Image
+							className="preview-image"
 							src={article.img}
 							width={1000}
 							height={1000}
@@ -299,6 +300,7 @@ export default function ArticlePreview({ article, category, style = "row", size 
 						/>
 					) : (
 						<Image
+							className="preview-image"
 							src="/assets/white-tower.png"
 							width={309}
 							height={721}
