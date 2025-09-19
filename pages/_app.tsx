@@ -195,15 +195,7 @@ function Masthead() {
 		<div className="header">
 			<Link href="/home" id="masthead">
 				<img src="/assets/tower-short.png" draggable="false" />
-				<h1
-					id="masthead-text"
-					style={{
-						fontSize: "clamp(1.6rem, 5vw, 2.6rem)",
-						margin: 0,
-					}}
-				>
-					The Tower
-				</h1>
+				<h1 id="masthead-text">The Tower</h1>
 			</Link>
 			<div className="masthead-sides">
 				<div className="left-stuff">
@@ -263,9 +255,9 @@ export default function App({ Component, pageProps }: AppProps) {
 
 	// Consistent 3.5% side padding on all pages except article pages (leave articles as-is)
 	const isArticle = router.pathname.startsWith("/articles");
-	const mainStyle = isArticle
-		? ({ maxWidth: "1200px", margin: "0 auto", paddingInline: "1rem" } as const)
-		: ({ maxWidth: "100%", margin: 0, paddingInline: "3.5%" } as const);
+	// const mainStyle = isArticle
+	// 	? ({ maxWidth: "1200px", margin: "0 auto", paddingInline: "1rem" } as const)
+	// 	: ({ maxWidth: "100%", margin: 0, paddingInline: "3.5%" } as const);
 
 	return (
 		<>
@@ -275,7 +267,7 @@ export default function App({ Component, pageProps }: AppProps) {
 			</Head>
 			{/* <Banner /> */}
 			<Nav />
-			<main className="content" style={mainStyle}>
+			<main className="content">
 				<Component {...pageProps} />
 			</main>
 			<Footer />
