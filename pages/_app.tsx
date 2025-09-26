@@ -22,7 +22,8 @@ type Subsection = {
 	href: string;
 };
 
-function useIsMobileWidth(maxWidth = 970) {
+function useIsMobileWidth() {
+	const maxWidth = 970
 	const [isMobile, setIsMobile] = useState(() => (typeof window !== "undefined" ? window.innerWidth <= maxWidth : false));
 
 	useEffect(() => {
@@ -35,8 +36,37 @@ function useIsMobileWidth(maxWidth = 970) {
 
 	return isMobile;
 }
+function SectionLink({ href, name: section, subsections }: { href: string; name: string; subsections?: Subsection[]; isMobile: boolean }) {
+	const [open, setOpen] = useState(false);
+	return (
+		<div className="section-link">
+			<Link href={href}>
+				{section}
+				{subsections && (
+					<i
+						className="fa-solid fa-chevron-down"
+						onClick={e => {
+							e.preventDefault();
+							setOpen(!open);
+						}}
+						data-open={open}
+					/>
+				)}
+			</Link>
+			{subsections && (
+				<div className="dropdown">
+					{subsections.map((subsection, i) => (
+						<Link key={i} href={subsection.href}>
+							{subsection.name}
+						</Link>
+					))}
+				</div>
+			)}
+		</div>
+	);
+}
 
-function SectionLink({ href, name: section, subsections, isMobile }: { href: string; name: string; subsections?: Subsection[]; isMobile: boolean }) {
+function SectionLinkA({ href, name: section, subsections, isMobile }: { href: string; name: string; subsections?: Subsection[]; isMobile: boolean }) {
 	const [open, setOpen] = useState(false);
 	const hasDropdown = Boolean(subsections?.length);
 
