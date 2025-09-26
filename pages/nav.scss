@@ -147,11 +147,11 @@ nav {
 				display: none;
 			}
 
-			> a:has(i)::before {
+			:has(i)>a::before {
 				right: 0.5rem;
 			}
 
-			&:hover > a:has(i)::before {
+			&:has(i):hover>a::before {
 				width: calc(100% - 1rem);
 			}
 		}
@@ -385,6 +385,10 @@ nav {
 
 					i {
 						width: 24px;
+						&:hover {
+							background: white;
+							color: var(--accent-dark);
+						}
 					}
 				}
 
