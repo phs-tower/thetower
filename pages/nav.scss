@@ -79,6 +79,9 @@ nav {
 			display: block;
 			position: relative;
 			color: var(--text-light);
+			>a {
+				color: var(--text-light);
+			}
 		}
 
 		// The underline on top-level categories
@@ -94,9 +97,9 @@ nav {
 			transition: width 0.25s;
 		}
 
-		// > a:has(i)::before {
-		// 	right: calc(0.5rem + 2ch);
-		// }
+		> a:has(i)::before {
+			right: calc(0.5rem + 2ch);
+		}
 
 		i {
 			margin-left: 0.5ch;
@@ -133,9 +136,9 @@ nav {
 					width: calc(100% - 1rem);
 				}
 
-				// >a:has(i)::before {
-				// 	width: calc(100% - 1rem - 2ch);
-				// }
+				>a:has(i)::before {
+					width: calc(100% - 1rem - 2ch);
+				}
 
 				i {
 					transform: rotate(-180deg);
@@ -148,13 +151,13 @@ nav {
 				display: none;
 			}
 
-			// > a:has(i)::before {
-			// 	right: 0.5rem;
-			// }
+			> a:has(i)::before {
+				right: 0.5rem;
+			}
 
-			// &:hover > a:has(i)::before {
-			// 	width: calc(100% - 1rem);
-			// }
+			&:hover > a:has(i)::before {
+				width: calc(100% - 1rem);
+			}
 		}
 	}
 
