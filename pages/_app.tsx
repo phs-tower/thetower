@@ -40,7 +40,12 @@ function SectionLink({ href, name: section, subsections }: { href: string; name:
 	const [open, setOpen] = useState(false);
 	return (
 		<div className="section-link">
-			<Link href={href} onClick={e => { e.preventDefault(); setOpen(!open); }}>
+			<div className="section-button">
+				<Link href={href}>{section}</Link>
+				{ subsections && <div className="bar-vertical"/> }
+				{ subsections && <i className="fa-solid fa-chevron-down" data-open={open} onClick={e => { e.preventDefault(); setOpen(!open); }}/> }
+			</div>
+			{/* <Link href={href} onClick={e => { e.preventDefault(); setOpen(!open); }}>
 				{section}
 				{subsections && (
 					<i
@@ -48,7 +53,7 @@ function SectionLink({ href, name: section, subsections }: { href: string; name:
 						data-open={open}
 					/>
 				)}
-			</Link>
+			</Link> */}
 			{subsections && (
 				<div className="dropdown">
 					{subsections.map((subsection, i) => (

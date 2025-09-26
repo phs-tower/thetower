@@ -378,14 +378,10 @@ nav {
 				overflow: auto;
 				color-scheme: dark;
 
-				.section-link > a {
+				.section-link > .section-button {
 					font-weight: 600;
 					display: flex;
 					justify-content: space-between;
-
-					i {
-						width: 24px;
-					}
 				}
 
 				a {
@@ -395,6 +391,14 @@ nav {
 					&:hover {
 						background: white;
 						color: var(--accent-dark);
+					}
+
+					i {
+						width: 24px;
+						&:hover {
+							background: white;
+							color: var(--accent-dark);
+						}
 					}
 				}
 
