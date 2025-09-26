@@ -70,7 +70,7 @@ nav {
 		position: relative;
 
 		.section-button {
-			display: block;
+			display: flex;
 		}
 
 		// Top-level categories
@@ -97,7 +97,7 @@ nav {
 			transition: width 0.25s;
 		}
 
-		> a:has(i)::before {
+		:has(i) > a::before {
 			right: calc(0.5rem + 2ch);
 		}
 
