@@ -382,12 +382,12 @@ nav {
 					font-weight: 600;
 					display: flex;
 					justify-content: space-between;
-					padding:none;
+					padding:0;
 					// padding: 1rem 0.5rem;
 
 					i {
 						width: 24px;
-						padding: 1rem 0.5rem;
+						padding: 1rem 1rem;
 						&:hover {
 							background: white;
 							color: var(--accent-dark);
