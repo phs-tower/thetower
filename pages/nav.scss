@@ -148,11 +148,11 @@ nav {
 				display: none;
 			}
 
-			:has(i)>a::before {
+			>.section-button:has(i)>a::before {
 				right: 0.5rem;
 			}
 
-			&:has(i):hover>a::before {
+			>.section-button:has(i):hover>a::before {
 				width: calc(100% - 1rem);
 			}
 		}
