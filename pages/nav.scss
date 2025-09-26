@@ -376,6 +376,7 @@ nav {
 				padding-inline: 2rem;
 				overflow: auto;
 				color-scheme: dark;
+				padding-top:1rem;
 
 				.section-link > .section-button {
 					font-weight: 600;
@@ -398,6 +399,8 @@ nav {
 
 					i {
 						width: 24px;
+						color: var(--fg-col);
+						font-weight:600;
 						&:hover {
 							// background: white;
 							color: var(--accent-dark);
@@ -405,6 +408,7 @@ nav {
 					}
 					>a {
 						padding: 1rem 0.5rem;
+						font-weight:600;
 					}
 
 					div.bar-vertical {
