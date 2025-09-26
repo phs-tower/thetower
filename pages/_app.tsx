@@ -22,7 +22,7 @@ type Subsection = {
 	href: string;
 };
 
-function SectionLink({ href, name: section, subsections }: { href: string; name: string; subsections?: Subsection[]; isMobile: boolean }) {
+function SectionLink({ href, name: section, subsections }: { href: string; name: string; subsections?: Subsection[]}) {
 	const [open, setOpen] = useState(false);
 	return (
 		<div className="section-link">
