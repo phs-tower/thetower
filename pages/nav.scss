@@ -382,14 +382,20 @@ nav {
 					font-weight: 600;
 					display: flex;
 					justify-content: space-between;
+					padding:none;
+					// padding: 1rem 0.5rem;
 
 					i {
 						width: 24px;
+						padding: 1rem 0.5rem;
 						&:hover {
 							background: white;
 							color: var(--accent-dark);
 							cursor: pointer;
 						}
+					}
+					>a {
+						padding: 1rem 0.5rem;
 					}
 				}
 
