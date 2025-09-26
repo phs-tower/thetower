@@ -93,7 +93,7 @@ nav {
 			transition: width 0.25s;
 		}
 
-		:has(i)> a::before {
+		>.section-button:has(i)> a::before {
 			right: calc(0.5rem + 2ch);
 		}
 
