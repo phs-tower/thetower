@@ -171,7 +171,7 @@ nav {
 			}
 		}
 
-		@media screen and (max-width: 1064px) and (min-width: 970px) {
+		@media screen and (max-width: 1064px) and (min-width: ($mobile + 1px)) {
 			i {
 				display: none;
 			}
@@ -239,7 +239,7 @@ nav {
 			height: var(--masthead-height);
 
 			/* Ensure the tower logo is visible on white header */
-			@media screen and (min-width: 970.00001px) {
+			@media screen and (min-width: ($mobile + 1)) {
 				filter: invert(1);
 			}
 		}
@@ -536,7 +536,7 @@ nav {
 	}
 }
 
-@media screen and (max-width: 970px) {
+@media screen and (max-width: $mobile) {
 	body:has(#menu[data-open="true"]) {
 		overflow: hidden;
 	}
