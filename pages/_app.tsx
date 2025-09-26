@@ -43,7 +43,7 @@ function SectionLink({ href, name: section, subsections }: { href: string; name:
 			<div className="section-button">
 				<Link href={href}>{section}</Link>
 				{ subsections && <div className="bar-vertical"/> }
-				{ subsections && <i className="fa-solid fa-chevron-down" data-open={open} onClick={e => { e.preventDefault(); setOpen(!open); }}/> }
+				{ subsections && <span><i className="fa-solid fa-chevron-down" data-open={open} onClick={e => { e.preventDefault(); setOpen(!open); }}/></span> }
 			</div>
 			{/* <Link href={href} onClick={e => { e.preventDefault(); setOpen(!open); }}>
 				{section}

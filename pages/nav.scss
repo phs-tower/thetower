@@ -383,15 +383,24 @@ nav {
 					justify-content: space-between;
 					align-items:center;
 					padding:0;
+					border-bottom: #ccc solid 0.5px;
 					// padding: 1rem 0.5rem;
+
+					span{
+						&:hover {
+							background:white;
+							cursor: pointer;
+						}
+						width: 24px;
+						padding: 1rem 1rem;
+						overflow:hidden;
+					}
 
 					i {
 						width: 24px;
-						padding: 1rem 1rem;
 						&:hover {
-							background: white;
+							// background: white;
 							color: var(--accent-dark);
-							cursor: pointer;
 						}
 					}
 					>a {
@@ -399,7 +408,7 @@ nav {
 					}
 
 					div.bar-vertical {
-						width:1px;
+						width:0.5px;
 						height:2rem;
 						background:#ccc;
 						margin-inline:0.25rem;
