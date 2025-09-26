@@ -97,6 +97,7 @@ nav {
 			transition: width 0.25s;
 		}
 
+
 		>.section-button:has(i)>a::before {
 			right: calc(0.5rem + 2ch);
 		}
@@ -113,7 +114,6 @@ nav {
 		}
 
 		@media screen and (min-width: $mobile) {
-
 			&:hover .dropdown, .dropdown:hover {
 				display: block;
 			}
@@ -139,7 +139,6 @@ nav {
 				display: block;
 				padding: 0.35rem 0.6rem;
 			}
-
 			// i.e. wide aah view
 			&:hover {
 				@keyframes fade-in {
@@ -454,6 +453,7 @@ nav {
 						height: 2rem;
 						background: #ccc;
 						margin-inline: 0.25rem;
+
 					}
 				}
 
