@@ -133,7 +133,7 @@ nav {
 					width: calc(100% - 1rem);
 				}
 
-				>a:has(i)::before {
+				>.section-button:has(i)>a::before {
 					width: calc(100% - 1rem - 2ch);
 				}
 
