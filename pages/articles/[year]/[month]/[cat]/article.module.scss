@@ -21,6 +21,7 @@ section.content .titleblock {
 
 .main-article:not(h1, h2, h3, blockquote p)::first-letter {
 	initial-letter: 3;
+	-webkit-initial-letter: 1;
 	margin-right: 10px;
 }
 
