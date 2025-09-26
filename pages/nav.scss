@@ -113,7 +113,7 @@ nav {
 			transition: transform 0.5s;
 		}
 
-		@media screen and (min-width: calc($mobile+1)) {
+		@media screen and (min-width: calc($mobile+1px)) {
 			&:hover .dropdown, .dropdown:hover {
 				display: block;
 			}
