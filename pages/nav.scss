@@ -62,7 +62,7 @@ nav {
 		gap: 0.5rem;
 		font-family: var(--font-sans);
 
-		@media screen and (max-width: calc($mobile+1)) {
+		@media screen and (max-width: $mobile) {
 			display: none;
 		}
 	}
@@ -113,7 +113,7 @@ nav {
 			transition: transform 0.5s;
 		}
 
-		@media screen and (min-width: calc($mobile+1)) {
+		@media screen and (min-width: ($mobile + 1px) ) {
 			&:hover .dropdown, .dropdown:hover {
 				display: block;
 			}
@@ -171,7 +171,7 @@ nav {
 			}
 		}
 
-		@media screen and (max-width: 1064px) and (min-width: 970px) {
+		@media screen and (max-width: 1064px) and (min-width: ($mobile + 1px)) {
 			i {
 				display: none;
 			}
@@ -239,7 +239,7 @@ nav {
 			height: var(--masthead-height);
 
 			/* Ensure the tower logo is visible on white header */
-			@media screen and (min-width: 970.00001px) {
+			@media screen and (min-width: ($mobile + 1px)) {
 				filter: invert(1);
 			}
 		}
