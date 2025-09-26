@@ -134,6 +134,7 @@ nav {
 				white-space: nowrap;
 				z-index: 1000;
 				max-width: calc(100vw - 40px);
+				transform:translateX(-50%);
 			}
 
 			.dropdown a {
