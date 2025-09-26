@@ -125,10 +125,6 @@ a.return-to-category {
 
 @media screen and (max-width: 900px) {
 	section.content {
-		// margin-top: 3rem;
-		// max-width: 100%;
-		// width: 100%;
-		// margin-inline: 0;
 		padding-inline: 1rem;
 	}
 
@@ -162,9 +158,9 @@ a.return-to-category {
 		word-spacing: 0.05ch;
 	}
 
-	// .main-article a {
-	// 	font-size: 1.05rem;
-	// }
+	.main-article a {
+		font-size: 1em;
+	}
 
 	// .main-article blockquote p {
 	// 	font-size: 1.2rem !important;
