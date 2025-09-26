@@ -62,7 +62,7 @@ nav {
 		gap: 0.5rem;
 		font-family: var(--font-sans);
 
-		@media screen and (max-width: $mobile) {
+		@media screen and (max-width: calc($mobile+1)) {
 			display: none;
 		}
 	}
@@ -113,7 +113,7 @@ nav {
 			transition: transform 0.5s;
 		}
 
-		@media screen and (min-width: $mobile) {
+		@media screen and (min-width: calc($mobile+1)) {
 			&:hover .dropdown, .dropdown:hover {
 				display: block;
 			}
