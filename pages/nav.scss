@@ -388,6 +388,7 @@ nav {
 						&:hover {
 							background: white;
 							color: var(--accent-dark);
+							cursor: pointer;
 						}
 					}
 				}
@@ -395,7 +396,7 @@ nav {
 				a {
 					font-family: var(--font-serif-header);
 					text-align: left;
-
+					flex-grow:1;
 					&:hover {
 						background: white;
 						color: var(--accent-dark);
