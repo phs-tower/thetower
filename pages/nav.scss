@@ -67,11 +67,6 @@ nav {
 		}
 	}
 
-	.section-link:hover .dropdown,
-	.section-link .dropdown:hover {
-		display: block;
-	}
-
 	.section-link {
 		position: relative;
 
@@ -118,6 +113,10 @@ nav {
 		}
 
 		@media screen and (min-width: $mobile) {
+
+			&:hover .dropdown, .dropdown:hover {
+				display: block;
+			}
 			padding-bottom: 0;
 			display: flex;
 			.dropdown {
