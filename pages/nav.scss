@@ -62,7 +62,7 @@ nav {
 		gap: 0.5rem;
 		font-family: var(--font-sans);
 
-		@media screen and (max-width: ($mobile + 1px)) {
+		@media screen and (max-width: $mobile) {
 			display: none;
 		}
 	}
