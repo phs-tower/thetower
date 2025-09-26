@@ -206,7 +206,7 @@ export default function App({ Component, pageProps }: AppProps) {
 	}, [router.asPath]);
 
 	// Consistent 3.5% side padding on all pages except article pages (leave articles as-is)
-	const isArticle = router.pathname.startsWith("/articles");
+	// const isArticle = router.pathname.startsWith("/articles");
 	// const mainStyle = isArticle
 	// 	? ({ maxWidth: "1200px", margin: "0 auto", paddingInline: "1rem" } as const)
 	// 	: ({ maxWidth: "100%", margin: 0, paddingInline: "3.5%" } as const);
@@ -223,39 +223,6 @@ export default function App({ Component, pageProps }: AppProps) {
 				<Component {...pageProps} />
 			</main>
 			<Footer />
-
-			{/* Center dropdowns under tabs on desktop only */}
-			<style jsx global>{`
-				@media (min-width: 971px) {
-					nav #links .section-link {
-						position: relative;
-						padding-bottom: 0;
-					}
-					nav #links .section-link .dropdown {
-						position: absolute;
-						top: calc(100% - 0.5rem);
-						left: 50%;
-						transform: translateX(-50%);
-						display: none;
-						background: #fff;
-						border: 1px solid rgba(0, 0, 0, 0.08);
-						border-radius: 6px;
-						box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
-						padding: 0.4rem 0.6rem;
-						white-space: nowrap;
-						z-index: 1000;
-						max-width: calc(100vw - 40px);
-					}
-					nav #links .section-link:hover .dropdown,
-					nav #links .section-link .dropdown:hover {
-						display: block;
-					}
-					nav #links .section-link .dropdown a {
-						display: block;
-						padding: 0.35rem 0.6rem;
-					}
-				}
-			`}</style>
 			<Analytics />
 			<SpeedInsights />
 		</>

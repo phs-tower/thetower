@@ -14,6 +14,7 @@ nav {
 		--top-bg-col: var(--accent-dark);
 		--top-fg-col: white;
 	}
+
 	--fg-col: white;
 	--text-light: #eee;
 	--masthead-height: 5rem;
@@ -66,17 +67,25 @@ nav {
 		}
 	}
 
+	.section-link {}
+
+	.section-link:hover .dropdown,
+	.section-link .dropdown:hover {
+		display: block;
+	}
+
 	.section-link {
 		position: relative;
 
 		// Top-level categories
-		> .section-button {
+		>.section-button {
 			padding: 1rem 0.5rem;
 			display: flex;
 			align-items: center;
-			gap:0.1rem;
+			gap: 0.1rem;
 			position: relative;
 			color: var(--text-light);
+
 			>a {
 				color: var(--text-light);
 			}
@@ -95,7 +104,7 @@ nav {
 			transition: width 0.25s;
 		}
 
-		>.section-button:has(i)> a::before {
+		>.section-button:has(i)>a::before {
 			right: calc(0.5rem + 2ch);
 		}
 
@@ -104,13 +113,34 @@ nav {
 			line-height: 1.5rem;
 			width: 1rem;
 			text-align: center;
-			color:white;
+			color: white;
 			transform: rotate(0deg);
 
 			transition: transform 0.5s;
 		}
 
 		@media screen and (min-width: $mobile) {
+			padding-bottom: 0;
+			.dropdown {
+				position: absolute;
+				top: calc(100% - 0.5rem);
+				left: 50%;
+				display: none;
+				background: #fff;
+				border: 1px solid rgba(0, 0, 0, 0.08);
+				border-radius: 6px;
+				box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+				padding: 0.4rem 0.6rem;
+				white-space: nowrap;
+				z-index: 1000;
+				max-width: calc(100vw - 40px);
+			}
+
+			.dropdown a {
+				display: block;
+				padding: 0.35rem 0.6rem;
+			}
+
 			// i.e. wide aah view
 			&:hover {
 				@keyframes fade-in {
@@ -209,6 +239,7 @@ nav {
 
 		#masthead img {
 			height: var(--masthead-height);
+
 			/* Ensure the tower logo is visible on white header */
 			@media screen and (min-width: 970.00001px) {
 				filter: invert(1);
@@ -252,11 +283,14 @@ nav {
 	.right-stuff .subscribe {
 		border-color: var(--top-fg-col);
 		padding-inline: 0.5rem;
+
 		span {
 			color: var(--top-fg-col);
 		}
+
 		&:hover {
 			background: var(--top-fg-col);
+
 			span {
 				color: var(--top-bg-col);
 			}
@@ -378,25 +412,27 @@ nav {
 				padding-inline: 2rem;
 				overflow: auto;
 				color-scheme: dark;
-				padding-top:1rem;
+				padding-top: 1rem;
 
-				.section-link > .section-button {
+				.section-link>.section-button {
 					font-weight: 600;
 					display: flex;
 					justify-content: space-between;
-					align-items:center;
-					padding:0;
+					align-items: center;
+					padding: 0;
 					border-bottom: #ccc solid 0.5px;
 					// padding: 1rem 0.5rem;
 
-					span{
+					span {
 						&:hover {
-							background:white;
+							background: white;
 							cursor: pointer;
+
 							i {
 								color: var(--accent-dark);
 							}
 						}
+
 						width: 24px;
 						padding: 1rem 1rem;
 						overflow:hidden;
@@ -405,26 +441,28 @@ nav {
 					i {
 						width: 24px;
 						color: var(--fg-col);
-						font-weight:600;
+						font-weight: 600;
 					}
+
 					>a {
 						padding: 1.125rem 0.5rem;
-						font-weight:600;
-						height:100%;
+						font-weight: 600;
+						height: 100%;
 					}
 
 					div.bar-vertical {
-						width:0.5px;
-						height:2rem;
-						background:#ccc;
-						margin-inline:0.25rem;
+						width: 0.5px;
+						height: 2rem;
+						background: #ccc;
+						margin-inline: 0.25rem;
 					}
 				}
 
 				a {
 					font-family: var(--font-serif-header);
 					text-align: left;
-					flex-grow:1;
+					flex-grow: 1;
+
 					&:hover {
 						background: white;
 						color: var(--accent-dark);
