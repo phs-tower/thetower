@@ -21,6 +21,7 @@ section.content .titleblock {
 
 .main-article:not(h1, h2, h3, blockquote p)::first-letter {
 	initial-letter: 3;
+	-webkit-initial-letter: 3;
 	margin-right: 10px;
 }
 
@@ -47,14 +48,7 @@ section.content {
 }
 
 .return-to-category-container {
-	/* Keep at top; don't follow scroll */
-	position: relative;
-	top: 0;
-
-	@media screen and (max-width: 970px) {
-		position: relative;
-		top: 0;
-	}
+	position:relative;
 }
 
 a.return-to-category {
@@ -78,7 +72,7 @@ a.return-to-category {
 	// For the up-right arrow on the button (fa free doesn't have up-right :( )
 	i:global(.fa-arrow-up) {
 		transform: rotate(45deg);
-		transition: transform ease-in;
+		transition: transform ease-in 0.2s;
 	}
 
 	&:active {
@@ -131,11 +125,7 @@ a.return-to-category {
 
 @media screen and (max-width: 900px) {
 	section.content {
-		margin-top: 3rem;
-		max-width: 100%;
-		width: 100%;
-		margin-inline: 0;
-		padding-inline: clamp(1rem, 4vw, 1.5rem);
+		padding-inline: 1rem;
 	}
 
 	section.content .titleblock {
@@ -157,21 +147,22 @@ a.return-to-category {
 	}
 
 	.main-article:not(h1, h2, h3, blockquote p)::first-letter {
-		initial-letter: inherit;
-		margin-right: 0;
+		initial-letter: 2;
+		-webkit-initial-letter:2;
+		margin-right: 2px;
 	}
 
 	section.content p {
-		font-size: 1.05rem;
-		line-height: 1.75;
-		word-spacing: 0.015em;
+		font-size: 1.1rem;
+		line-height: 1.5;
+		word-spacing: 0.05ch;
 	}
 
 	.main-article a {
-		font-size: 1.05rem;
+		font-size: 1em;
 	}
 
-	.main-article blockquote p {
-		font-size: 1.2rem !important;
-	}
+	// .main-article blockquote p {
+	// 	font-size: 1.2rem !important;
+	// }
 }
