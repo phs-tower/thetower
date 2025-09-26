@@ -48,14 +48,7 @@ section.content {
 }
 
 .return-to-category-container {
-	/* Keep at top; don't follow scroll */
-	position: relative;
-	top: 0;
-
-	@media screen and (max-width: 970px) {
-		position: relative;
-		top: 0;
-	}
+	position:relative;
 }
 
 a.return-to-category {
@@ -79,7 +72,7 @@ a.return-to-category {
 	// For the up-right arrow on the button (fa free doesn't have up-right :( )
 	i:global(.fa-arrow-up) {
 		transform: rotate(45deg);
-		transition: transform ease-in;
+		transition: transform ease-in 0.2s;
 	}
 
 	&:active {
@@ -160,14 +153,14 @@ a.return-to-category {
 	.main-article:not(h1, h2, h3, blockquote p)::first-letter {
 		initial-letter: 2;
 		-webkit-initial-letter:2;
-		margin-right: 5px;
+		margin-right: 2px;
 	}
 
-	// section.content p {
-	// 	font-size: 1.05rem;
-	// 	line-height: 1.75;
-	// 	word-spacing: 0.015em;
-	// }
+	section.content p {
+		font-size: 1.1rem;
+		line-height: 1.5;
+		word-spacing: 0.05ch;
+	}
 
 	// .main-article a {
 	// 	font-size: 1.05rem;
