@@ -67,8 +67,6 @@ nav {
 		}
 	}
 
-	.section-link {}
-
 	.section-link:hover .dropdown,
 	.section-link .dropdown:hover {
 		display: block;
@@ -76,6 +74,8 @@ nav {
 
 	.section-link {
 		position: relative;
+		display: flex;
+		align-items: center;
 
 		// Top-level categories
 		>.section-button {
