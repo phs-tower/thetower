@@ -22,60 +22,17 @@ type Subsection = {
 	href: string;
 };
 
-function useIsMobileWidth(maxWidth = 970) {
-	const [isMobile, setIsMobile] = useState(() => (typeof window !== "undefined" ? window.innerWidth <= maxWidth : false));
-
-	useEffect(() => {
-		if (typeof window === "undefined") return;
-		const handleResize = () => setIsMobile(window.innerWidth <= maxWidth);
-		handleResize();
-		window.addEventListener("resize", handleResize);
-		return () => window.removeEventListener("resize", handleResize);
-	}, [maxWidth]);
-
-	return isMobile;
-}
-
-function SectionLink({ href, name: section, subsections, isMobile }: { href: string; name: string; subsections?: Subsection[]; isMobile: boolean }) {
+function SectionLink({ href, name: section, subsections }: { href: string; name: string; subsections?: Subsection[]}) {
 	const [open, setOpen] = useState(false);
-	const hasDropdown = Boolean(subsections?.length);
-
-	useEffect(() => {
-		if (!isMobile) setOpen(false);
-	}, [isMobile]);
-
-	const handleTopClick = (e: MouseEvent<HTMLAnchorElement>) => {
-		if (isMobile && hasDropdown) {
-			e.preventDefault();
-			setOpen(prev => !prev);
-		}
-	};
-
 	return (
-		<div className="section-link" data-open={open ? "true" : "false"}>
-			<Link href={href} onClick={handleTopClick}>
-				{section}
-				{hasDropdown && isMobile && (
-					<i
-						className="fa-solid fa-chevron-down"
-						onClick={e => {
-							e.preventDefault();
-							e.stopPropagation(); // <-- avoid double toggle from the Link
-							setOpen(prev => !prev);
-						}}
-						data-open={open}
-						aria-hidden="true"
-					/>
-				)}
-				{hasDropdown && !isMobile && <i className="fa-solid fa-chevron-down" aria-hidden="true" />}
-			</Link>
+		<div className="section-link">
+			<div className="section-button">
+				<Link href={href}>{section}</Link>
+				{ subsections && <div className="bar-vertical"/> }
+				{ subsections && <span onClick={e => { e.preventDefault(); setOpen(!open); }}><i className="fa-solid fa-chevron-down" data-open={open}/></span> }
+			</div>
 			{subsections && (
 				<div className="dropdown">
-					{isMobile && (
-						<Link href={href} className="category-self">
-							{section}
-						</Link>
-					)}
 					{subsections.map((subsection, i) => (
 						<Link key={i} href={subsection.href}>
 							{subsection.name}
@@ -88,8 +45,6 @@ function SectionLink({ href, name: section, subsections, isMobile }: { href: str
 }
 
 export function Nav() {
-	const isMobile = useIsMobileWidth();
-
 	return (
 		<nav>
 			<Masthead />
@@ -98,9 +53,8 @@ export function Nav() {
 					href="/category/news-features"
 					name="NEWS & FEATURES"
 					subsections={[{ name: "PHS Profiles", href: "/category/news-features/phs-profiles" }]}
-					isMobile={isMobile}
 				/>
-				<SectionLink href="/category/multimedia" name="MULTIMEDIA" isMobile={isMobile} />
+				<SectionLink href="/category/multimedia" name="MULTIMEDIA" />
 				<SectionLink
 					href="/category/opinions"
 					name="OPINIONS"
@@ -108,20 +62,17 @@ export function Nav() {
 						{ name: "Editorials", href: "/category/opinions/editorials" },
 						{ name: "Cheers & Jeers", href: "/category/opinions/cheers-jeers" },
 					]}
-					isMobile={isMobile}
 				/>
-				<SectionLink href="/category/vanguard" name="VANGUARD" isMobile={isMobile} />
+				<SectionLink href="/category/vanguard" name="VANGUARD" />
 				<SectionLink
 					href="/category/arts-entertainment"
 					name="ARTS & ENTERTAINMENT"
 					subsections={[{ name: "Student Artists", href: "/category/arts-entertainment/student-artists" }]}
-					isMobile={isMobile}
 				/>
 				<SectionLink
 					href="/category/sports"
 					name="SPORTS"
 					subsections={[{ name: "Student Athletes", href: "/category/sports/student-athletes" }]}
-					isMobile={isMobile}
 				/>
 				<SectionLink
 					href="/about"
@@ -132,9 +83,8 @@ export function Nav() {
 						{ name: "2023 Staff", href: "/about/2023" },
 						{ name: "2022 Staff", href: "/about/2022" },
 					]}
-					isMobile={isMobile}
 				/>
-				<SectionLink href="/archives" name="ARCHIVES" isMobile={isMobile} />
+				<SectionLink href="/archives" name="ARCHIVES" />
 			</div>
 		</nav>
 	);
