@@ -536,7 +536,7 @@ nav {
 	}
 }
 
-@media screen and (max-width: $mobile) {
+@media screen and (max-width: 970px) {
 	body:has(#menu[data-open="true"]) {
 		overflow: hidden;
 	}
