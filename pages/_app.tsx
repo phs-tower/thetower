@@ -40,15 +40,11 @@ function SectionLink({ href, name: section, subsections }: { href: string; name:
 	const [open, setOpen] = useState(false);
 	return (
 		<div className="section-link">
-			<Link href={href}>
+			<Link href={href} onClick={e => { e.preventDefault(); setOpen(!open); }}>
 				{section}
 				{subsections && (
 					<i
 						className="fa-solid fa-chevron-down"
-						onClick={e => {
-							e.preventDefault();
-							setOpen(!open);
-						}}
 						data-open={open}
 					/>
 				)}
