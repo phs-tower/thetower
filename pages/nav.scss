@@ -69,14 +69,10 @@ nav {
 	.section-link {
 		position: relative;
 
-		.section-button {
-			display: flex;
-		}
-
 		// Top-level categories
 		> .section-button {
 			padding: 1rem 0.5rem;
-			display: block;
+			display: flex;
 			position: relative;
 			color: var(--text-light);
 			>a {
@@ -97,7 +93,7 @@ nav {
 			transition: width 0.25s;
 		}
 
-		:has(i) > a::before {
+		:has(i)> a::before {
 			right: calc(0.5rem + 2ch);
 		}
 
