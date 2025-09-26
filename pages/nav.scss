@@ -98,7 +98,6 @@ nav {
 		}
 
 		i {
-			margin-left: 0.5ch;
 			font-size: 0.75rem;
 			line-height: 1.5rem;
 			width: 1rem;
@@ -382,6 +381,7 @@ nav {
 					font-weight: 600;
 					display: flex;
 					justify-content: space-between;
+					align-items:center;
 					padding:0;
 					// padding: 1rem 0.5rem;
 
@@ -396,6 +396,13 @@ nav {
 					}
 					>a {
 						padding: 1rem 0.5rem;
+					}
+
+					div.bar-vertical {
+						width:1px;
+						height:2rem;
+						background:#ccc;
+						margin-inline:0.25rem;
 					}
 				}
 
