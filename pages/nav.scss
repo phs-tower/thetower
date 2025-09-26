@@ -239,7 +239,7 @@ nav {
 			height: var(--masthead-height);
 
 			/* Ensure the tower logo is visible on white header */
-			@media screen and (min-width: ($mobile + 1)) {
+			@media screen and (min-width: ($mobile + 1px)) {
 				filter: invert(1);
 			}
 		}
