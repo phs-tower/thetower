@@ -157,10 +157,11 @@ a.return-to-category {
 		}
 	}
 
-	// .main-article:not(h1, h2, h3, blockquote p)::first-letter {
-	// 	initial-letter: inherit;
-	// 	margin-right: 0;
-	// }
+	.main-article:not(h1, h2, h3, blockquote p)::first-letter {
+		initial-letter: 2;
+		-webkit-initial-letter:2;
+		margin-right: 0;
+	}
 
 	// section.content p {
 	// 	font-size: 1.05rem;
