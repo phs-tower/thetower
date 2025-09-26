@@ -69,12 +69,12 @@ nav {
 	.section-link {
 		position: relative;
 
-		a {
+		.section-button {
 			display: block;
 		}
 
 		// Top-level categories
-		> a {
+		> .section-button {
 			padding: 1rem 0.5rem;
 			display: block;
 			position: relative;
@@ -82,7 +82,7 @@ nav {
 		}
 
 		// The underline on top-level categories
-		> a::before {
+		>.section-button>a::before {
 			content: "";
 			display: block;
 			position: absolute;
@@ -94,11 +94,11 @@ nav {
 			transition: width 0.25s;
 		}
 
-		> a:has(i)::before {
-			right: calc(0.5rem + 2ch);
-		}
+		// > a:has(i)::before {
+		// 	right: calc(0.5rem + 2ch);
+		// }
 
-		> a > i {
+		i {
 			margin-left: 0.5ch;
 			font-size: 0.75rem;
 			line-height: 1.5rem;
@@ -111,6 +111,7 @@ nav {
 		}
 
 		@media screen and (min-width: $mobile) {
+			// i.e. wide aah view
 			&:hover {
 				@keyframes fade-in {
 					0% {
@@ -127,33 +128,33 @@ nav {
 					display: block;
 				}
 
-				> a::before {
+				>.section-button>a::before {
 					left: 0.5rem;
 					width: calc(100% - 1rem);
 				}
 
-				> a:has(i)::before {
-					width: calc(100% - 1rem - 2ch);
-				}
+				// >a:has(i)::before {
+				// 	width: calc(100% - 1rem - 2ch);
+				// }
 
-				> a > i {
+				i {
 					transform: rotate(-180deg);
 				}
 			}
 		}
 
 		@media screen and (max-width: 1064px) and (min-width: 970px) {
-			> a > i {
+			i {
 				display: none;
 			}
 
-			> a:has(i)::before {
-				right: 0.5rem;
-			}
+			// > a:has(i)::before {
+			// 	right: 0.5rem;
+			// }
 
-			&:hover > a:has(i)::before {
-				width: calc(100% - 1rem);
-			}
+			// &:hover > a:has(i)::before {
+			// 	width: calc(100% - 1rem);
+			// }
 		}
 	}
 
@@ -382,6 +383,10 @@ nav {
 					font-weight: 600;
 					display: flex;
 					justify-content: space-between;
+
+					i {
+						width: 24px;
+					}
 				}
 
 				a {
@@ -391,14 +396,6 @@ nav {
 					&:hover {
 						background: white;
 						color: var(--accent-dark);
-					}
-
-					i {
-						width: 24px;
-						&:hover {
-							background: white;
-							color: var(--accent-dark);
-						}
 					}
 				}
 
