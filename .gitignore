@@ -34,3 +34,7 @@ npm-debug.log*
 
 # typescript
 *.tsbuildinfo
+.husky/post-checkout
+.husky/post-commit
+.husky/post-merge
+.husky/pre-push

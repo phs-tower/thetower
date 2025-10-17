@@ -145,10 +145,6 @@ export default function CategoryPage(props: Props) {
 
 			<h1>{expandCategorySlug(category)}</h1>
 
-			<button className="sidebar-toggle" onClick={() => setShowSidebar(s => !s)}>
-				{showSidebar ? "Hide Sidebar" : "Show Sidebar"}
-			</button>
-
 			<div className="grid">
 				<div>
 					<section>

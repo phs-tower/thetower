@@ -152,9 +152,6 @@ export default function Subscribe({ articles }: Props) {
 			`}</style>
 
 			{/* mobile “Show/Hide Sidebar” button */}
-			<button className="sidebar-toggle" onClick={() => setShowSidebar(s => !s)}>
-				{showSidebar ? "Hide Sidebar" : "Show Sidebar"}
-			</button>
 
 			<div className="grid">
 				{/* The letter */}

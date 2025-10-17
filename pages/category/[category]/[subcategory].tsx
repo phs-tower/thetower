@@ -166,9 +166,6 @@ export default function Subcategory(props: Props) {
 			`}</style>
 
 			<h1>{expandCategorySlug(subcategory)}</h1>
-			<button className="sidebar-toggle" onClick={() => setShowSidebar(s => !s)}>
-				{showSidebar ? "Hide Sidebar" : "Show Sidebar"}
-			</button>
 
 			<div className="grid">
 				<div>
