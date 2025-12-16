@@ -115,13 +115,14 @@ export default function FrontPage({ articles, vang }: Props) {
 			<hr />
 			<br />
 			<SectionContainer category="SPORTS" desc="Updates on PHS games, tales of sports history, and more." articles={articles["sports"]} />
-			<hr />
+
+			{/*<hr />
 			<br />
 			<div id="vang-container">
 				<VanguardContainer desc="The most creative section, with the format changing each issue." spreads={vang} />
 			</div>
 
-			<SponsorBanner />
+			<SponsorBanner />*/}
 			<SubBanner title="Consider subscribing to The Tower." />
 		</div>
 	);
