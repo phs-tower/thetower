@@ -29,8 +29,8 @@ export function displayDate(year?: number, month?: number): string {
 /** Display the given date in the form "[Weekday], [Month] [Day], [Year]" */
 export function displayFullDate(date?: Date) {
 	if (!date) date = new Date();
-	const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-	return `${days[date.getDay()]}, ${months[date.getMonth() + 1]} ${date.getDate()}, ${date.getFullYear()}`;
+	// Always show date in Princeton :)
+	return date.toLocaleDateString("en-US", { timeZone: "America/New_York", weekday: "long", month: "long", day: "numeric", year: "numeric" });
 }
 
 export function shortenText(text: string, length: number) {

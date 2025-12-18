@@ -73,11 +73,6 @@
 		font-size: 1rem;
 	}
 
-	a {
-		text-decoration: underline;
-		font-size: 1.25rem;
-	}
-
 	p {
 		font-family: $font-text;
 		font-size: 1.25rem;
@@ -89,4 +84,54 @@
 		font-family: $font-header;
 		font-size: 1.25rem;
 	}
+}
+
+@keyframes spin {
+	0% {
+		transform: rotate(0deg);
+	}
+	100% {
+		transform: rotate(360deg);
+	}
+}
+.error-message {
+	color: red;
+	animation: shake 0.5s;
+}
+@keyframes shake {
+	0% {
+		transform: translate(0px);
+	}
+	25% {
+		transform: translate(-5px);
+	}
+	50% {
+		transform: translate(5px);
+	}
+	75% {
+		transform: translate(-5px);
+	}
+	100% {
+		transform: translate(0px);
+	}
+}
+.upload-status.normal {
+	color: #8b8b8b;
+}
+.upload-status.success {
+	color: green;
+}
+.upload-status.error {
+	color: red;
+}
+
+.spinner {
+	display: inline-block;
+	width: 16px;
+	height: 16px;
+	border: 2px solid rgb(94, 150, 229);
+	border-top: 2px solid transparent;
+	border-radius: 50%;
+	margin-left: 8px;
+	animation: spin 1s linear infinite;
 }

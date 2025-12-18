@@ -8,7 +8,10 @@ import styles from "./about.module.scss";
 type Member = {
 	name: string;
 	position: string;
+	sections?: string[];
+	pictureUrl?: string;
 };
+/** @todo make these profile pic tiles instead of just links (hover --> show description) */
 
 type Section = {
 	name: string;
@@ -55,13 +58,15 @@ export default function Year({ year, sections }: Props) {
 			{sections.map((section, index) => (
 				<>
 					<h2 key={index}>{section.name}</h2>
-					{section.members.map((member, index) => (
-						<div className={styles.editor} key={index}>
-							<CreditLink key={index} author={member.name} />
-							<span>, {member.position}</span>
-							<br />
-						</div>
-					))}
+					<div className={styles.editors}>
+						{section.members.map((member, index) => (
+							<div className={styles.editor} key={index}>
+								<CreditLink key={index} author={member.name} />
+								<span>, {member.position}</span>
+								<br />
+							</div>
+						))}
+					</div>
 				</>
 			))}
 			<h2>Advisors</h2>

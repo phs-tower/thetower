@@ -67,11 +67,15 @@ nav {
 		}
 	}
 
+	a:hover {
+		opacity: unset;
+	}
+
 	.section-link {
 		position: relative;
 
 		// Top-level categories
-		>.section-button {
+		> .section-button {
 			padding: 1rem 0.5rem;
 			display: flex;
 			align-items: center;
@@ -79,13 +83,13 @@ nav {
 			position: relative;
 			color: var(--text-light);
 
-			>a {
+			> a {
 				color: var(--text-light);
 			}
 		}
 
 		// The underline on top-level categories
-		>.section-button>a::before {
+		> .section-button > a::before {
 			content: "";
 			display: block;
 			position: absolute;
@@ -97,8 +101,7 @@ nav {
 			transition: width 0.25s;
 		}
 
-
-		>.section-button:has(i)>a::before {
+		> .section-button:has(i) > a::before {
 			right: calc(0.5rem + 2ch);
 		}
 
@@ -113,8 +116,9 @@ nav {
 			transition: transform 0.5s;
 		}
 
-		@media screen and (min-width: ($mobile + 1px) ) {
-			&:hover .dropdown, .dropdown:hover {
+		@media screen and (min-width: ($mobile + 1px)) {
+			&:hover .dropdown,
+			.dropdown:hover {
 				display: block;
 			}
 			padding-bottom: 0;
@@ -132,7 +136,7 @@ nav {
 				white-space: nowrap;
 				z-index: 1000;
 				max-width: calc(100vw - 40px);
-				transform:translateX(-50%);
+				transform: translateX(-50%);
 			}
 
 			.dropdown a {
@@ -156,12 +160,12 @@ nav {
 					display: block;
 				}
 
-				>.section-button>a::before {
+				> .section-button > a::before {
 					left: 0.5rem;
 					width: calc(100% - 1rem);
 				}
 
-				>.section-button:has(i)>a::before {
+				> .section-button:has(i) > a::before {
 					width: calc(100% - 1rem - 2ch);
 				}
 
@@ -176,11 +180,11 @@ nav {
 				display: none;
 			}
 
-			>.section-button:has(i)>a::before {
+			> .section-button:has(i) > a::before {
 				right: 0.5rem;
 			}
 
-			>.section-button:has(i):hover>a::before {
+			> .section-button:has(i):hover > a::before {
 				width: calc(100% - 1rem);
 			}
 		}
@@ -412,7 +416,7 @@ nav {
 				color-scheme: dark;
 				padding-top: 1rem;
 
-				.section-link>.section-button {
+				.section-link > .section-button {
 					font-weight: 600;
 					display: flex;
 					justify-content: space-between;
@@ -433,7 +437,7 @@ nav {
 
 						width: 24px;
 						padding: 1rem 1rem;
-						overflow:hidden;
+						overflow: hidden;
 					}
 
 					i {
@@ -442,7 +446,7 @@ nav {
 						font-weight: 600;
 					}
 
-					>a {
+					> a {
 						padding: 1.125rem 0.5rem;
 						font-weight: 600;
 						height: 100%;
@@ -453,7 +457,6 @@ nav {
 						height: 2rem;
 						background: #ccc;
 						margin-inline: 0.25rem;
-
 					}
 				}
 

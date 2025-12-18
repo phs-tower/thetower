@@ -8,6 +8,7 @@ import { readFile } from "fs/promises";
 import formidable from "formidable";
 import path from "path";
 import { randomUUID } from "crypto";
+import sharp from "sharp";
 
 let yolo = false;
 
@@ -522,10 +523,45 @@ export async function uploadMulti(info: { format: string; src_id: string; month:
 	await prisma.multimedia.create({ data: info });
 }
 
+/**
+ * Compress image to within `marginOfError` of `targetBytes` (or quality level 50 if not compressible to `targetBytes`)
+ * @param image An image buffer
+ * @returns Another image buffer!
+ */
+async function compressImg(image: Buffer, options?: { targetBytes?: number; marginOfError?: number }) {
+	let check = await sharp(image).webp().toBuffer();
+	const targetBytes = options && options.targetBytes ? options.targetBytes : 400_000;
+	const marginOfError = options && options.marginOfError ? options.marginOfError : 50_000;
+	// console.log(`Tried 80% quality --> ${check.length} bytes`);
+	if (check.length <= targetBytes) return check;
+
+	let lo = 50;
+	let hi = 100;
+	let triesRemaining = 4;
+
+	// very fuzzy binary search for quality
+	while (lo < hi && triesRemaining) {
+		triesRemaining--;
+
+		let mid = Math.floor((hi + lo) / 2);
+		// we're doing webp because it (a) takes all formats and (b) is atleast as good as jpeg (so = good!)
+		check = await sharp(image).webp({ quality: mid, alphaQuality: mid }).toBuffer();
+		// console.log(`Tried ${mid}% quality --> ${check.length} bytes`);
+
+		if (check.length >= targetBytes + marginOfError) hi = mid;
+		else if (check.length < targetBytes - marginOfError) lo = mid + 1;
+		else break;
+	}
+
+	let mid = Math.floor((hi + lo) / 2);
+	return await sharp(image).webp({ quality: mid, alphaQuality: mid }).toBuffer();
+}
+
 export async function uploadFile(file: formidable.File, bucket: string) {
 	if (!supabase) throw new Error("not happening");
 
-	const fileContent = await readFile(file.filepath);
+	let fileContent = await readFile(file.filepath);
+	console.log("uploadering...");
 	const originalName = file.originalFilename || "upload";
 	const mimeType = file.mimetype || "application/octet-stream";
 
@@ -541,8 +577,13 @@ export async function uploadFile(file: formidable.File, bucket: string) {
 	// try mimetype first; fall back to original filename’s ext; finally "bin"
 	const extFromMime = EXT_FROM_MIME[mimeType];
 	const extFromName = path.extname(originalName).slice(1).toLowerCase();
-	const ext = (extFromMime || extFromName || "bin").replace(/[^a-z0-9]/gi, "") || "bin";
+	let ext = (extFromMime || extFromName || "bin").replace(/[^a-z0-9]/gi, "") || "bin";
+	console.log(ext);
+	if (["jpg", "png", "gif", "webp"].includes(ext)) {
+		fileContent = await compressImg(fileContent);
 
+		ext = "webp";
+	}
 	// sanitize base (strip ext, slugify, trim length)
 	const base =
 		path

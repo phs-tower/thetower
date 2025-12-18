@@ -4,6 +4,28 @@ import { NextApiRequest, NextApiResponse } from "next";
 import formidable from "formidable";
 import { uploadArticle, uploadMulti, uploadSpread, uploadFile } from "~/lib/queries";
 
+async function uploadVang(files: formidable.Files, fields: formidable.Fields) {
+	let ret = { code: 500, error: "" };
+
+	if (!files.spread) return { ...ret, error: "Did you upload a spread?" };
+
+	const upload = await uploadFile(files.spread[0], "spreads");
+	if (upload.code != 200) return { ...ret, code: upload.code, error: upload.message };
+
+	try {
+		await uploadSpread({
+			title: fields.title ? fields.title[0] : "No title provided",
+			src: upload.message,
+			month: new Date().getMonth() + 1,
+			year: new Date().getFullYear(),
+			category: "vanguard",
+		});
+		return { ...ret, code: 200, error: "" };
+	} catch (e) {
+		return { ...ret, error: `Unexpected problem in the server! Message: ${e}` };
+	}
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
 	if (req.method !== "POST") return res.status(400).json({ error: "Invalid method" });
 
@@ -16,36 +38,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 		}
 
 		const today = new Date();
-		// Fix: Use getMonth() + 1 to get the actual month number
+
 		const currentMonth = today.getMonth() + 1;
 		const currentYear = today.getFullYear();
 
 		if (!fields.category) return res.status(500).json({ message: "Did you provide a category?" });
 
 		if (fields.category[0] == "vanguard") {
-			if (!files.spread) return res.status(500).json({ message: "Did you upload a spread?" });
-			let upload = await uploadFile(files.spread[0], "spreads");
-			if (upload.code != 200) return res.status(upload.code).json({ message: upload.message });
-			try {
-				await uploadSpread({
-					title: fields.title ? fields.title[0] : "No title provided",
-					src: upload.message,
-					month: currentMonth, // Use currentMonth here
-					year: currentYear,
-					category: "vanguard",
-				});
-				return res.status(200).json({ message: "Uploaded!" });
-			} catch (e) {
-				return res.status(500).json({ message: `Unexpected problem in the server! Message: ${e}` });
-			}
-		} else if (fields.category[0] == "multimedia") {
+			const status = await uploadVang(files, fields);
+			return res.status(status.code).json({ message: status.error ?? "Uploaded!" });
+		}
+		if (fields.category[0] == "multimedia") {
 			if (!fields.subcategory || !fields.multi)
 				return res.status(500).json({ message: "Did you provide a subcategory and a link to the resource?" });
 			try {
 				await uploadMulti({
 					format: fields.subcategory[0],
 					src_id: fields.multi[0],
-					month: currentMonth, // Fix applied here
+					month: currentMonth,
 					year: currentYear,
 					title: fields.title ? fields.title[0] : "",
 				});
@@ -53,52 +63,51 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 			} catch (e) {
 				return res.status(500).json({ message: `Unexpected problem in the server! Message: ${e}` });
 			}
-		} else {
-			console.log("standard article type");
-			let imgURL = "";
-			if (files.img) {
-				console.log("uploading file...");
-				let upload = await uploadFile(files.img[0], "images");
-				if (upload.code != 200) return res.status(upload.code).json({ message: upload.message });
-				imgURL = upload.message;
-				console.log("upload complete");
-			}
-
-			console.log("passing field checks...");
-			if (!fields.subcategory || !fields.title || !fields.authors) {
-				return res.status(500).json({
-					message: `Some checks that should've already passed failed on the server. Content: ${JSON.stringify(
-						fields
-					)}. Contact online editor(s).`,
-				});
-			}
-			console.log("checks completed, creating articleInfo object");
-
-			const articleInfo = {
-				category: fields.category[0],
-				subcategory: fields.subcategory[0],
-				title: fields.title[0],
-				authors: fields.authors ? JSON.parse(fields.authors[0]) : [],
-				content: fields.content ? fields.content[0] : "",
-				contentInfo: fields["content-info"] ? fields["content-info"][0] : "",
-				img: imgURL,
-				month: currentMonth,
-				year: currentYear,
-				markdown: true,
-			};
-
-			try {
-				console.log("calling uploadArticle");
-				await uploadArticle(articleInfo);
-				console.log("try block complete");
-			} catch (e) {
-				console.log(e);
-				return res.status(500).json({ message: `Unexpected problem in the server! Message: ${e}` });
-			}
-
-			console.log("returning success message");
-			return res.status(200).json({ message: "Uploaded!" });
 		}
+
+		// Just a standard Article!
+		let imgURL = "";
+		if (files.img) {
+			console.log("uploading file...");
+
+			let upload = await uploadFile(files.img[0], "images");
+			if (upload.code != 200) return res.status(upload.code).json({ message: upload.message });
+			imgURL = upload.message;
+			console.log("upload complete");
+		}
+
+		console.log("passing field checks...");
+		if (!fields.subcategory || !fields.title || !fields.authors) {
+			return res.status(500).json({
+				message: `Some checks that should've already passed failed on the server. Content: ${JSON.stringify(
+					fields
+				)}. Contact online editor(s).`,
+			});
+		}
+		console.log("checks completed, creating articleInfo object");
+
+		const articleInfo = {
+			category: fields.category[0],
+			subcategory: fields.subcategory[0],
+			title: fields.title[0],
+			authors: fields.authors ? JSON.parse(fields.authors[0]) : [],
+			content: fields.content ? fields.content[0] : "",
+			contentInfo: fields["content-info"] ? fields["content-info"][0] : "",
+			img: imgURL,
+			month: currentMonth,
+			year: currentYear,
+			markdown: true,
+		};
+
+		try {
+			await uploadArticle(articleInfo);
+		} catch (e) {
+			console.log(e);
+			return res.status(500).json({ message: `Unexpected problem in the server! Message: ${e}` });
+		}
+
+		console.log("returning success message");
+		return res.status(200).json({ message: "Uploaded!" });
 	});
 }
 

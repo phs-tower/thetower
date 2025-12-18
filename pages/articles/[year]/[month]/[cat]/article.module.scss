@@ -48,7 +48,7 @@ section.content {
 }
 
 .return-to-category-container {
-	position:relative;
+	position: relative;
 }
 
 a.return-to-category {
@@ -81,6 +81,10 @@ a.return-to-category {
 
 	&:hover i:global(.fa-arrow-up) {
 		transform: translate(2px, -2px) rotate(45deg);
+	}
+
+	&:hover {
+		opacity: unset;
 	}
 }
 
@@ -119,7 +123,15 @@ a.return-to-category {
 
 	a {
 		text-decoration: underline;
-		font-size: 1.25rem;
+		font-size: unset;
+
+		transition: color 0.2s;
+	}
+
+	a:hover {
+		color: rgb(94, 150, 229);
+		text-decoration: underline;
+		opacity: unset;
 	}
 }
 
@@ -148,7 +160,7 @@ a.return-to-category {
 
 	.main-article:not(h1, h2, h3, blockquote p)::first-letter {
 		initial-letter: 2;
-		-webkit-initial-letter:2;
+		-webkit-initial-letter: 2;
 		margin-right: 2px;
 	}
 

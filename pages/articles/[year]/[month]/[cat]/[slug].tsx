@@ -27,7 +27,6 @@ interface ExtendedArticle {
 	month: number;
 	year: number;
 	img: string;
-	featured: boolean;
 	markdown: boolean;
 	contentInfo?: string | null;
 }
@@ -50,17 +49,13 @@ export async function getServerSideProps({ params }: Params) {
 
 	let raw: article | null = null; // equivalent to prior but explicit
 
-	if (isNaN(Number(article_id))) {
-		raw = await getArticle(params.year, params.month, params.cat, "null", params.slug);
-	} else {
-		raw = await getArticle(params.year, params.month, params.cat, article_id, params.slug);
-	}
+	if (isNaN(Number(article_id))) raw = await getArticle(params.year, params.month, params.cat, "null", params.slug);
+	else raw = await getArticle(params.year, params.month, params.cat, article_id, params.slug);
 
 	if (!raw) return { redirect: { permanent: false, destination: "/404" } };
 
 	const processedArticle: ExtendedArticle = {
 		...raw, // this is my first time doing ts so idk if this is chill but like should work?
-		featured: raw.featured ?? false,
 		markdown: raw.markdown ?? false,
 		contentInfo: raw.contentInfo ?? null,
 	};
@@ -73,7 +68,7 @@ export async function getServerSideProps({ params }: Params) {
 	return { props: { article: processedArticle } };
 }
 
-function ReturnToCategoryButton({ isMobile, scrolledPast, category }: { isMobile: boolean; scrolledPast: boolean; category: string }) {
+function ReturnToCategoryButton({ category }: { category: string }) {
 	const categoryLabels: { [key: string]: string } = {
 		"news-features": "NEWS & FEATURES",
 		opinions: "OPINIONS",
@@ -92,47 +87,73 @@ function ReturnToCategoryButton({ isMobile, scrolledPast, category }: { isMobile
 	);
 }
 
+export function ArticleContent({ article }: Props) {
+	return (
+		<section className={articleStyles["content"]}>
+			<div className={articleStyles["titleblock"]}>
+				<h1>{article.title}</h1>
+
+				<span className={articleStyles["date"]}>{displayDate(article.year, article.month)}</span>
+				{article.authors.length > 0 && (
+					<section className={articleStyles["authors"]}>
+						{article.authors.map((author, index) => (
+							<span key={index}>
+								<CreditLink author={author} />
+								{index < article.authors.length - 1 && <span style={{ margin: "0 5px" }}>•</span>}
+							</span>
+						))}
+					</section>
+				)}
+			</div>
+
+			<br />
+			<br />
+
+			<div>
+				{article.img && (
+					<>
+						<Image src={article.img} width={1000} height={1000} alt={article.img} />
+						{article.contentInfo && <PhotoCredit contentInfo={article.contentInfo} />}
+					</>
+				)}
+			</div>
+
+			{article.markdown ? (
+				<div className={articleStyles["main-article"]} dangerouslySetInnerHTML={{ __html: article.content }} />
+			) : (
+				<div className={articleStyles["main-article"]}>
+					{article.content.split("\n").map((paragraph, index) => {
+						if (paragraph.startsWith("@img=")) {
+							const src = paragraph.substring(5).trim();
+							if (!src) return null;
+
+							return <Image key={index} src={src} alt="" width={1000} height={600} />;
+						}
+						return paragraph.charCodeAt(0) !== 13 ? <p key={index}>{paragraph.replace("&lt;", "<").replace("&gt;", ">")}</p> : null;
+					})}
+				</div>
+			)}
+		</section>
+	);
+}
+
 export default function Article({ article }: Props) {
-	const photoName = (() => {
-		if (!article.contentInfo) return null;
+	// const photoName = (() => {
+	// 	if (!article.contentInfo) return null;
 
-		const firstLine = article.contentInfo.split("\n")[0];
-		if (!firstLine.includes(":")) return null;
+	// 	const firstLine = article.contentInfo.split("\n")[0];
+	// 	if (!firstLine.includes(":")) return null;
 
-		const [label, value] = firstLine.split(":");
-		const lowerLabel = label.toLowerCase();
+	// 	const [label, value] = firstLine.split(":");
+	// 	const lowerLabel = label.toLowerCase();
 
-		if (lowerLabel.includes("photo") || lowerLabel.includes("image") || lowerLabel.includes("graphic")) {
-			const name = value.trim().split(/\s+/).slice(0, 2).join(" ");
-			return name;
-		}
+	// 	if (lowerLabel.includes("photo") || lowerLabel.includes("image") || lowerLabel.includes("graphic")) {
+	// 		const name = value.trim().split(/\s+/).slice(0, 2).join(" ");
+	// 		return name;
+	// 	}
 
-		return null;
-	})();
-
-	const [scrolledPast, setScrolledPast] = useState(false);
-	const [isMobile, setIsMobile] = useState(false);
-
-	useEffect(() => {
-		const handleResize = () => {
-			setIsMobile(window.innerWidth <= 1000); // Adjust threshold as needed
-		};
-
-		const handleScroll = () => {
-			if (!isMobile) {
-				setScrolledPast(window.scrollY > 100);
-			}
-		};
-
-		handleResize(); // set on first load
-		window.addEventListener("resize", handleResize);
-		window.addEventListener("scroll", handleScroll);
-
-		return () => {
-			window.removeEventListener("resize", handleResize);
-			window.removeEventListener("scroll", handleScroll);
-		};
-	}, [isMobile]);
+	// 	return null;
+	// })();
 
 	const category = article.category;
 
@@ -163,52 +184,9 @@ export default function Article({ article }: Props) {
 			</Head>
 
 			{/* Category top-right */}
-			<ReturnToCategoryButton isMobile={isMobile} scrolledPast={scrolledPast} category={category} />
+			<ReturnToCategoryButton category={category} />
 
-			<section className={articleStyles["content"]}>
-				<div className={articleStyles["titleblock"]}>
-					<h1>{article.title}</h1>
-					<span className={articleStyles["date"]}>{displayDate(article.year, article.month)}</span>
-					{article.authors.length > 0 && (
-						<section className={articleStyles["authors"]}>
-							{article.authors.map((author, index) => (
-								<>
-									<CreditLink key={index} author={author} />
-									{index < article.authors.length - 1 && <span style={{ margin: "0 5px" }}>•</span>}
-								</>
-							))}
-						</section>
-					)}
-				</div>
-
-				<br />
-				<br />
-
-				<div>
-					{article.img && (
-						<>
-							<Image src={article.img} width={1000} height={1000} alt={article.img} />
-							{article.contentInfo && <PhotoCredit contentInfo={article.contentInfo} />}
-						</>
-					)}
-				</div>
-
-				{article.markdown ? (
-					<div className={articleStyles["main-article"]} dangerouslySetInnerHTML={{ __html: article.content }} />
-				) : (
-					<div className={articleStyles["main-article"]}>
-						{article.content.split("\n").map((paragraph, index) => {
-							if (paragraph.startsWith("@img=")) {
-								const src = paragraph.substring(5).trim();
-								if (!src) return null;
-
-								return <Image key={index} src={src} alt="" width={1000} height={600} />;
-							}
-							return paragraph.charCodeAt(0) !== 13 ? <p key={index}>{paragraph.replace("&lt;", "<").replace("&gt;", ">")}</p> : null;
-						})}
-					</div>
-				)}
-			</section>
+			<ArticleContent article={article} />
 
 			<SubBanner title="Subscribing helps us make more articles like this." />
 		</>

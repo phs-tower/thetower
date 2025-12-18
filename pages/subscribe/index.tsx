@@ -106,6 +106,7 @@ export default function Subscribe({ articles }: Props) {
 				}
 				.social-icons a:hover {
 					transform: scale(1.1);
+					opacity: unset;
 					color: ${styles.color.darkAccent};
 				}
 

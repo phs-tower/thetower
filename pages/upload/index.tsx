@@ -8,22 +8,7 @@ import html from "remark-html";
 import confetti from "canvas-confetti";
 import imageCompression from "browser-image-compression";
 import styles from "./index.module.scss";
-import { displayDate } from "~/lib/utils";
-
-// Utility: Convert data URL to File (if needed)
-function dataURLtoFile(dataurl: string, filename: string): File {
-	const arr = dataurl.split(",");
-	const mimeMatch = arr[0].match(/:(.*?);/);
-	if (!mimeMatch) throw new Error("Invalid data URL");
-	const mime = mimeMatch[1];
-	const bstr: any = atob(arr[1]);
-	let n = bstr.length;
-	const u8arr = new Uint8Array(n);
-	while (n--) {
-		u8arr[n] = bstr.charCodeAt(n);
-	}
-	return new File([u8arr], filename, { type: mime });
-}
+import { ArticleContent } from "../articles/[year]/[month]/[cat]/[slug]";
 
 // Our form data shape (added contentInfo for header info)
 type FormDataType = {
@@ -43,9 +28,27 @@ type FormDataType = {
 // 72 hours in ms
 const THREE_DAYS_MS = 72 * 60 * 60 * 1000;
 
+function SavingIndicator({ uploadStatus, isSaving }: { uploadStatus: string; isSaving: boolean }) {
+	return (
+		<div style={{ position: "fixed", bottom: "10px", right: "10px", textAlign: "right" }}>
+			<span className={`upload-status ${uploadStatus}`} style={{ fontSize: "1.6rem", transition: "color 2s ease" }}>
+				{isSaving ? (
+					<>
+						Saving...
+						<span className={styles["spinner"]} />
+					</>
+				) : (
+					"Saved!"
+				)}
+			</span>
+			<br />
+			<span style={{ fontSize: ".6rem", color: "#8b8b8b" }}>(Saves are stored for a maximum of 3 days)</span>
+		</div>
+	);
+}
+
 export default function Upload() {
 	const [hydrated, setHydrated] = useState(false);
-	const [monthYear, setMonthYear] = useState("");
 	const [formData, setFormData] = useState<FormDataType>({});
 	const [category, setCategory] = useState<string>("");
 	const [uploadResponse, setUploadResponse] = useState("");
@@ -78,7 +81,6 @@ export default function Upload() {
 
 	useEffect(() => {
 		setHydrated(true);
-		setMonthYear(displayDate());
 
 		// Load saved data from localStorage if saved within 3 days
 		const stored = localStorage.getItem("uploadFormData");
@@ -166,10 +168,10 @@ export default function Upload() {
 	// Update image: Always compress to ~1MB (WebP). Accept only valid image types; max size 50 MB.
 	async function updateImage(e: ChangeEvent<HTMLInputElement>) {
 		if (!e.target.files || !e.target.files[0]) return;
-		let original = e.target.files[0];
+		let image = e.target.files[0];
 
 		const validExtensions = [".jpg", ".jpeg", ".png", ".gif", ".webp"];
-		const nameLower = original.name.toLowerCase();
+		const nameLower = image.name.toLowerCase();
 		if (!validExtensions.some(ext => nameLower.endsWith(ext))) {
 			alert("Invalid file format. Please select a JPG, JPEG, PNG, WEBP, or GIF file.");
 			e.target.value = "";
@@ -177,51 +179,17 @@ export default function Upload() {
 			return;
 		}
 
-		try {
-			setIsCompressing(true);
-			const originalSize = original.size;
-
-			// Force a ~1MB target, WebP output for size efficiency
-			const compressed = await imageCompression(original, {
-				maxSizeMB: 1,
-				maxWidthOrHeight: 2400,
-				fileType: "image/webp",
-				useWebWorker: true,
-				initialQuality: 0.85,
+		const reader = new FileReader();
+		reader.onload = () => {
+			setFormData({
+				...formData,
+				img: image,
+				imgData: reader.result as string,
+				imgName: image.name,
 			});
-
-			const beforeMB = (originalSize / 1024 / 1024).toFixed(2);
-			const afterMB = (compressed.size / 1024 / 1024).toFixed(2);
-			setCompressionSummary(`Compressed: ${beforeMB}MB → ${afterMB}MB`);
-
-			// Read compressed file as data URL for preview
-			const reader = new FileReader();
-			reader.onload = () => {
-				setFormData({
-					...formData,
-					img: compressed,
-					imgData: reader.result as string,
-					imgName: original.name,
-				});
-			};
-			reader.readAsDataURL(compressed);
-		} catch (err) {
-			console.warn("Image compression failed, using original:", err);
-
-			// Fallback to original file if compression fails
-			const reader = new FileReader();
-			reader.onload = () => {
-				setFormData({
-					...formData,
-					img: original,
-					imgData: reader.result as string,
-					imgName: original.name,
-				});
-			};
-			reader.readAsDataURL(original);
-		} finally {
-			setIsCompressing(false);
-		}
+		};
+		reader.readAsDataURL(image);
+		setIsCompressing(false);
 	}
 
 	// Update PDF spread (for Vanguard)
@@ -566,7 +534,7 @@ export default function Upload() {
 								<textarea
 									onChange={updateHeaderInfo}
 									value={formData.contentInfo || ""}
-									style={{ width: "100%", minHeight: "80px", resize: "both" }}
+									style={{ width: "100%", minHeight: "80px", resize: "block" }}
 								/>
 								<br />
 								<br />
@@ -611,83 +579,27 @@ export default function Upload() {
 						{/* PREVIEW BLOCK */}
 						<div style={{ display: previewDisplay, textAlign: "left" }}>
 							<hr />
-
-							{/* Title */}
-							{formData.title && (
-								<h1
-									style={{
-										fontFamily: "Minion Pro Medium, Courier New",
-										fontSize: "2.5rem",
-										fontWeight: "bold",
-										textAlign: "center",
-										marginBottom: "0.1rem",
-									}}
-								>
-									{formData.title}
-								</h1>
-							)}
-
-							{/* Month/Year */}
-							{monthYear && (
-								<p
-									style={{
-										fontFamily: "Neue Montreal Regular",
-										fontSize: "1.6rem",
-										color: "#8b8b8b",
-										marginBottom:
-											formData.authors && !(category === "opinions" && formData.subcategory === "editorials")
-												? "0.3rem"
-												: "1.25rem",
-										textAlign: "center",
-									}}
-								>
-									{monthYear}
-								</p>
-							)}
-
-							{/* Authors Preview */}
-							{formData.authors && !(category === "opinions" && formData.subcategory === "editorials") && (
-								<div
-									style={{
-										fontFamily: "Neue Montreal Regular",
-										fontSize: "1rem",
-										color: "#8b8b8b",
-										marginBottom: "1rem",
-										textAlign: "center",
-									}}
-								>
-									{formData.authors.split(", ").map((author, i, arr) => (
-										<span
-											key={i}
-											style={{
-												fontFamily: "Neue Montreal Regular",
-												fontSize: "1rem",
-												color: "#8b8b8b",
-											}}
-										>
-											{author}
-											{i < arr.length - 1 && (
-												<span
-													style={{
-														fontFamily: "Neue Montreal Regular",
-														fontSize: "1rem",
-														color: "#8b8b8b",
-														margin: "0 0.25rem",
-													}}
-												>
-													•
-												</span>
-											)}
-										</span>
-									))}
-								</div>
-							)}
-
-							<div id={styles.preview} dangerouslySetInnerHTML={{ __html: previewContent }} />
-							<hr />
+							<ArticleContent
+								article={{
+									id: -1,
+									title: formData.title ?? "",
+									content: previewContent,
+									published: false,
+									category: category,
+									subcategory: "",
+									authors: (formData.authors ?? "").split(", "),
+									month: new Date().getMonth() + 1,
+									year: new Date().getFullYear(),
+									img: formData.imgData ? `${formData.imgData}` : "",
+									markdown: true,
+								}}
+							/>
 						</div>
+						<br />
+						<br />
+						<br />
+						<hr />
 					</div>
-
 					{/* Vanguard: requires a PDF spread */}
 					<div id={styles.vanguard} style={{ display: category === "vanguard" ? "block" : "none" }}>
 						<h3>Vanguard</h3>
@@ -742,81 +654,7 @@ export default function Upload() {
 				</form>
 			</div>
 
-			{/* Saving Indicator at Bottom Right */}
-			<div
-				style={{
-					position: "fixed",
-					bottom: "10px",
-					right: "10px",
-					textAlign: "right",
-				}}
-			>
-				<span className={`upload-status ${uploadStatus}`} style={{ fontSize: "1.6rem", transition: "color 2s ease" }}>
-					{isSaving ? (
-						<>
-							Saving...
-							<span
-								style={{
-									display: "inline-block",
-									width: "16px",
-									height: "16px",
-									border: "2px solid red",
-									borderTop: "2px solid transparent",
-									borderRadius: "50%",
-									marginLeft: "8px",
-									animation: "spin 1s linear infinite",
-								}}
-							/>
-						</>
-					) : (
-						"Saved!"
-					)}
-				</span>
-				<br />
-				<span style={{ fontSize: ".6rem", color: "#8b8b8b" }}>(Saves are stored for a maximum of 3 days)</span>
-			</div>
-
-			{/* Keyframes for spinner and error animation */}
-			<style jsx>{`
-				@keyframes spin {
-					0% {
-						transform: rotate(0deg);
-					}
-					100% {
-						transform: rotate(360deg);
-					}
-				}
-				.error-message {
-					color: red;
-					animation: shake 0.5s;
-				}
-				@keyframes shake {
-					0% {
-						transform: translate(0px);
-					}
-					25% {
-						transform: translate(-5px);
-					}
-					50% {
-						transform: translate(5px);
-					}
-					75% {
-						transform: translate(-5px);
-					}
-					100% {
-						transform: translate(0px);
-					}
-				}
-				.upload-status.normal {
-					color: #8b8b8b;
-				}
-				.upload-status.success {
-					color: green;
-				}
-				.upload-status.error {
-					color: red;
-				}
-			`}</style>
+			<SavingIndicator uploadStatus={uploadStatus} isSaving={isSaving} />
 		</div>
 	);
 }

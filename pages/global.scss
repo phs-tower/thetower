@@ -50,10 +50,6 @@ input[type="submit"],
 	}
 }
 
-a {
-	color: black;
-}
-
 main {
 	margin-top: 4vh;
 }
@@ -218,16 +214,7 @@ footer {
 	}
 }
 
-main a {
-	color: rgb(0, 0, 0);
-
-	&:hover {
-		color: rgb(67, 68, 69);
-	}
-}
-
 // From /home
-
 .mosaic {
 	display: grid;
 	/* Bring side columns closer to the middle */
@@ -333,11 +320,12 @@ main a {
 }
 
 a {
-	color: black;
+	color: unset;
+}
 
-	&:hover {
-		color: #888;
-	}
+a:hover {
+	opacity: 0.6;
+	transition: opacity 0.2s;
 }
 
 main {
