@@ -712,8 +712,12 @@ export default function Upload() {
 									<ArticleContent
 										article={{
 											id: -1,
-											title: formData.title ?? "",
-											content: previewContent,
+											title: formData.title ? formData.title : "Enter title to update preview",
+											content: previewContent
+												? previewContent
+												: formData.title
+												? `<span style="color:gray">Enter content to update preview</i>`
+												: "",
 											published: false,
 											category: formData.category ?? "",
 											subcategory: formData.subcategory ?? "",
