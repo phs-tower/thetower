@@ -4,14 +4,13 @@ import Head from "next/head";
 import Image from "next/image";
 import { getArticle } from "~/lib/queries";
 import { displayDate } from "~/lib/utils";
-import styles from "~/lib/styles";
 import CreditLink from "~/components/credit.client";
 import { remark } from "remark";
 import html from "remark-html";
 import SubBanner from "~/components/subbanner.client";
 import PhotoCredit from "~/components/photocredit";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { article } from "@prisma/client";
 
 import articleStyles from "./article.module.scss";
@@ -68,7 +67,7 @@ export async function getServerSideProps({ params }: Params) {
 	return { props: { article: processedArticle } };
 }
 
-function ReturnToCategoryButton({ category }: { category: string }) {
+export function ReturnToCategoryButton({ category }: { category: string }) {
 	const categoryLabels: { [key: string]: string } = {
 		"news-features": "NEWS & FEATURES",
 		opinions: "OPINIONS",

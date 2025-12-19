@@ -1,14 +1,16 @@
 /** @format */
 
 import Head from "next/head";
-import { ChangeEvent, FormEvent, useEffect, useState, useRef } from "react";
+import { ChangeEvent, FormEvent, useEffect, useState, useRef, DragEvent } from "react";
 import Link from "next/link";
 import { remark } from "remark";
 import html from "remark-html";
 import confetti from "canvas-confetti";
 import imageCompression from "browser-image-compression";
-import styles from "./index.module.scss";
+import styles from "./upload.module.scss";
 import { ArticleContent } from "../articles/[year]/[month]/[cat]/[slug]";
+import { SpreadContent } from "../spreads/[year]/[month]/[cat]/[slug]";
+import Spread from "~/components/spread.client";
 
 // Our form data shape (added contentInfo for header info)
 type FormDataType = {
@@ -52,10 +54,10 @@ export default function Upload() {
 	const [formData, setFormData] = useState<FormDataType>({});
 	const [category, setCategory] = useState<string>("");
 	const [uploadResponse, setUploadResponse] = useState("");
-	const [previewDisplay, setPreviewDisplay] = useState("none");
 	const [previewContent, setPreviewContent] = useState("");
 	const [isCompressing, setIsCompressing] = useState(false);
 	const [compressionSummary, setCompressionSummary] = useState<string | null>(null);
+	const [spreadData, setSpreadData] = useState<string>("");
 
 	const errorRef = useRef<HTMLParagraphElement>(null);
 
@@ -165,17 +167,17 @@ export default function Upload() {
 		setFormData({ ...formData, contentInfo: e.target.value });
 	}
 
-	// Update image: Always compress to ~1MB (WebP). Accept only valid image types; max size 50 MB.
-	async function updateImage(e: ChangeEvent<HTMLInputElement>) {
-		if (!e.target.files || !e.target.files[0]) return;
-		let image = e.target.files[0];
+	async function updateImage(inp: HTMLInputElement) {
+		if (!inp.files || !inp.files[0]) return;
+		let image = inp.files[0];
 
 		const validExtensions = [".jpg", ".jpeg", ".png", ".gif", ".webp"];
 		const nameLower = image.name.toLowerCase();
 		if (!validExtensions.some(ext => nameLower.endsWith(ext))) {
 			alert("Invalid file format. Please select a JPG, JPEG, PNG, WEBP, or GIF file.");
-			e.target.value = "";
+			inp.value = "";
 			setFormData({ ...formData, img: null, imgData: null, imgName: null });
+			setSpreadData("");
 			return;
 		}
 
@@ -193,23 +195,25 @@ export default function Upload() {
 	}
 
 	// Update PDF spread (for Vanguard)
-	function updateSpread(e: ChangeEvent<HTMLInputElement>) {
-		if (!e.target.files || !e.target.files[0]) return;
-		const file = e.target.files[0];
+	function updateSpread(inp: HTMLInputElement) {
+		if (!inp.files || !inp.files[0]) return;
+		const file = inp.files[0];
 		if (file.type !== "application/pdf") {
 			alert("Invalid file format. Please upload a PDF file.");
-			e.target.value = "";
+			inp.value = "";
 			setFormData({ ...formData, spread: null });
 			return;
 		}
 		const fiftyMB = 50 * 1024 * 1024;
 		if (file.size > fiftyMB) {
 			alert("Error processing PDF: file is too large (max 50 MB).");
-			e.target.value = "";
+			inp.value = "";
 			setFormData({ ...formData, spread: null });
 			return;
 		}
 		setFormData({ ...formData, spread: file });
+
+		setSpreadData(URL.createObjectURL(file));
 	}
 
 	function updateMulti(e: ChangeEvent<HTMLInputElement>) {
@@ -394,9 +398,26 @@ export default function Upload() {
 		}
 	}
 
-	function togglePreview() {
-		setPreviewDisplay(previewDisplay === "none" ? "block" : "none");
-	}
+	const inputImageDrop = (inpUpdate: Function, e: DragEvent<HTMLLabelElement>) => {
+		e.preventDefault();
+		e.currentTarget.classList.remove(styles["dragover"]);
+		if (!e.currentTarget.parentNode) return;
+		const parent = e.currentTarget.parentNode;
+		const inp = parent.querySelector("input");
+		const imName = parent.querySelector("span.img-name");
+		if (!inp || !imName) return;
+		inp.files = e.dataTransfer.files;
+		inpUpdate(inp);
+		if (!inp.files.length) {
+			e.currentTarget.classList.remove(styles["has-file"]);
+			return;
+		}
+
+		e.dataTransfer.files[0].name;
+
+		e.currentTarget.classList.add(styles["has-file"]);
+		imName.innerHTML = e.dataTransfer.files[0].name;
+	};
 
 	return (
 		<div>
@@ -507,143 +528,218 @@ export default function Upload() {
 					<hr />
 					<br />
 
-					{/* Standard Sections (non-Vanguard / non-Multimedia) */}
-					<div id={styles["std-sections"]} style={{ display: category === "vanguard" || category === "multimedia" ? "none" : "block" }}>
-						<h3>Article</h3>
-						<p>
-							<strong>Header image</strong> (JPG, JPEG, PNG, WEBP, or GIF only):
-						</p>
-						<input type="file" accept=".jpg,.jpeg,.png,.gif,.webp" onChange={updateImage} />
-						<br />
-						<br />
-						{/* If a header image is attached, show a resizable Header Info field */}
-						{formData.img && (
-							<>
-								<strong>Header Info</strong>
+					<div className={styles["section-info"]}>
+						<section className={styles["section-input"]}>
+							{/* Standard Sections (non-Vanguard / non-Multimedia) */}
+							<div
+								id={styles["std-sections"]}
+								style={{ display: category === "vanguard" || category === "multimedia" ? "none" : "block" }}
+							>
+								<h3>Article</h3>
 								<p>
-									Start with a label like <strong>Photo</strong>, <strong>Image</strong>, or <strong>Graphic</strong>, followed by a
-									colon (<strong>:</strong>) and the name of the photographer or designer.
+									<strong>Header image</strong> (JPG, JPEG, PNG, WEBP, or GIF only):
 								</p>
-								<p>
-									To credit more than one person, include both names with <strong>and</strong> between them — for example:{" "}
-									<strong>photo:</strong> John Doe and Jane Doe.
-								</p>
-								<p>
-									Press <strong>Enter</strong> twice after the credit line to begin the context or description.
-								</p>
-								<textarea
-									onChange={updateHeaderInfo}
-									value={formData.contentInfo || ""}
-									style={{ width: "100%", minHeight: "80px", resize: "block" }}
-								/>
+
+								<div className={styles["file-input"]}>
+									<label
+										onDragEnter={e => {
+											e.currentTarget.classList.add(styles["dragover"]);
+										}}
+										onDragLeave={e => {
+											e.currentTarget.classList.remove(styles["dragover"]);
+										}}
+										onDragEnd={e => {
+											e.currentTarget.classList.remove(styles["dragover"]);
+										}}
+										onDragOver={e => e.preventDefault()}
+										onDrop={inputImageDrop.bind(globalThis, updateImage)}
+									>
+										<span className={styles["drop-img-prompt"]}>Drop Header Image Here (or click to upload)</span>
+										<span className={styles["uploaded-prompt"]}>
+											<i className="fa-solid fa-check"></i>
+											<span className="img-name"></span> uploaded!
+										</span>
+										<input
+											id="img-upload"
+											type="file"
+											accept=".jpg,.jpeg,.png,.gif,.webp"
+											onChange={e => updateImage(e.target)}
+										/>
+									</label>
+								</div>
 								<br />
 								<br />
-							</>
-						)}
-						<strong>Title</strong>
-						<br />
-						<input type="text" onChange={updateTitle} value={formData.title || ""} />
-						<br />
-						<br />
-
-						{/* Hide entire authors block if category=opinions & subcategory=editorials */}
-						{!(category === "opinions" && formData.subcategory === "editorials") && (
-							<>
-								<strong>Author(s)</strong>
-								<p>Separate each author with a comma, and do not include titles. Leave this blank for the editorial.</p>
-								<p>
-									Example: &quot;John Doe, NEWS AND FEATURES CO-EDITOR and Jane Doe, OPINIONS CO-EDITOR&quot; is entered as
-									&quot;John Doe, Jane Doe&quot;.
-								</p>
-								<input type="text" onChange={updateAuthors} value={formData.authors || ""} />
-								<br />
-								<br />
-							</>
-						)}
-
-						<p>
-							<strong>Article Content</strong> (Markdown supported).
-							<br />
-							Use empty lines to separate paragraphs. See{" "}
-							<Link href="/articles/1970/1/news-features/Writing-in-Markdown-568" style={{ textDecoration: "underline" }}>
-								this guide
-							</Link>{" "}
-							for details.
-						</p>
-						<textarea id={styles.contentInput} onChange={updateContent} value={formData.content || ""} />
-						<br />
-
-						<input type="checkbox" onChange={togglePreview} checked={previewDisplay === "block"} />
-						<label>Show Preview</label>
-
-						{/* PREVIEW BLOCK */}
-						<div style={{ display: previewDisplay, textAlign: "left" }}>
-							<hr />
-							<ArticleContent
-								article={{
-									id: -1,
-									title: formData.title ?? "",
-									content: previewContent,
-									published: false,
-									category: category,
-									subcategory: "",
-									authors: (formData.authors ?? "").split(", "),
-									month: new Date().getMonth() + 1,
-									year: new Date().getFullYear(),
-									img: formData.imgData ? `${formData.imgData}` : "",
-									markdown: true,
-								}}
-							/>
-						</div>
-						<br />
-						<br />
-						<br />
-						<hr />
-					</div>
-					{/* Vanguard: requires a PDF spread */}
-					<div id={styles.vanguard} style={{ display: category === "vanguard" ? "block" : "none" }}>
-						<h3>Vanguard</h3>
-						<p>
-							<strong>Title</strong>
-							<br />
-							<input type="text" onChange={updateTitle} value={formData.title || ""} />
-						</p>
-						<br />
-						<strong>Spread (PDF)</strong>
-						<p>
-							Please upload a single PDF with no special characters in the file name. If you have multiple pages, combine them into one
-							PDF as it appears in the physical issue.
-						</p>
-						<input type="file" accept=".pdf" onChange={updateSpread} />
-					</div>
-
-					{/* Multimedia: YouTube or Podcast */}
-					<div id={styles.multimedia} style={{ display: category === "multimedia" ? "block" : "none" }}>
-						{formData.subcategory === "youtube" ? (
-							<>
-								<h3>YouTube Video</h3>
+								{/* If a header image is attached, show a resizable Header Info field */}
+								{formData.img && (
+									<>
+										<strong>Header Info</strong>
+										<p>
+											Start with a label like <strong>Photo</strong>, <strong>Image</strong>, or <strong>Graphic</strong>,
+											followed by a colon (<strong>:</strong>) and the name of the photographer or designer.
+										</p>
+										<p>
+											To credit more than one person, include both names with <strong>and</strong> between them — for example:{" "}
+											<strong>photo:</strong> John Doe and Jane Doe.
+										</p>
+										<p>
+											Press <strong>Enter</strong> twice after the credit line to begin the context or description.
+										</p>
+										<textarea
+											onChange={updateHeaderInfo}
+											value={formData.contentInfo || ""}
+											style={{ width: "100%", minHeight: "80px", resize: "block" }}
+										/>
+										<br />
+										<br />
+									</>
+								)}
 								<strong>Title</strong>
 								<br />
 								<input type="text" onChange={updateTitle} value={formData.title || ""} />
 								<br />
 								<br />
+
+								{/* Hide entire authors block if category=opinions & subcategory=editorials */}
+								{!(category === "opinions" && formData.subcategory === "editorials") && (
+									<>
+										<strong>Author(s)</strong>
+										<p>Separate each author with a comma, and do not include titles. Leave this blank for the editorial.</p>
+										<p>
+											Example: &quot;John Doe, NEWS AND FEATURES CO-EDITOR and Jane Doe, OPINIONS CO-EDITOR&quot; is entered as
+											&quot;John Doe, Jane Doe&quot;.
+										</p>
+										<input type="text" onChange={updateAuthors} value={formData.authors || ""} />
+										<br />
+										<br />
+									</>
+								)}
+
 								<p>
-									Submit only the video ID (e.g. for https://www.youtube.com/watch?v=
-									<b>TKfS5zVfGBc</b>).
+									<strong>Article Content</strong> (Markdown supported).
+									<br />
+									Use empty lines to separate paragraphs. See{" "}
+									<Link
+										target="_blank"
+										href="/articles/1970/1/news-features/Writing-in-Markdown-568"
+										style={{ textDecoration: "underline" }}
+									>
+										this guide
+									</Link>{" "}
+									for details.
 								</p>
-							</>
-						) : formData.subcategory === "podcast" ? (
-							<>
-								<h3>Podcast</h3>
+								<textarea id={styles.contentInput} onChange={updateContent} value={formData.content || ""} />
+								<br />
+							</div>
+
+							{/* Vanguard: requires a PDF spread */}
+							<div id={styles.vanguard} style={{ display: category === "vanguard" ? "block" : "none" }}>
+								<h3>Vanguard</h3>
 								<p>
-									Submit only the part after e.g. https://rss.com/podcasts/
-									<b>towershorts/1484378/</b>
+									<strong>Title</strong>
+									<br />
+									<input type="text" onChange={updateTitle} value={formData.title || ""} />
 								</p>
-							</>
-						) : (
-							!formData.subcategory && <p>Please select “YouTube Video” or “Podcast”.</p>
-						)}
-						<input type="text" onChange={updateMulti} value={formData.multi || ""} />
+								<br />
+								<strong>Spread (PDF)</strong>
+								<p>
+									Please upload a single PDF with no special characters in the file name. If you have multiple pages, combine them
+									into one PDF as it appears in the physical issue.
+								</p>
+								{/* <input type="file" accept=".pdf" onChange={updateSpread} /> */}
+								<div className={styles["file-input"]}>
+									<label
+										onDragEnter={e => {
+											e.currentTarget.classList.add(styles["dragover"]);
+										}}
+										onDragLeave={e => {
+											e.currentTarget.classList.remove(styles["dragover"]);
+										}}
+										onDragEnd={e => {
+											e.currentTarget.classList.remove(styles["dragover"]);
+										}}
+										onDragOver={e => e.preventDefault()}
+										onDrop={inputImageDrop.bind(globalThis, updateSpread)}
+									>
+										<span className={styles["drop-img-prompt"]}>Drop Spread PDF Here (or click to upload)</span>
+										<span className={styles["uploaded-prompt"]}>
+											<i className="fa-solid fa-check"></i>
+											<span className="img-name"></span> uploaded!
+										</span>
+										<input
+											id="img-upload"
+											type="file"
+											accept=".jpg,.jpeg,.png,.gif,.webp"
+											onChange={e => updateImage(e.target)}
+										/>
+										<input type="file" accept=".pdf" onChange={e => updateSpread(e.target)} />
+									</label>
+								</div>
+							</div>
+
+							{/* Multimedia: YouTube or Podcast */}
+							<div id={styles.multimedia} style={{ display: category === "multimedia" ? "block" : "none" }}>
+								{formData.subcategory === "youtube" ? (
+									<>
+										<h3>YouTube Video</h3>
+										<strong>Title</strong>
+										<br />
+										<input type="text" onChange={updateTitle} value={formData.title || ""} />
+										<br />
+										<br />
+										<p>
+											Submit only the video ID (e.g. for https://www.youtube.com/watch?v=
+											<b>TKfS5zVfGBc</b>).
+										</p>
+									</>
+								) : formData.subcategory === "podcast" ? (
+									<>
+										<h3>Podcast</h3>
+										<p>
+											Submit only the part after e.g. https://rss.com/podcasts/
+											<b>towershorts/1484378/</b>
+										</p>
+									</>
+								) : (
+									!formData.subcategory && <p>Please select “YouTube Video” or “Podcast”.</p>
+								)}
+								<input type="text" onChange={updateMulti} value={formData.multi || ""} />
+							</div>
+						</section>
+						<section className={styles["section-preview"]}>
+							{/* PREVIEW BLOCK */}
+							<div style={{ textAlign: "left" }}>
+								{formData.category && ["news-features", "opinions", "sports", "arts-entertainment"].includes(formData.category) && (
+									<ArticleContent
+										article={{
+											id: -1,
+											title: formData.title ?? "",
+											content: previewContent,
+											published: false,
+											category: formData.category ?? "",
+											subcategory: formData.subcategory ?? "",
+											authors: (formData.authors ?? "").split(", "),
+											month: new Date().getMonth() + 1,
+											year: new Date().getFullYear(),
+											img: formData.imgData ? `${formData.imgData}` : "",
+											markdown: true,
+										}}
+									/>
+								)}
+								{formData.category === "vanguard" && (
+									<SpreadContent
+										spread={{
+											id: -1,
+											title: formData.title ?? "",
+											src: spreadData,
+											month: new Date().getMonth() + 1,
+											year: new Date().getFullYear(),
+											category: null,
+										}}
+									/>
+								)}
+							</div>
+							<br /> <br /> <br />
+						</section>
 					</div>
 
 					<br />
