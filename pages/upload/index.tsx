@@ -556,8 +556,7 @@ export default function Upload() {
 									>
 										<span className={styles["drop-img-prompt"]}>Drop Header Image Here (or click to upload)</span>
 										<span className={styles["uploaded-prompt"]}>
-											<i className="fa-solid fa-check"></i>
-											<span className="img-name"></span> uploaded!
+											<i className="fa-solid fa-check"></i> <span className="img-name"></span> uploaded!
 										</span>
 										<input
 											id="img-upload"
@@ -726,6 +725,7 @@ export default function Upload() {
 											year: new Date().getFullYear(),
 											img: formData.imgData ? `${formData.imgData}` : "",
 											markdown: true,
+											contentInfo: formData.contentInfo,
 										}}
 									/>
 								)}

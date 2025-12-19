@@ -22,14 +22,23 @@ type Subsection = {
 	href: string;
 };
 
-function SectionLink({ href, name: section, subsections }: { href: string; name: string; subsections?: Subsection[]}) {
+function SectionLink({ href, name: section, subsections }: { href: string; name: string; subsections?: Subsection[] }) {
 	const [open, setOpen] = useState(false);
 	return (
 		<div className="section-link">
 			<div className="section-button">
 				<Link href={href}>{section}</Link>
-				{ subsections && <div className="bar-vertical"/> }
-				{ subsections && <span onClick={e => { e.preventDefault(); setOpen(!open); }}><i className="fa-solid fa-chevron-down" data-open={open}/></span> }
+				{subsections && <div className="bar-vertical" />}
+				{subsections && (
+					<span
+						onClick={e => {
+							e.preventDefault();
+							setOpen(!open);
+						}}
+					>
+						<i className="fa-solid fa-chevron-down" data-open={open} />
+					</span>
+				)}
 			</div>
 			{subsections && (
 				<div className="dropdown">
