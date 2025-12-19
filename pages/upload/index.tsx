@@ -10,7 +10,10 @@ import imageCompression from "browser-image-compression";
 import styles from "./upload.module.scss";
 import { ArticleContent } from "../articles/[year]/[month]/[cat]/[slug]";
 import { SpreadContent } from "../spreads/[year]/[month]/[cat]/[slug]";
-import Spread from "~/components/spread.client";
+import dynamic from "next/dynamic";
+
+const Video = dynamic(() => import("~/components/video.client"), { ssr: false });
+const Podcast = dynamic(() => import("~/components/podcast.client"), { ssr: false });
 
 // Our form data shape (added contentInfo for header info)
 type FormDataType = {
@@ -740,6 +743,23 @@ export default function Upload() {
 											category: null,
 										}}
 									/>
+								)}
+
+								{formData.category === "multimedia" && formData.subcategory === "youtube" && (
+									<>
+										<h3 style={{ margin: "1rem" }}>Preview</h3>
+										<div className="video-wrapper">
+											<Video link={formData.multi ?? ""} title={formData.title ?? ""} />
+											<br />
+										</div>
+									</>
+								)}
+
+								{formData.category === "multimedia" && formData.subcategory === "podcast" && (
+									<>
+										<h3 style={{ margin: "1rem" }}>Preview</h3>
+										<Podcast link={formData.multi ?? ""} />
+									</>
 								)}
 							</div>
 							<br /> <br /> <br />

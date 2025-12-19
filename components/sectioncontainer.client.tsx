@@ -28,7 +28,7 @@ export function SectionContainer({ category, desc, articles }: SectionProps) {
 					flex-shrink: 0;
 					width: 16rem;
 					height: 100%;
-					background-color: #fff;
+					background-color: var(--background);
 					scroll-snap-align: start;
 				}
 

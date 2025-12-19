@@ -129,7 +129,7 @@ export default function CrosswordGame({ puzzleInput }: Props) {
 			<div className="title-container">
 				<h1>The Crossword</h1>
 				<p style={{ fontFamily: styles.font.sans }}>
-					By {puzzleInput.author} on {date.toLocaleDateString()}
+					By {puzzleInput.author} on {date.toLocaleString("en-us", { timeZone: "America/New_York", dateStyle: "long" })}
 				</p>
 			</div>
 			<MenuBar

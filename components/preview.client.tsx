@@ -213,7 +213,7 @@ export default function ArticlePreview({ article, category, style = "row", size 
 					text-overflow: ellipsis;
 				}
 				.article-preview > .large-preview {
-					background-color: white;
+					background-color: var(--background);
 					padding: 10px;
 					margin-bottom: 10px;
 					border-bottom: 1px solid gainsboro;
