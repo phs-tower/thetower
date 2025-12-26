@@ -58,8 +58,6 @@ export default function Upload() {
 	const [category, setCategory] = useState<string>("");
 	const [uploadResponse, setUploadResponse] = useState("");
 	const [previewContent, setPreviewContent] = useState("");
-	const [isCompressing, setIsCompressing] = useState(false);
-	const [compressionSummary, setCompressionSummary] = useState<string | null>(null);
 	const [spreadData, setSpreadData] = useState<string>("");
 
 	const errorRef = useRef<HTMLParagraphElement>(null);
@@ -76,13 +74,6 @@ export default function Upload() {
 			return () => clearTimeout(timer);
 		}
 	}, [uploadStatus]);
-
-	useEffect(() => {
-		if (compressionSummary) {
-			const timer = setTimeout(() => setCompressionSummary(null), 4000);
-			return () => clearTimeout(timer);
-		}
-	}, [compressionSummary]);
 
 	useEffect(() => {
 		setHydrated(true);
@@ -194,7 +185,6 @@ export default function Upload() {
 			});
 		};
 		reader.readAsDataURL(image);
-		setIsCompressing(false);
 	}
 
 	// Update PDF spread (for Vanguard)
@@ -429,26 +419,6 @@ export default function Upload() {
 				<meta property="og:title" content="Upload Articles | The Tower" />
 				<meta property="og:description" content="Section editors upload content here." />
 			</Head>
-
-			{(isCompressing || compressionSummary) && (
-				<div
-					style={{
-						position: "fixed",
-						top: "96px", // <-- was 20px; move below masthead OR keep 20px
-						right: "20px",
-						backgroundColor: "#333",
-						color: "white",
-						padding: "10px 20px",
-						borderRadius: "8px",
-						boxShadow: "0 4px 8px rgba(0,0,0,0.2)",
-						zIndex: 100000000001, // <-- bump above your nav
-						animation: "fadeIn 0.3s ease",
-						fontSize: "1rem",
-					}}
-				>
-					{isCompressing ? "Compressing image..." : compressionSummary}
-				</div>
-			)}
 
 			<div id={styles.formWrapper}>
 				<h2>PHS Tower Submission Platform</h2>
@@ -759,6 +729,12 @@ export default function Upload() {
 									<>
 										<h3 style={{ margin: "1rem" }}>Preview</h3>
 										<Podcast link={formData.multi ?? ""} />
+									</>
+								)}
+
+								{!formData.category && (
+									<>
+										<h3 style={{ margin: "1rem" }}>Select a Category!</h3>
 									</>
 								)}
 							</div>
