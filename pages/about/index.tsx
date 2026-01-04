@@ -1,10 +1,38 @@
 /** @format */
 
 import Head from "next/head";
+import fs from "fs";
+import path from "path";
 // import styles from "~/lib/styles";
 import styles from "./about.module.scss";
 
-export default function About() {
+interface AboutProps {
+	latestYear: number;
+	memberCount: number;
+}
+
+export async function getStaticProps() {
+	const contentDir = path.join(process.cwd(), "content");
+	const files = fs.readdirSync(contentDir);
+	const years = files
+		.map(f => /^(\d{4})\.json$/i.exec(f)?.[1])
+		.filter(Boolean)
+		.map(y => parseInt(y as string, 10));
+
+	const latestYear = years.length ? Math.max(...years) : new Date().getFullYear();
+	let memberCount = 0;
+	try {
+		const raw = fs.readFileSync(path.join(contentDir, `${latestYear}.json`), "utf8");
+		const data = JSON.parse(raw) as { sections?: { name: string; members?: unknown[] }[] };
+		memberCount = (data.sections || [])
+			.filter(s => s && typeof s.name === "string" && s.name.toLowerCase() !== "advisors")
+			.reduce((sum, s) => sum + (Array.isArray(s.members) ? s.members.length : 0), 0);
+	} catch {}
+
+	return { props: { latestYear, memberCount } };
+}
+
+export default function About({ latestYear, memberCount }: AboutProps) {
 	return (
 		<div className={styles.about}>
 			<Head>
@@ -27,8 +55,9 @@ export default function About() {
 			<h2>Editorial Board</h2>
 			<p>
 				{/* noone has edited this since 2023... */}
-				The Editoral Board of the Tower consists of a select group of 14 Tower 2023 staff members. The views of board members are accurately
-				reflected in the editorial, which is co-written each month by the Board with primary authorship changing monthly.
+				The Editoral Board of the Tower consists of a select group of {memberCount} Tower {latestYear} staff members. The views of board
+				members are accurately reflected in the editorial, which is co-written each month by the Board with primary authorship changing
+				monthly.
 			</p>
 			<br />
 			<br />

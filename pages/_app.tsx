@@ -1,4 +1,4 @@
-/** @format */
+﻿/** @format */
 
 import type { AppProps, NextWebVitalsMetric } from "next/app";
 import Head from "next/head";
@@ -273,7 +273,7 @@ function Footer() {
 					href="https://docs.google.com/forms/d/e/1FAIpQLSeine_aZUId0y2OjY2FZyJ93ZliGQZos-6c3VwkPg2IhXsGfg/viewform?usp=sf_link"
 					className="home-btn"
 				>
-					Report problem »
+					Report problem Â»
 				</Link>
 			</div>
 			<div className="bottom">
@@ -332,7 +332,7 @@ function Footer() {
 				</div>
 			</div>
 			<hr />
-			<span>© 2017-2025 The Tower</span>
+			<span>&copy; 2017-{new Date().getFullYear()} The Tower</span>
 			<span>
 				Site by Luke Tong &apos;23, Jieruei Chang &apos;24, Henry Langmack &apos;25, Ayush Shrivastava &apos;25, Anita Ndubisi &apos;26, Om
 				Mehta &apos;26, and Aryan Singla &apos;27

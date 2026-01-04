@@ -1,4 +1,4 @@
-﻿/** @format */
+/** @format */
 
 import { useState } from "react";
 import Head from "next/head";
@@ -152,7 +152,7 @@ export default function Subscribe({ articles }: Props) {
 				}
 			`}</style>
 
-			{/* mobile â€œShow/Hide Sidebarâ€ button */}
+			{/* mobile “Show/Hide Sidebar” button */}
 
 			<div className="grid">
 				{/* The letter */}
@@ -176,29 +176,25 @@ export default function Subscribe({ articles }: Props) {
 					<p style={{ marginTop: "1rem" }}>Dear Tower Families, Friends, and Readers,</p>
 
 					<p>
-						In the nearly hundred years since its founding in 1928, <em>The Tower</em> has chronicled the story of Princeton High School —
-						the big headlines, the quiet uncertainty, the student voices, and all of the moments that continue to make this community a
-						home for us. Every issue is written, edited, and designed by students who care deeply about what happens here, and who believe
-						that our school’s story is best told by the people living it.
+						Since 1928, <em>The Tower</em> has told the story of Princeton High School — not just the big headlines, but the quiet
+						changes, the student voices, and the moments that make this community feel like home. Every issue is written, edited, and
+						designed by students who care deeply about what happens here.
 					</p>
 
 					<p>
-						We write about what we&apos;re proud of, what might be different, and things we&apos;re still figuring out. We ask questions,
-						highlight student creativity, and reflect on what life is like at PHS. It&apos;s a paper by students — for anyone who wants to
-						understand them better.
+						We write about things we’re proud of, and things we’re still figuring out. We ask questions, highlight student creativity, and
+						try to reflect what life at PHS really feels like. It’s a paper by students — for anyone who wants to understand them better.
 					</p>
 
 					<p>
-						By subscribing, you support students who learn to write with a sense of posterity—who speak with the confidence to influence
-						what happens next, and who learn to listen and reflect closely on the world around them. You&apos;ll also receive all eight of
-						our monthly print issues delivered straight to your door — a year&apos;s worth of our school&apos;s story, arriving one
-						chapter at a time.
+						When you subscribe, you’re not just supporting a school newspaper — you’re helping students learn how to write with purpose,
+						speak with confidence, and listen closely to the world around them. In return, you’ll receive all eight of our monthly print
+						issues delivered straight to your door — a window into the rhythm of the school year and the voices that shape it.
 					</p>
 
 					<p>
-						If that sounds like something you want to be part of, and something that seems right to you, we’d be honored, and would love
-						to help you learn through stories and experiences. You can subscribe by paying online, by check, or in cash — whatever is
-						easiest for you.
+						If that sounds like something you want to be part of, we’d be honored. You can subscribe by paying online or by check or cash
+						— whatever’s easier for you.
 					</p>
 
 					<p className="signature">
@@ -207,7 +203,7 @@ export default function Subscribe({ articles }: Props) {
 						The Editorial Board of <em>The Tower</em>
 					</p>
 
-					<p className="price-note">2025-2026 Subscription: $30/year for 8 monthly issues</p>
+					<p className="price-note">2024–25 Subscription: $30/year for 8 monthly issues</p>
 
 					<p className="contact-note">
 						Contact <u>towerbusiness@gmail.com</u> with any questions.
@@ -235,3 +231,4 @@ export default function Subscribe({ articles }: Props) {
 		</div>
 	);
 }
+
