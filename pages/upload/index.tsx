@@ -6,7 +6,6 @@ import Link from "next/link";
 import { remark } from "remark";
 import html from "remark-html";
 import confetti from "canvas-confetti";
-import imageCompression from "browser-image-compression";
 import styles from "./upload.module.scss";
 import { ArticleContent } from "../articles/[year]/[month]/[cat]/[slug]";
 import { SpreadContent } from "../spreads/[year]/[month]/[cat]/[slug]";
@@ -28,6 +27,8 @@ type FormDataType = {
 	spread?: File | null; // Not stored in localStorage
 	imgData?: string | null;
 	imgName?: string | null;
+	month?: number | null;
+	year?: number | null;
 };
 
 // 72 hours in ms
@@ -59,8 +60,60 @@ export default function Upload() {
 	const [uploadResponse, setUploadResponse] = useState("");
 	const [previewContent, setPreviewContent] = useState("");
 	const [spreadData, setSpreadData] = useState<string>("");
+	const [imgOrigBytes, setImgOrigBytes] = useState<number | null>(null);
+	const [serverImgBytes, setServerImgBytes] = useState<number | null>(null);
+	const [imgCompressedBytes, setImgCompressedBytes] = useState<number | null>(null);
 
 	const errorRef = useRef<HTMLParagraphElement>(null);
+
+	// Resizable preview panel
+	const containerRef = useRef<HTMLDivElement>(null);
+	const [dragging, setDragging] = useState(false);
+	const [previewWidth, setPreviewWidth] = useState<number | null>(null); // px; 0 => hidden
+
+	useEffect(() => {
+		if (!hydrated) return;
+		// Load saved width or set a sensible default based on container width
+		const saved = localStorage.getItem("uploadPreviewWidthPx");
+		let initial: number | null = null;
+		if (saved && !Number.isNaN(Number(saved))) initial = Math.max(0, parseInt(saved, 10));
+		if (initial === null || Number.isNaN(initial)) {
+			const el = containerRef.current;
+			if (el) {
+				const rect = el.getBoundingClientRect();
+				initial = Math.round(Math.min(Math.max(rect.width * 0.4, 320), 720));
+			}
+		}
+		if (typeof initial === "number" && !Number.isNaN(initial)) setPreviewWidth(initial);
+	}, [hydrated]);
+
+	useEffect(() => {
+		if (!dragging) return;
+		function onMove(ev: MouseEvent) {
+			const el = containerRef.current;
+			if (!el) return;
+			const rect = el.getBoundingClientRect();
+			let next = Math.round(rect.right - ev.clientX);
+			// Allow 0 (hidden) up to max leaving some space for inputs
+			next = Math.max(0, Math.min(next, Math.max(240, rect.width - 260)));
+			setPreviewWidth(next);
+		}
+		function onUp() {
+			setDragging(false);
+			if (previewWidth !== null) localStorage.setItem("uploadPreviewWidthPx", String(previewWidth));
+		}
+		window.addEventListener("mousemove", onMove);
+		window.addEventListener("mouseup", onUp);
+		return () => {
+			window.removeEventListener("mousemove", onMove);
+			window.removeEventListener("mouseup", onUp);
+		};
+	}, [dragging, previewWidth]);
+
+	function startDrag(e: React.MouseEvent<HTMLDivElement>) {
+		e.preventDefault();
+		setDragging(true);
+	}
 
 	// Saving indicator state
 	const [isSaving, setIsSaving] = useState(false);
@@ -99,8 +152,8 @@ export default function Upload() {
 	useEffect(() => {
 		if (!hydrated) return;
 		setIsSaving(true);
-		const { category, subcategory, title, authors, content, multi, contentInfo } = formData;
-		const fieldsToStore = { category, subcategory, title, authors, content, multi, contentInfo };
+		const { category, subcategory, title, authors, content, multi, contentInfo, month, year } = formData;
+		const fieldsToStore = { category, subcategory, title, authors, content, multi, contentInfo, month, year };
 		try {
 			localStorage.setItem("uploadFormData", JSON.stringify(fieldsToStore));
 			localStorage.setItem("uploadFormTimestamp", Date.now().toString());
@@ -133,6 +186,18 @@ export default function Upload() {
 		}
 	}
 
+	function formatBytes(bytes: number | null | undefined) {
+		if (bytes === null || bytes === undefined) return "";
+		const units = ["B", "KB", "MB", "GB"] as const;
+		let b = bytes;
+		let i = 0;
+		while (b >= 1024 && i < units.length - 1) {
+			b /= 1024;
+			i++;
+		}
+		return `${Math.round(b * 10) / 10} ${units[i]}`;
+	}
+
 	function changeCategory(e: ChangeEvent<HTMLSelectElement>) {
 		setCategory(e.target.value);
 		setFormData({ ...formData, category: e.target.value });
@@ -148,6 +213,16 @@ export default function Upload() {
 
 	function updateAuthors(e: ChangeEvent<HTMLInputElement>) {
 		setFormData({ ...formData, authors: e.target.value });
+	}
+
+	function changeMonth(e: ChangeEvent<HTMLSelectElement>) {
+		const m = parseInt(e.target.value, 10);
+		if (!isNaN(m)) setFormData({ ...formData, month: m });
+	}
+
+	function changeYear(e: ChangeEvent<HTMLInputElement>) {
+		const y = parseInt(e.target.value, 10);
+		setFormData({ ...formData, year: !isNaN(y) ? y : null });
 	}
 
 	async function updateContent(e: ChangeEvent<HTMLTextAreaElement>) {
@@ -175,6 +250,8 @@ export default function Upload() {
 			return;
 		}
 
+		// Track original size and preview the original (no client compression)
+		setImgOrigBytes(image.size);
 		const reader = new FileReader();
 		reader.onload = () => {
 			setFormData({
@@ -187,12 +264,28 @@ export default function Upload() {
 		reader.readAsDataURL(image);
 	}
 
+	function clearImage() {
+		setFormData({ ...formData, img: null, imgData: null, imgName: null });
+		setImgOrigBytes(null);
+		setServerImgBytes(null);
+		const inp = document.getElementById("img-upload") as HTMLInputElement | null;
+		if (inp) {
+			inp.value = "";
+			if (inp.parentElement) {
+				inp.parentElement.classList.remove(styles["has-file"]);
+			}
+		}
+	}
+
 	// Update PDF spread (for Vanguard)
 	function updateSpread(inp: HTMLInputElement) {
 		if (!inp.files || !inp.files[0]) return;
 		const file = inp.files[0];
 		if (file.type !== "application/pdf") {
 			alert("Invalid file format. Please upload a PDF file.");
+			setUploadResponse("Upload failed: Please upload a PDF file for Vanguard.");
+			setUploadStatus("error");
+			triggerErrorAnimation();
 			inp.value = "";
 			setFormData({ ...formData, spread: null });
 			return;
@@ -200,6 +293,11 @@ export default function Upload() {
 		const fiftyMB = 50 * 1024 * 1024;
 		if (file.size > fiftyMB) {
 			alert("Error processing PDF: file is too large (max 50 MB).");
+			setUploadResponse(
+				"Upload failed: PDF is too large (max 50 MB). Try compressing using an online tool like Smallpdf, iLovePDF, Adobe Acrobat, or PDF24, then re-upload."
+			);
+			setUploadStatus("error");
+			triggerErrorAnimation();
 			inp.value = "";
 			setFormData({ ...formData, spread: null });
 			return;
@@ -213,7 +311,7 @@ export default function Upload() {
 		setFormData({ ...formData, multi: e.target.value });
 	}
 
-	// Attempt upload with retries (1 extra attempt)
+	// Attempt upload with retries (1 extra attempt). Returns response even on non-OK.
 	async function attemptUpload(fd: FormData, retries = 1): Promise<{ response: Response; data: any }> {
 		try {
 			let response = await fetch("/api/upload", { method: "POST", body: fd });
@@ -242,7 +340,8 @@ export default function Upload() {
 
 			if (!response.ok) {
 				if (retries > 0) return await attemptUpload(fd, retries - 1);
-				throw new Error(data.message || "Upload failed");
+				// Return non-OK so caller can handle 413 (too large) differently.
+				return { response, data };
 			}
 
 			return { response, data };
@@ -300,6 +399,16 @@ export default function Upload() {
 		fd.append("category", formData.category);
 		const authors = formData.authors ? formData.authors.split(", ") : [""];
 
+		// Include selected or current month/year
+		const now = new Date();
+		const chosenMonth = String(formData.month ?? now.getMonth() + 1);
+		const chosenYear = String(formData.year ?? now.getFullYear());
+		fd.append("month", chosenMonth);
+		fd.append("year", chosenYear);
+
+		// Send original image to server; server handles compression
+		let preparedImg: File | null = formData.img ?? null;
+
 		// Vanguard
 		if (formData.category === "vanguard") {
 			if (!formData.spread) {
@@ -335,7 +444,7 @@ export default function Upload() {
 			fd.append("title", formData.title);
 			fd.append("authors", JSON.stringify(authors));
 			if (formData.content) fd.append("content", formData.content);
-			if (formData.img) fd.append("img", formData.img);
+			if (preparedImg) fd.append("img", preparedImg);
 			// Append header info if provided
 			if (formData.contentInfo) fd.append("content-info", formData.contentInfo);
 		}
@@ -345,36 +454,30 @@ export default function Upload() {
 		try {
 			let { response, data } = await attemptUpload(fd, 1);
 
-			// If image upload returns 413 (Payload Too Large) and an image exists, try harder compression (~0.8MB)
-			if (response.status === 413 && formData.img) {
-				alert("Image too big! Retrying with stronger compression...");
-				try {
-					const harder = await imageCompression(formData.img, {
-						maxSizeMB: 0.8,
-						maxWidthOrHeight: 2000,
-						fileType: "image/webp",
-						useWebWorker: true,
-						initialQuality: 0.8,
-					});
-					fd.set("img", harder);
-					const attempt = await attemptUpload(fd, 1);
-					response = attempt.response;
-					data = attempt.data;
-				} catch (compressionError: any) {
-					console.warn("Second compression failed, retrying original:", compressionError);
-					fd.set("img", formData.img);
-					const attempt = await attemptUpload(fd, 1);
-					response = attempt.response;
-					data = attempt.data;
-				}
-			}
+			// No special 413 handling; rely on server to accept originals
 
 			if (!response.ok) {
-				setUploadResponse(`Upload failed: ${data.message || "Unknown error"}`);
+				setUploadResponse(`Upload failed: ${data?.message || "Unknown error"}`);
 				setUploadStatus("error");
 				triggerErrorAnimation();
 			} else {
-				setUploadResponse(data.message || "Upload successful!");
+				// Show server-compressed size if provided (adds after Original)
+				if (data && typeof data.serverImgSizeBytes === "number" && data.serverImgSizeBytes > 0) {
+					const fmt = (n: number) => {
+						const units = ["B", "KB", "MB", "GB"] as const;
+						let v = n;
+						let i = 0;
+						while (v >= 1024 && i < units.length - 1) {
+							v /= 1024;
+							i++;
+						}
+						return `${Math.round(v * 10) / 10} ${units[i]}`;
+					};
+					setUploadResponse(`${data.message || "Upload successful!"} (Server final size: ${fmt(data.serverImgSizeBytes)})`);
+					setServerImgBytes(Number(data.serverImgSizeBytes));
+				} else {
+					setUploadResponse(data.message || "Upload successful!");
+				}
 				setUploadStatus("success");
 				if (errorRef.current) errorRef.current.classList.remove("error-message");
 				confetti();
@@ -498,10 +601,41 @@ export default function Upload() {
 						</div>
 					</div>
 					<br />
+					{/* Issue Date selection */}
+					<h3>Issue Date</h3>
+					<div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
+						<label>
+							Month
+							<select value={(formData.month ?? new Date().getMonth() + 1).toString()} onChange={changeMonth}>
+								<option value="1">January</option>
+								<option value="2">February</option>
+								<option value="3">March</option>
+								<option value="4">April</option>
+								<option value="5">May</option>
+								<option value="6">June</option>
+								<option value="7">July</option>
+								<option value="8">August</option>
+								<option value="9">September</option>
+								<option value="10">October</option>
+								<option value="11">November</option>
+								<option value="12">December</option>
+							</select>
+						</label>
+						<label>
+							Year
+							<input
+								type="number"
+								min={2010}
+								max={new Date().getFullYear() + 1}
+								value={String(formData.year ?? new Date().getFullYear())}
+								onChange={changeYear}
+							/>
+						</label>
+					</div>
 					<hr />
 					<br />
 
-					<div className={styles["section-info"]}>
+					<div className={styles["section-info"]} ref={containerRef}>
 						<section className={styles["section-input"]}>
 							{/* Standard Sections (non-Vanguard / non-Multimedia) */}
 							<div
@@ -539,6 +673,19 @@ export default function Upload() {
 										/>
 									</label>
 								</div>
+								{imgOrigBytes !== null && (
+									<p style={{ color: "#888", marginTop: "6px", display: "flex", alignItems: "center", gap: "8px" }}>
+										<button type="button" onClick={clearImage}>
+											Clear
+										</button>
+										<span>
+											Original size: {formatBytes(imgOrigBytes)}
+											{serverImgBytes !== null
+												? ` \u2192 Compressed: ${formatBytes(serverImgBytes)}`
+												: " (will be compressed on upload)"}
+										</span>
+									</p>
+								)}
 								<br />
 								<br />
 								{/* If a header image is attached, show a resizable Header Info field */}
@@ -677,7 +824,23 @@ export default function Upload() {
 								<input type="text" onChange={updateMulti} value={formData.multi || ""} />
 							</div>
 						</section>
-						<section className={styles["section-preview"]}>
+						<div
+							className={styles["splitter"]}
+							onMouseDown={startDrag}
+							role="separator"
+							aria-orientation="vertical"
+							aria-label="Resize preview"
+						/>
+						<section
+							className={styles["section-preview"]}
+							style={{
+								flex: previewWidth !== null ? `0 0 ${Math.max(previewWidth, 0)}px` : undefined,
+								width: previewWidth !== null ? `${Math.max(previewWidth, 0)}px` : undefined,
+								minWidth: 0,
+								overflow: "auto",
+								display: previewWidth === 0 ? "none" : undefined,
+							}}
+						>
 							{/* PREVIEW BLOCK */}
 							<div style={{ textAlign: "left" }}>
 								{formData.category && ["news-features", "opinions", "sports", "arts-entertainment"].includes(formData.category) && (
@@ -694,8 +857,8 @@ export default function Upload() {
 											category: formData.category ?? "",
 											subcategory: formData.subcategory ?? "",
 											authors: (formData.authors ?? "").split(", "),
-											month: new Date().getMonth() + 1,
-											year: new Date().getFullYear(),
+											month: formData.month ?? new Date().getMonth() + 1,
+											year: formData.year ?? new Date().getFullYear(),
 											img: formData.imgData ? `${formData.imgData}` : "",
 											markdown: true,
 											contentInfo: formData.contentInfo,
@@ -708,8 +871,8 @@ export default function Upload() {
 											id: -1,
 											title: formData.title ?? "",
 											src: spreadData,
-											month: new Date().getMonth() + 1,
-											year: new Date().getFullYear(),
+											month: formData.month ?? new Date().getMonth() + 1,
+											year: formData.year ?? new Date().getFullYear(),
 											category: null,
 										}}
 									/>

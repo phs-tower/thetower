@@ -4,7 +4,7 @@ import { NextApiRequest, NextApiResponse } from "next";
 import formidable from "formidable";
 import { uploadArticle, uploadMulti, uploadSpread, uploadFile } from "~/lib/queries";
 
-async function uploadVang(files: formidable.Files, fields: formidable.Fields) {
+async function uploadVang(files: formidable.Files, fields: formidable.Fields, chosenMonth: number, chosenYear: number) {
 	let ret = { code: 500, error: "" };
 
 	if (!files.spread) return { ...ret, error: "Did you upload a spread?" };
@@ -16,8 +16,8 @@ async function uploadVang(files: formidable.Files, fields: formidable.Fields) {
 		await uploadSpread({
 			title: fields.title ? fields.title[0] : "No title provided",
 			src: upload.message,
-			month: new Date().getMonth() + 1,
-			year: new Date().getFullYear(),
+			month: chosenMonth,
+			year: chosenYear,
 			category: "vanguard",
 		});
 		return { ...ret, code: 200, error: "" };
@@ -41,11 +41,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
 		const currentMonth = today.getMonth() + 1;
 		const currentYear = today.getFullYear();
+		// allow client to provide custom month/year
+		const providedMonth = parseInt((fields as any)?.month?.[0] ?? "", 10);
+		const providedYear = parseInt((fields as any)?.year?.[0] ?? "", 10);
+		const chosenMonth = !isNaN(providedMonth) && providedMonth >= 1 && providedMonth <= 12 ? providedMonth : currentMonth;
+		const chosenYear = !isNaN(providedYear) && providedYear >= 2010 && providedYear <= currentYear + 1 ? providedYear : currentYear;
 
 		if (!fields.category) return res.status(500).json({ message: "Did you provide a category?" });
 
 		if (fields.category[0] == "vanguard") {
-			const status = await uploadVang(files, fields);
+			const status = await uploadVang(files, fields, chosenMonth, chosenYear);
 			return res.status(status.code).json({ message: status.error ?? "Uploaded!" });
 		}
 		if (fields.category[0] == "multimedia") {
@@ -55,8 +60,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 				await uploadMulti({
 					format: fields.subcategory[0],
 					src_id: fields.multi[0],
-					month: currentMonth,
-					year: currentYear,
+					month: chosenMonth,
+					year: chosenYear,
 					title: fields.title ? fields.title[0] : "",
 				});
 				return res.status(200).json({ message: "Uploaded!" });
@@ -73,6 +78,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 			let upload = await uploadFile(files.img[0], "images");
 			if (upload.code != 200) return res.status(upload.code).json({ message: upload.message });
 			imgURL = upload.message;
+			// Attach server final size if available
+			(fields as any).serverImgSizeBytes = String((upload as any).sizeBytes ?? "");
 			console.log("upload complete");
 		}
 
@@ -94,8 +101,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 			content: fields.content ? fields.content[0] : "",
 			contentInfo: fields["content-info"] ? fields["content-info"][0] : "",
 			img: imgURL,
-			month: currentMonth,
-			year: currentYear,
+			month: chosenMonth,
+			year: chosenYear,
 			markdown: true,
 		};
 
@@ -107,7 +114,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 		}
 
 		console.log("returning success message");
-		return res.status(200).json({ message: "Uploaded!" });
+		// bubble final server-compressed size to client if present
+		const serverImgSizeBytes = (fields as any).serverImgSizeBytes ? Number((fields as any).serverImgSizeBytes) : undefined;
+		return res.status(200).json({ message: "Uploaded!", serverImgSizeBytes });
 	});
 }
 

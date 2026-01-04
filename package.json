@@ -15,7 +15,7 @@
 		"prepare": "husky install"
 	},
 	"dependencies": {
-		"@prisma/client": "^5.10.1",
+		"@prisma/client": "^5.22.0",
 		"@react-icons/all-files": "^4.1.0",
 		"@react-pdf/renderer": "^4.3.0",
 		"@supabase/supabase-js": "^2.45.1",

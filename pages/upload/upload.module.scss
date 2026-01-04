@@ -201,14 +201,13 @@
 	}
 
 	.section-input {
-		flex-shrink: 1;
+		flex: 1 1 auto;
 	}
 
 	.section-preview {
-		max-width: 100ch;
-		min-width: 60ch;
-		width: 100%;
-
+		max-width: none;
+		min-width: 20ch;
+		width: 40%;
 		border: 1px solid black;
 	}
 
@@ -218,4 +217,12 @@
 			border-inline: none;
 		}
 	}
+}
+
+.splitter {
+	flex: 0 0 6px;
+	background: linear-gradient(90deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.1) 50%, rgba(0, 0, 0, 0) 100%);
+	cursor: col-resize;
+	user-select: none;
+	align-self: stretch;
 }

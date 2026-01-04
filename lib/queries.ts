@@ -581,7 +581,6 @@ export async function uploadFile(file: formidable.File, bucket: string) {
 	console.log(ext);
 	if (["jpg", "png", "gif", "webp"].includes(ext)) {
 		fileContent = await compressImg(fileContent);
-
 		ext = "webp";
 	}
 	// sanitize base (strip ext, slugify, trim length)
@@ -618,5 +617,5 @@ export async function uploadFile(file: formidable.File, bucket: string) {
 	}
 
 	const pub = supabase.storage.from(bucket).getPublicUrl(data.path);
-	return { code: 200, message: pub.data.publicUrl };
+	return { code: 200, message: pub.data.publicUrl, sizeBytes: (fileContent as Buffer).length };
 }
