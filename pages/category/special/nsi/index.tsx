@@ -38,18 +38,19 @@ export default function Category({ spreads, sidebar }: Props) {
 				}
 				.grid {
 					display: grid;
-					grid-template-columns: 3fr 2fr;
+					/* Match global sidebar sizing used on search/category pages */
+					grid-template-columns: 1fr clamp(300px, 26vw, 400px);
 					grid-column-gap: 2vw;
 				}
 				.spreads {
 				}
 				.sidebar {
 					margin-top: 2vh;
-					padding-left: 1vw;
-					padding-right: 1vw;
+					padding-left: 0.6rem;
+					padding-right: 0.6rem;
 					border: none;
 					border-left: 1px solid gainsboro;
-					border-right: 1px solid gainsboro;
+					border-right: none;
 				}
 			`}</style>
 			<h1>New Student Issue</h1>

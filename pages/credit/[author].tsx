@@ -86,6 +86,10 @@ export default function Credit({ author, articles }: Props) {
 				:global(.credit .article-preview.row.small .title) {
 					margin-top: 0;
 				}
+				/* Ensure placeholder-image rows still use two-column layout on desktop */
+				:global(.credit .article-preview.row.small.noimg) {
+					grid-template-columns: minmax(13.5rem, 17rem) 1fr !important;
+				}
 				@media (max-width: 900px) {
 					:global(.credit .article-preview.row.small) {
 						grid-template-columns: 1fr;
@@ -93,6 +97,10 @@ export default function Credit({ author, articles }: Props) {
 					}
 					:global(.credit .article-preview.row.small .img-wrapper) {
 						justify-content: flex-start;
+					}
+					/* On small screens, keep single-column even for .noimg */
+					:global(.credit .article-preview.row.small.noimg) {
+						grid-template-columns: 1fr !important;
 					}
 					:global(.credit .article-preview.row.small .preview-image) {
 						max-width: 100% !important;

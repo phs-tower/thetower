@@ -284,18 +284,39 @@ export async function getArticlesBySearch(query: string | string[]) {
 	if (!prisma) return [];
 	if (!safeQuery || !safeQuery.trim()) return [];
 
-	// Case-insensitive partial match for names inside the authors[] array
-	const likeParam = `%${safeQuery.replace(/[%_]/g, s => "\\" + s)}%`;
-	const authorIdRows = await prisma.$queryRaw<{ id: number }[]>`
-		SELECT id
-		FROM "article"
-		WHERE EXISTS (
-			SELECT 1
-			FROM unnest("authors") AS a(name)
-			WHERE a.name ILIKE ${likeParam}
-		)
-	`;
-	const authorIds = authorIdRows.map(r => r.id);
+	// Case-insensitive partial match for names inside the authors[] array using Prisma builder
+	// Prisma lacks ILIKE against array elements directly; emulate by OR-ing against hasSome with tokens
+	// and falling back to a secondary scan on contentInfo/title/content.
+	const tokens = safeQuery
+		.split(/\s+/)
+		.map(t => t.trim())
+		.filter(Boolean);
+
+	// Find articles whose authors[] contains any token exactly, plus an additional pass for relaxed matching using contains on JSON-serialized authors
+	const authorIdRows = await prisma.article.findMany({
+		where: {
+			published: true,
+			OR: [
+				tokens.length ? { authors: { hasSome: tokens } } : undefined,
+				// relaxed: if a single token, match full name equality too
+				tokens.length === 1 ? { authors: { has: tokens[0] } } : undefined,
+			].filter(Boolean) as Prisma.articleWhereInput[],
+		},
+		select: { id: true },
+	});
+	const authorIdsDirect = authorIdRows.map(r => r.id);
+
+	// Extra: in-memory partial match across authors[] to emulate ILIKE against array items
+	const qLower = safeQuery.toLowerCase();
+	const scanRows = await prisma.article.findMany({
+		where: { published: true },
+		select: { id: true, authors: true },
+	});
+	const authorIdsScan = scanRows
+		.filter(r => Array.isArray(r.authors) && r.authors.some(name => (name || "").toLowerCase().includes(qLower)))
+		.map(r => r.id);
+
+	const authorIds = Array.from(new Set([...authorIdsDirect, ...authorIdsScan]));
 
 	// Build OR conditions, including case-insensitive text search and author matches
 	const orConditions: Prisma.articleWhereInput[] = [
@@ -318,6 +339,20 @@ export async function getArticlesBySearch(query: string | string[]) {
 			},
 		},
 	];
+
+	// Try exact author full-name matches (case variants)
+	const titleCase = safeQuery
+		.split(/\s+/)
+		.map(w => (w ? w[0].toUpperCase() + w.slice(1).toLowerCase() : w))
+		.join(" ");
+	const lowered = safeQuery.toLowerCase();
+	const uppered = safeQuery.toUpperCase();
+
+	// Push distinct variants to OR conditions
+	const authorHasVariants = Array.from(new Set([safeQuery, titleCase, lowered, uppered])).filter(Boolean) as string[];
+	for (const variant of authorHasVariants) {
+		orConditions.push({ authors: { has: variant } });
+	}
 
 	if (authorIds.length) {
 		orConditions.push({ id: { in: authorIds } });
@@ -363,27 +398,35 @@ export async function getArticlesByAuthor(author: string) {
 	const decoded = decodeURI(author).trim();
 	if (!decoded) return [];
 
-	// 1) Strict author match: exact name in authors[] (case-insensitive)
-	const exactAuthorRows = await prisma.$queryRaw<{ id: number }[]>`
-        SELECT id
-        FROM "article"
-        WHERE published = true
-        AND EXISTS (
-            SELECT 1
-            FROM unnest("authors") AS a(name)
-            WHERE lower(a.name) = lower(${decoded})
-        )
-    `;
+	// Use Prisma query builder instead of raw SQL to avoid dev-time template issues
+	// 1) Exact match in authors[] (case-sensitive match is fine because links are generated from stored names)
+	const exactAuthorRows = await prisma.article.findMany({
+		where: {
+			published: true,
+			authors: {
+				has: decoded,
+			},
+		},
+		select: { id: true },
+	});
 
-	// 2) Photo credit match: content-info begins with Photo/Image/Graphic and contains the name
-	const photoCreditRows = await prisma.$queryRaw<{ id: number }[]>`
-        SELECT id
-        FROM "article"
-        WHERE published = true
-        AND "content-info" IS NOT NULL
-        AND "content-info" ~* '^(photo|image|graphic)\s*:'
-        AND "content-info" ILIKE '%' || ${decoded} || '%'
-    `;
+	// 2) Photo credit match: contentInfo contains the name and includes a photo/image/graphic label
+	const photoCreditRows = await prisma.article.findMany({
+		where: {
+			published: true,
+			contentInfo: {
+				not: null,
+				contains: decoded,
+				mode: "insensitive",
+			},
+			OR: [
+				{ contentInfo: { contains: "Photo:", mode: "insensitive" } },
+				{ contentInfo: { contains: "Image:", mode: "insensitive" } },
+				{ contentInfo: { contains: "Graphic:", mode: "insensitive" } },
+			],
+		},
+		select: { id: true },
+	});
 
 	const ids = Array.from(new Set([...exactAuthorRows.map(r => r.id), ...photoCreditRows.map(r => r.id)]));
 

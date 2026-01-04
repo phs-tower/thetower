@@ -227,13 +227,13 @@ footer {
 	/* Bring side columns closer to the middle */
 	gap: -0.2rem;
 	grid-gap: 0.2rem;
-	grid-template-columns: 0.625fr 1.75fr 0.625fr;
+	grid-template-columns: 0.7fr 1.6fr 0.7fr;
 }
 
 /* Reusable grid to align pages to the home layout */
 .page-grid {
 	display: grid;
-	grid-template-columns: 0.625fr 1.75fr 0.625fr; /* match home .triple */
+	grid-template-columns: 0.7fr 1.6fr 0.7fr; /* match home .triple */
 	grid-gap: 0.2rem;
 }
 .page-grid .center-column {

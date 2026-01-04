@@ -3,7 +3,7 @@
 import type { AppProps, NextWebVitalsMetric } from "next/app";
 import Head from "next/head";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { MouseEvent } from "react";
 import "~/styles/styles.scss";
 import styles from "~/lib/styles";
@@ -104,6 +104,7 @@ function Masthead() {
 	const [menuOpen, setMenuOpen] = useState(false);
 	const [menuX, setMenuX] = useState(false);
 	const router = useRouter();
+	const searchInputRef = useRef<HTMLInputElement>(null);
 
 	// Close sections menu when navigating
 	const [startLocation, setStartLocation] = useState(usePathname());
@@ -152,6 +153,15 @@ function Masthead() {
 		}, 100);
 	}
 
+	// Clear global search box when navigating away from search
+	useEffect(() => {
+		const path = router.asPath || "";
+		// Clear when not on the search page so the box doesn't persist
+		if (!path.startsWith("/search")) {
+			if (searchInputRef.current) searchInputRef.current.value = "";
+		}
+	}, [router.asPath]);
+
 	return (
 		<div className="header">
 			<Link href="/home" id="masthead">
@@ -179,17 +189,20 @@ function Masthead() {
 					</button>
 					<div className="search-box">
 						<input
+							ref={searchInputRef}
 							type="text"
 							placeholder="Search"
 							onKeyDown={e => {
 								if (e.key === "Enter") {
-									router.push(`/search/${document.querySelector("input")?.value}`);
+									const q = encodeURIComponent(searchInputRef.current?.value || "");
+									router.push(`/search/${q}`);
 								}
 							}}
 						/>
 						<button
 							onClick={() => {
-								router.push(`/search/${document.querySelector("input")?.value}`);
+								const q = encodeURIComponent(searchInputRef.current?.value || "");
+								router.push(`/search/${q}`);
 							}}
 						>
 							<i className="fa-solid fa-search"></i>

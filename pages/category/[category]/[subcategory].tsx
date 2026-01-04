@@ -122,16 +122,58 @@ export default function Subcategory(props: Props) {
 
 				.grid {
 					display: grid;
-					grid-template-columns: 2.25fr 0.75fr;
+					/* Desktop: main + fixed-width sidebar matching search page */
+					grid-template-columns: 1fr clamp(300px, 26vw, 400px);
 					grid-column-gap: 2vw;
+				}
+				:global(.subcategory .article-preview > .category-list-preview) {
+					display: grid;
+					grid-template-columns: minmax(21rem, 3.5fr) minmax(0, 4fr);
+					column-gap: 1.75rem;
+					align-items: start;
+				}
+				:global(.subcategory .article-preview.row.category-list .img-wrapper) {
+					display: flex;
+					justify-content: flex-start;
+					margin-right: 0 !important;
+				}
+				:global(.subcategory .article-preview.row.category-list .img-wrapper span) {
+					display: block !important;
+					width: 100% !important;
+				}
+				:global(.subcategory .article-preview.row.category-list .preview-image) {
+					width: 100% !important;
+					height: auto !important;
+					max-width: 24.5rem !important;
+					max-height: 13rem !important;
+					object-fit: cover !important;
+					border-radius: 0;
+					box-shadow: 0px 5px 12px #00000022;
+				}
+				:global(.subcategory .article-preview.row.category-list.noimg .preview-image) {
+					object-fit: contain !important;
+					background: black;
+				}
+				:global(.subcategory .article-preview.row.category-list .title) {
+					margin-top: 0;
+				}
+				@media (max-width: 900px) {
+					:global(.subcategory .article-preview > .category-list-preview) {
+						grid-template-columns: 1fr;
+						row-gap: 1.5rem;
+					}
+					:global(.subcategory .article-preview.row.category-list .preview-image) {
+						max-width: 100% !important;
+						max-height: 12rem !important;
+					}
 				}
 				.grid .sidebar {
 					margin-top: 2vh;
-					padding-left: 1vw;
-					padding-right: 1vw;
+					padding-left: 0.6rem;
+					padding-right: 0.6rem;
 					border: none;
 					border-left: 1px solid gainsboro;
-					border-right: 1px solid gainsboro;
+					border-right: none;
 					opacity: 1;
 					transition: opacity 0.2s, border 0.2s;
 				}
@@ -183,7 +225,7 @@ export default function Subcategory(props: Props) {
 				</div>
 				<section className="sidebar">
 					{shuffledSidebar.map(s => (
-						<ArticlePreview key={s.id} article={s} style="row" size="small" category />
+						<ArticlePreview key={s.id} article={s} style="row" size="small" category fit="contain" />
 					))}
 				</section>
 			</div>

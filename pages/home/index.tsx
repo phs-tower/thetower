@@ -38,41 +38,51 @@ export default function FrontPage({ articles, vang }: Props) {
 				<meta property="og:title" content="Home | The Tower" />
 				<meta property="og:description" content="The Tower is Princeton High School's newspaper club." />
 			</Head>
+			<style jsx>{`
+				/* Tighten spacing only for side columns (exclude featured) */
+				:global(.mosaic .triple .article-preview.box:not(.featured) .img-wrapper) {
+					margin-bottom: -1rem !important;
+				}
+				:global(.mosaic .triple .article-preview.box:not(.featured) .title) {
+					margin-top: 0 !important;
+					margin-bottom: 0.25rem !important;
+				}
+				:global(.mosaic .triple .article-preview.box:not(.featured) .authors) {
+					margin-top: 0 !important;
+				}
+			`}</style>
 			<div className="mosaic">
 				<div className="triple">
+					{/* Left column: Opinions (2) */}
 					<div>
-						{/* <h3 className="section-header">OPINIONS</h3> */}
 						<hr />
-						<ArticlePreview article={articles["opinions"][0]} style="box" size="large" />
-						<ArticlePreview article={articles["opinions"][1]} style="box" size="large" />
-						{/* <ArticlePreview article={articles["opinions"][2]} style="box" size="large" /> */}
+						{articles["opinions"][0] && <ArticlePreview article={articles["opinions"][0]} style="box" size="large" fit="contain" />}
+						{articles["opinions"][1] && <ArticlePreview article={articles["opinions"][1]} style="box" size="large" fit="contain" />}
 					</div>
+					{/* Center column: Featured */}
 					<div>
-						<div style={{ marginBottom: "1rem" }}>
-							<ArticlePreview article={articles["featured"][0]} style="box" size="featured" />
-						</div>
-						<div style={{ marginTop: "1rem", maxWidth: "90%", marginLeft: "5%", marginRight: "5%" }}>
-							<ArticlePreview article={articles["opinions"][2]} style="box" size="large" />
+						<div style={{ marginBottom: "3rem" }}>
+							{articles["featured"][0] && <ArticlePreview article={articles["featured"][0]} style="box" size="featured" />}
 						</div>
 					</div>
+					{/* Right column: Sports + Arts & Entertainment */}
 					<div>
-						{/* <h3 className="section-header">SPORTS</h3> */}
 						<hr />
-						<ArticlePreview article={articles["sports"][0]} style="box" size="large" />
-						<ArticlePreview article={articles["sports"][1]} style="box" size="large" />
-						{/* <ArticlePreview article={articles["sports"][2]} style="box" size="large" /> */}
+						{articles["sports"][0] && <ArticlePreview article={articles["sports"][0]} style="box" size="large" fit="contain" />}
+						{articles["arts-entertainment"][0] && (
+							<ArticlePreview article={articles["arts-entertainment"][0]} style="box" size="large" fit="contain" />
+						)}
 					</div>
 				</div>
+
 				<div className="one">
-					<ArticlePreview article={articles["featured"][0]} style="box" size="featured" />
+					{articles["opinions"][0] && <ArticlePreview article={articles["opinions"][0]} style="box" size="large" />}
+					{articles["opinions"][1] && <ArticlePreview article={articles["opinions"][1]} style="box" size="large" />}
+					{articles["opinions"][2] && <ArticlePreview article={articles["opinions"][2]} style="box" size="large" />}
 
-					<ArticlePreview article={articles["opinions"][0]} style="box" size="large" />
-					<ArticlePreview article={articles["opinions"][1]} style="box" size="large" />
-					<ArticlePreview article={articles["opinions"][2]} style="box" size="large" />
-
-					<ArticlePreview article={articles["sports"][0]} style="box" size="large" />
-					<ArticlePreview article={articles["sports"][1]} style="box" size="large" />
-					<ArticlePreview article={articles["sports"][2]} style="box" size="large" />
+					{articles["sports"][0] && <ArticlePreview article={articles["sports"][0]} style="box" size="large" />}
+					{articles["sports"][1] && <ArticlePreview article={articles["sports"][1]} style="box" size="large" />}
+					{articles["sports"][2] && <ArticlePreview article={articles["sports"][2]} style="box" size="large" />}
 				</div>
 			</div>
 			<br />

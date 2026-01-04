@@ -197,7 +197,7 @@ export default function Category({ search, articles, sidebar, sort, section }: P
 				}
 				.grid {
 					display: grid;
-					grid-template-columns: 2fr 1fr;
+					grid-template-columns: 1fr clamp(300px, 26vw, 400px);
 					grid-column-gap: 2vw;
 				}
 				:global(.search-page .article-preview > .category-list-preview) {
@@ -233,10 +233,11 @@ export default function Category({ search, articles, sidebar, sort, section }: P
 				}
 				.grid .sidebar {
 					margin-top: 2vh;
-					padding-left: 1vw;
-					padding-right: 1vw;
+					padding-left: 1rem;
+					padding-right: 0.6rem;
 					border-left: 1px solid gainsboro;
-					border-right: 1px solid gainsboro;
+					border-right: none;
+					max-width: 400px;
 				}
 
 				@media screen and (max-width: 1000px) {
@@ -474,7 +475,7 @@ function SidebarArticles({ sidebar }: SidebarProps) {
 	return (
 		<>
 			{sidebar.map(article => (
-				<ArticlePreview key={article.id} article={article} style="row" size="small" category />
+				<ArticlePreview key={article.id} article={article} style="row" size="small" category fit="contain" />
 			))}
 		</>
 	);

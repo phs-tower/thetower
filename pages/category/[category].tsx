@@ -99,17 +99,58 @@ export default function CategoryPage(props: Props) {
 				}
 				.grid {
 					display: grid;
-					/* On desktop, 2.25fr for main, 0.75fr for sidebar */
-					grid-template-columns: 2.25fr 0.75fr;
+					/* Desktop: main + fixed-width sidebar matching search page */
+					grid-template-columns: 1fr clamp(300px, 26vw, 400px);
 					grid-column-gap: 2vw;
 					/* Shorter transition to reduce lag */
 					transition: grid-template-columns 0.2s ease;
 				}
+				:global(.category .article-preview > .category-list-preview) {
+					display: grid;
+					grid-template-columns: minmax(21rem, 3.5fr) minmax(0, 4fr);
+					column-gap: 1.75rem;
+					align-items: start;
+				}
+				:global(.category .article-preview.row.category-list .img-wrapper) {
+					display: flex;
+					justify-content: flex-start;
+					margin-right: 0 !important;
+				}
+				:global(.category .article-preview.row.category-list .img-wrapper span) {
+					display: block !important;
+					width: 100% !important;
+				}
+				:global(.category .article-preview.row.category-list .preview-image) {
+					width: 100% !important;
+					height: auto !important;
+					max-width: 24.5rem !important;
+					max-height: 13rem !important;
+					object-fit: cover !important;
+					border-radius: 0;
+					box-shadow: 0px 5px 12px #00000022;
+				}
+				:global(.category .article-preview.row.category-list.noimg .preview-image) {
+					object-fit: contain !important;
+					background: black;
+				}
+				:global(.category .article-preview.row.category-list .title) {
+					margin-top: 0;
+				}
+				@media (max-width: 900px) {
+					:global(.category .article-preview > .category-list-preview) {
+						grid-template-columns: 1fr;
+						row-gap: 1.5rem;
+					}
+					:global(.category .article-preview.row.category-list .preview-image) {
+						max-width: 100% !important;
+						max-height: 12rem !important;
+					}
+				}
 				.sidebar {
 					margin-top: 2vh;
-					padding: 0 1vw;
+					padding: 0 0.6rem;
 					border-left: 1px solid gainsboro;
-					border-right: 1px solid gainsboro;
+					border-right: none;
 					transition: all 0.2s ease;
 				}
 				#loadmore {
@@ -161,7 +202,7 @@ export default function CategoryPage(props: Props) {
 				</div>
 				<section className="sidebar">
 					{sidebar.map(s => (
-						<ArticlePreview key={s.id} article={s} style="row" size="small" category />
+						<ArticlePreview key={s.id} article={s} style="row" size="small" category fit="contain" />
 					))}
 				</section>
 			</div>

@@ -42,8 +42,8 @@ export default function Subscribe({ articles }: Props) {
 				/* grid wrapper for letter + sidebar */
 				.grid {
 					display: grid;
-					grid-template-columns: 2.5fr 1fr;
-					gap: 2.5rem;
+					grid-template-columns: 1fr clamp(360px, 30vw, 450px);
+					gap: 2rem;
 					transition: grid-template-columns 0.2s ease;
 				}
 
@@ -114,7 +114,7 @@ export default function Subscribe({ articles }: Props) {
 					display: flex;
 					flex-direction: column;
 					border-left: 1px solid #dcdcdc;
-					padding-left: 1rem;
+					padding-left: 0.6rem;
 					margin-top: 0.1rem;
 					transition: opacity 0.2s ease, border 0.2s ease;
 				}
@@ -224,7 +224,7 @@ export default function Subscribe({ articles }: Props) {
 					<h2>Recent Articles</h2>
 					<div className="divider" />
 					{articles.map(a => (
-						<ArticlePreview key={a.id} article={a} style="row" size="small" category />
+						<ArticlePreview key={a.id} article={a} style="row" size="small" category fit="contain" thumbHeight="18rem" />
 					))}
 				</section>
 			</div>

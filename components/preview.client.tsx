@@ -18,6 +18,12 @@ interface Props {
 	 * capped to a smaller max size (used for search results).
 	 */
 	shrinkThumb?: boolean;
+	/**
+	 * Control how thumbnails fit inside their frame. Default is "cover".
+	 */
+	fit?: "cover" | "contain";
+	/** Optional override for non-featured thumbnail height (e.g., "18rem"). */
+	thumbHeight?: string | number;
 }
 
 // Utility: Extract photographer name from contentInfo
@@ -37,7 +43,15 @@ function getPhotographerName(contentInfo?: string | null): string | null {
 	return null;
 }
 
-export default function ArticlePreview({ article, category, style = "row", size = "medium", shrinkThumb = false }: Props) {
+export default function ArticlePreview({
+	article,
+	category,
+	style = "row",
+	size = "medium",
+	shrinkThumb = false,
+	fit = "cover",
+	thumbHeight,
+}: Props) {
 	if (!article) return <></>;
 
 	let charlen = 0;
@@ -223,9 +237,9 @@ export default function ArticlePreview({ article, category, style = "row", size 
 					transition-duration: 0.1s;
 				}
 
-				/* Keep featured text aligned with featured image (image has 5% side margins) */
+				/* Keep featured text aligned with featured image (now 7% side margins) */
 				.featured-preview > div:last-child {
-					padding-inline: 5%;
+					padding-inline: 1%;
 				}
 				.article-preview > .medium-preview {
 					display: contents;
@@ -348,12 +362,12 @@ export default function ArticlePreview({ article, category, style = "row", size 
 									  }
 									: {
 											width: "100%",
-											height: size == "featured" ? "100%" : "16rem",
-											maxWidth: size == "featured" ? "90%" : "100%",
-											maxHeight: size == "featured" ? "90%" : "16rem",
-											marginLeft: size == "featured" ? "5%" : "0",
-											marginRight: size == "featured" ? "5%" : "0",
-											objectFit: "cover",
+											height: size == "featured" ? "100%" : thumbHeight ?? "16rem",
+											maxWidth: size == "featured" ? "100%" : "100%",
+											maxHeight: size == "featured" ? "90%" : typeof thumbHeight !== "undefined" ? thumbHeight : "16rem",
+											marginLeft: size == "featured" ? "1%" : "0",
+											marginRight: size == "featured" ? "7%" : "0",
+											objectFit: fit,
 									  }
 							}
 						/>
@@ -374,7 +388,7 @@ export default function ArticlePreview({ article, category, style = "row", size 
 											objectFit: "contain",
 											backgroundColor: "black",
 									  }
-									: { width: "16rem", height: "16rem", objectFit: "cover", backgroundColor: "black" }
+									: { width: "16rem", height: "16rem", objectFit: fit, backgroundColor: "black" }
 							}
 						/>
 					)}

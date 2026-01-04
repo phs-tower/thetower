@@ -111,7 +111,13 @@ export function ArticleContent({ article }: Props) {
 			<div>
 				{article.img && (
 					<>
-						<Image src={article.img} width={1000} height={1000} alt={article.img} />
+						<Image
+							src={article.img}
+							width={1000}
+							height={1000}
+							alt={article.img}
+							style={{ width: "100%", height: "auto", maxHeight: "70vh", objectFit: "contain" }}
+						/>
 						{article.contentInfo && <PhotoCredit contentInfo={article.contentInfo} />}
 					</>
 				)}
@@ -126,7 +132,16 @@ export function ArticleContent({ article }: Props) {
 							const src = paragraph.substring(5).trim();
 							if (!src) return null;
 
-							return <Image key={index} src={src} alt="" width={1000} height={600} />;
+							return (
+								<Image
+									key={index}
+									src={src}
+									alt=""
+									width={1000}
+									height={600}
+									style={{ width: "100%", height: "auto", maxHeight: "70vh", objectFit: "contain" }}
+								/>
+							);
 						}
 						return paragraph.charCodeAt(0) !== 13 ? <p key={index}>{paragraph.replace("&lt;", "<").replace("&gt;", ">")}</p> : null;
 					})}
