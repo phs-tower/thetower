@@ -78,20 +78,49 @@ export default function Subscribe({ articles }: Props) {
 					gap: 1.25rem;
 					margin-top: 0.6rem;
 				}
+				/* Prevent global link hover fade from affecting pay boxes */
+				:global(.subscribe-page .buttons a:hover),
+				:global(.subscribe-page .buttons a:focus),
+				:global(.subscribe-page .buttons a:active) {
+					opacity: 1 !important;
+				}
 				.sub-link {
 					border: 2px solid ${styles.color.darkAccent};
 					background-color: white;
-					color: black;
-					transition: 0.25s;
+					color: ${styles.color.darkAccent};
+					transition: all 0.2s ease;
 					padding: 0.7rem 1.4rem;
 					font-family: ${styles.font.sans};
 					font-size: 1rem;
 					border-radius: 5px;
 					text-align: center;
+					cursor: pointer;
 				}
 				.sub-link:hover {
 					color: white;
 					background-color: ${styles.color.darkAccent};
+				}
+				/* Mirror hover when hovering the anchor wrapper */
+				:global(.subscribe-page .buttons a:hover) .sub-link,
+				:global(.subscribe-page .buttons a:focus) .sub-link,
+				:global(.subscribe-page .buttons a:active) .sub-link {
+					color: white;
+					background-color: ${styles.color.darkAccent};
+					opacity: 1 !important;
+				}
+
+				/* Match nav Subscribe hover on mobile (inverse colors) */
+				@media screen and (max-width: 970px) {
+					.sub-link:hover {
+						color: ${styles.color.darkAccent};
+						background-color: white;
+					}
+					:global(.subscribe-page .buttons a:hover) .sub-link,
+					:global(.subscribe-page .buttons a:focus) .sub-link,
+					:global(.subscribe-page .buttons a:active) .sub-link {
+						color: ${styles.color.darkAccent};
+						background-color: white;
+					}
 				}
 
 				.social-icons {
@@ -197,8 +226,8 @@ export default function Subscribe({ articles }: Props) {
 
 					<p>
 						If that sounds like something you want to be part of, and something that seems right to you, we’d be honored, and would love
-						to help you learn through stories and experiences. You can subscribe by paying online, by check, or in cash — whatever is
-						easiest for you.
+						to help you learn about our school through stories and experiences. You can subscribe by paying online, by check, or in cash —
+						whatever is easiest for you.
 					</p>
 
 					<p className="signature">

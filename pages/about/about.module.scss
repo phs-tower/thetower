@@ -23,4 +23,9 @@
 		color: #8b8b8b;
 		font-size: 1.25rem;
 	}
+
+	/* Ensure email links are visibly underlined */
+	a[href^="mailto:"] {
+		text-decoration: underline;
+	}
 }

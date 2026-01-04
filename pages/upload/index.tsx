@@ -750,6 +750,9 @@ export default function Upload() {
 									for details.
 								</p>
 								<textarea id={styles.contentInput} onChange={updateContent} value={formData.content || ""} />
+								<div style={{ marginTop: "0.6rem" }}>
+									<input type="submit" />
+								</div>
 								<br />
 							</div>
 
@@ -904,12 +907,15 @@ export default function Upload() {
 									</>
 								)}
 							</div>
-							<br /> <br /> <br />
+
+							{/* Submit directly under the preview content */}
+							<div style={{ marginTop: "1rem" }}>
+								<input type="submit" />
+							</div>
 						</section>
 					</div>
 
 					<br />
-					<input type="submit" />
 					<p id="bruh" ref={errorRef}>
 						{uploadResponse}
 					</p>

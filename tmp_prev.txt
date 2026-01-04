@@ -24,8 +24,6 @@ interface Props {
 	fit?: "cover" | "contain";
 	/** Optional override for non-featured thumbnail height (e.g., "18rem"). */
 	thumbHeight?: string | number;
-	/** Optional note to render directly under the image area */
-	noteBelowImage?: React.ReactNode;
 }
 
 // Utility: Extract photographer name from contentInfo
@@ -53,7 +51,6 @@ export default function ArticlePreview({
 	shrinkThumb = false,
 	fit = "cover",
 	thumbHeight,
-	noteBelowImage,
 }: Props) {
 	if (!article) return <></>;
 
@@ -340,18 +337,6 @@ export default function ArticlePreview({
 				.article-preview.box .img-wrapper {
 					margin-right: 0;
 				}
-
-				/* Small gray helper note below images when provided */
-				.note-below-image {
-					color: #777;
-					font-size: 0.9rem;
-					margin-top: 0.25rem;
-				}
-
-				/* Indent note slightly for featured cards only */
-				.article-preview.box.featured .note-below-image {
-					margin-left: 0.5rem;
-				}
 			`}</style>
 			<div className={size + "-preview"}>
 				{/* <div className="img-wrapper">
@@ -403,21 +388,11 @@ export default function ArticlePreview({
 											objectFit: "contain",
 											backgroundColor: "black",
 									  }
-									: {
-											width: "100%",
-											height: size == "featured" ? "100%" : typeof thumbHeight !== "undefined" ? thumbHeight : "16rem",
-											maxWidth: size == "featured" ? "100%" : "100%",
-											maxHeight: size == "featured" ? "90%" : typeof thumbHeight !== "undefined" ? thumbHeight : "16rem",
-											marginLeft: size == "featured" ? "1%" : "0",
-											marginRight: size == "featured" ? "7%" : "0",
-											objectFit: fit,
-											backgroundColor: "black",
-									  }
+									: { width: "16rem", height: "16rem", objectFit: fit, backgroundColor: "black" }
 							}
 						/>
 					)}
 				</div>
-				{noteBelowImage ? <div className="note-below-image">{noteBelowImage}</div> : null}
 				<div>
 					<section className="category">
 						{category && (
@@ -454,3 +429,4 @@ export default function ArticlePreview({
 		</div>
 	);
 }
+
