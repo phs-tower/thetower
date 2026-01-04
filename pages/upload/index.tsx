@@ -140,8 +140,10 @@ export default function Upload() {
 		const ts = parseInt(timestamp, 10);
 		if (Date.now() - ts < THREE_DAYS_MS) {
 			const loaded = JSON.parse(stored);
-			setFormData(loaded);
-			if (loaded.category) setCategory(loaded.category);
+			// Do not load persisted month/year; always default to latest
+			const { month: _ignoredMonth, year: _ignoredYear, ...rest } = loaded || {};
+			setFormData(rest);
+			if (rest.category) setCategory(rest.category);
 		} else {
 			localStorage.removeItem("uploadFormData");
 			localStorage.removeItem("uploadFormTimestamp");
@@ -152,8 +154,9 @@ export default function Upload() {
 	useEffect(() => {
 		if (!hydrated) return;
 		setIsSaving(true);
-		const { category, subcategory, title, authors, content, multi, contentInfo, month, year } = formData;
-		const fieldsToStore = { category, subcategory, title, authors, content, multi, contentInfo, month, year };
+		// Persist core fields only; month/year should not be saved
+		const { category, subcategory, title, authors, content, multi, contentInfo } = formData;
+		const fieldsToStore = { category, subcategory, title, authors, content, multi, contentInfo };
 		try {
 			localStorage.setItem("uploadFormData", JSON.stringify(fieldsToStore));
 			localStorage.setItem("uploadFormTimestamp", Date.now().toString());
