@@ -14,24 +14,9 @@ import { useEffect } from "react";
 import { article } from "@prisma/client";
 
 import articleStyles from "./article.module.scss";
-// 👇 Extend article manually to include contentInfo
-interface ExtendedArticle {
-	id: number;
-	title: string;
-	content: string;
-	published: boolean;
-	category: string;
-	subcategory: string;
-	authors: string[];
-	month: number;
-	year: number;
-	img: string;
-	markdown: boolean;
-	contentInfo?: string | null;
-}
 
 interface Props {
-	article: ExtendedArticle;
+	article: article;
 }
 
 interface Params {
@@ -53,11 +38,7 @@ export async function getServerSideProps({ params }: Params) {
 
 	if (!raw) return { redirect: { permanent: false, destination: "/404" } };
 
-	const processedArticle: ExtendedArticle = {
-		...raw, // this is my first time doing ts so idk if this is chill but like should work?
-		markdown: raw.markdown ?? false,
-		contentInfo: raw.contentInfo ?? null,
-	};
+	const processedArticle: article = raw;
 
 	if (processedArticle.markdown) {
 		const marked = await remark().use(html).process(processedArticle.content);
