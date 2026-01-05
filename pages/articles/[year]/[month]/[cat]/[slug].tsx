@@ -111,13 +111,7 @@ export function ArticleContent({ article }: Props) {
 			<div>
 				{article.img && (
 					<>
-						<Image
-							src={article.img}
-							width={1000}
-							height={1000}
-							alt={article.img}
-							style={{ width: "100%", height: "auto", maxHeight: "70vh", objectFit: "contain" }}
-						/>
+						<Image src={article.img} width={1000} height={1000} alt={article.contentInfo ?? ""} />
 						{article.contentInfo && <PhotoCredit contentInfo={article.contentInfo} />}
 					</>
 				)}
@@ -127,54 +121,36 @@ export function ArticleContent({ article }: Props) {
 				<div className={articleStyles["main-article"]} dangerouslySetInnerHTML={{ __html: article.content }} />
 			) : (
 				<div className={articleStyles["main-article"]}>
-					{article.content.split("\n").map((paragraph, index) => {
-						if (paragraph.startsWith("@img=")) {
-							const src = paragraph.substring(5).trim();
-							if (!src) return null;
-
-							return (
-								<Image
-									key={index}
-									src={src}
-									alt=""
-									width={1000}
-									height={600}
-									style={{ width: "100%", height: "auto", maxHeight: "70vh", objectFit: "contain" }}
-								/>
-							);
-						}
-						return paragraph.charCodeAt(0) !== 13 ? <p key={index}>{paragraph.replace("&lt;", "<").replace("&gt;", ">")}</p> : null;
-					})}
+					<LegacyArticle article={article} />
 				</div>
 			)}
 		</section>
 	);
 }
 
+function LegacyArticle({ article }: Props) {
+	return (
+		<>
+			{article.content.split("\n").map((paragraph, index) => {
+				if (paragraph.startsWith("@img=")) {
+					const src = paragraph.substring(5).trim();
+					if (!src) return null;
+
+					return <Image key={index} src={src} width={1000} height={1000} alt="" />;
+				}
+				return paragraph.charCodeAt(0) !== 13 ? <p key={index}>{paragraph.replace("&lt;", "<").replace("&gt;", ">")}</p> : null;
+			})}
+		</>
+	);
+}
+
 export default function Article({ article }: Props) {
-	// const photoName = (() => {
-	// 	if (!article.contentInfo) return null;
-
-	// 	const firstLine = article.contentInfo.split("\n")[0];
-	// 	if (!firstLine.includes(":")) return null;
-
-	// 	const [label, value] = firstLine.split(":");
-	// 	const lowerLabel = label.toLowerCase();
-
-	// 	if (lowerLabel.includes("photo") || lowerLabel.includes("image") || lowerLabel.includes("graphic")) {
-	// 		const name = value.trim().split(/\s+/).slice(0, 2).join(" ");
-	// 		return name;
-	// 	}
-
-	// 	return null;
-	// })();
-
 	const category = article.category;
 
 	// Per-article view tracking (one bump per article per tab session)
 	useEffect(() => {
 		if (typeof window === "undefined") return;
-		if (!article?.id) return;
+		if (!article.id) return;
 
 		// Avoid double-counting in the same tab/session
 		const key = `article-tracked:${article.id}`;
@@ -187,7 +163,7 @@ export default function Article({ article }: Props) {
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({ articleId: article.id }),
 		}).catch(() => {});
-	}, [article?.id]);
+	}, [article.id]);
 
 	return (
 		<>
