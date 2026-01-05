@@ -102,14 +102,19 @@ export function ArticleContent({ article }: Props) {
 				<div className={articleStyles["main-article"]} dangerouslySetInnerHTML={{ __html: article.content }} />
 			) : (
 				<div className={articleStyles["main-article"]}>
-					<LegacyArticle article={article} />
+					<LegacyArticleContent article={article} />
 				</div>
 			)}
 		</section>
 	);
 }
-
-function LegacyArticle({ article }: Props) {
+/**
+ * Generate HTML for the old (pre-md) article format
+ *
+ * The old format is quite literally just paragraphs separated by new lines with `@img=[url]` for images
+ * At some point we should probs migrate all the old articles but 🤷‍♂️
+ */
+function LegacyArticleContent({ article }: Props) {
 	return (
 		<>
 			{article.content.split("\n").map((paragraph, index) => {
