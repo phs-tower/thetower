@@ -221,7 +221,7 @@
 
 .splitter {
 	flex: 0 0 6px;
-	background: linear-gradient(90deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.1) 50%, rgba(0, 0, 0, 0) 100%);
+	background: linear-gradient(90deg, transparent 0%, transparent 25%, rgba(0, 0, 0, 0.1) 25%, rgba(0, 0, 0, 0.1) 75%, transparent 75%);
 	cursor: col-resize;
 	user-select: none;
 	align-self: stretch;
