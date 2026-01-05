@@ -867,7 +867,8 @@ export default function Upload() {
 											year: formData.year ?? new Date().getFullYear(),
 											img: formData.imgData ? `${formData.imgData}` : "",
 											markdown: true,
-											contentInfo: formData.contentInfo,
+											contentInfo: formData.contentInfo ?? null,
+											featured: null,
 										}}
 									/>
 								)}
