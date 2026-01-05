@@ -907,11 +907,6 @@ export default function Upload() {
 									</>
 								)}
 							</div>
-
-							{/* Submit directly under the preview content */}
-							<div style={{ marginTop: "1rem" }}>
-								<input type="submit" />
-							</div>
 						</section>
 					</div>
 
