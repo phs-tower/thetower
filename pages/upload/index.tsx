@@ -36,8 +36,8 @@ const THREE_DAYS_MS = 72 * 60 * 60 * 1000;
 
 function SavingIndicator({ uploadStatus, isSaving }: { uploadStatus: string; isSaving: boolean }) {
 	return (
-		<div style={{ position: "fixed", bottom: "10px", right: "10px", textAlign: "right" }}>
-			<span className={`upload-status ${uploadStatus}`} style={{ fontSize: "1.6rem", transition: "color 2s ease" }}>
+		<div className={styles["save-indicator"]}>
+			<span className={`${styles["upload-status"]} ${styles[uploadStatus]}`}>
 				{isSaving ? (
 					<>
 						Saving...
@@ -48,7 +48,7 @@ function SavingIndicator({ uploadStatus, isSaving }: { uploadStatus: string; isS
 				)}
 			</span>
 			<br />
-			<span style={{ fontSize: ".6rem", color: "#8b8b8b" }}>(Saves are stored for a maximum of 3 days)</span>
+			<span className={styles["save-info"]}>(Saves are stored for a maximum of 3 days)</span>
 		</div>
 	);
 }
@@ -62,7 +62,6 @@ export default function Upload() {
 	const [spreadData, setSpreadData] = useState<string>("");
 	const [imgOrigBytes, setImgOrigBytes] = useState<number | null>(null);
 	const [serverImgBytes, setServerImgBytes] = useState<number | null>(null);
-	const [imgCompressedBytes, setImgCompressedBytes] = useState<number | null>(null);
 
 	const errorRef = useRef<HTMLParagraphElement>(null);
 
@@ -79,10 +78,10 @@ export default function Upload() {
 		if (saved && !Number.isNaN(Number(saved))) initial = Math.max(0, parseInt(saved, 10));
 		if (initial === null || Number.isNaN(initial)) {
 			const el = containerRef.current;
-			if (el) {
-				const rect = el.getBoundingClientRect();
-				initial = Math.round(Math.min(Math.max(rect.width * 0.4, 320), 720));
-			}
+			if (!el) return;
+
+			const rect = el.getBoundingClientRect();
+			initial = Math.round(Math.min(Math.max(rect.width * 0.4, 320), 720));
 		}
 		if (typeof initial === "number" && !Number.isNaN(initial)) setPreviewWidth(initial);
 	}, [hydrated]);
@@ -546,7 +545,7 @@ export default function Upload() {
 							<option value="multimedia">Multimedia</option>
 						</select>
 						<div id={styles.subcats}>
-							<select style={{ display: category === "" ? "inline" : "none" }} disabled onChange={changeSubcategory}>
+							<select style={{ display: !category ? "inline" : "none" }} disabled onChange={changeSubcategory}>
 								<option>Select subcategory</option>
 							</select>
 							{/* NEWS-FEATURES */}
@@ -606,7 +605,7 @@ export default function Upload() {
 					<br />
 					{/* Issue Date selection */}
 					<h3>Issue Date</h3>
-					<div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
+					<div className={styles["issue-date"]}>
 						<label>
 							Month
 							<select value={(formData.month ?? new Date().getMonth() + 1).toString()} onChange={changeMonth}>
@@ -652,15 +651,9 @@ export default function Upload() {
 
 								<div className={styles["file-input"]}>
 									<label
-										onDragEnter={e => {
-											e.currentTarget.classList.add(styles["dragover"]);
-										}}
-										onDragLeave={e => {
-											e.currentTarget.classList.remove(styles["dragover"]);
-										}}
-										onDragEnd={e => {
-											e.currentTarget.classList.remove(styles["dragover"]);
-										}}
+										onDragEnter={e => e.currentTarget.classList.add(styles["dragover"])}
+										onDragLeave={e => e.currentTarget.classList.remove(styles["dragover"])}
+										onDragEnd={e => e.currentTarget.classList.remove(styles["dragover"])}
 										onDragOver={e => e.preventDefault()}
 										onDrop={inputImageDrop.bind(globalThis, updateImage)}
 									>
@@ -677,7 +670,7 @@ export default function Upload() {
 									</label>
 								</div>
 								{imgOrigBytes !== null && (
-									<p style={{ color: "#888", marginTop: "6px", display: "flex", alignItems: "center", gap: "8px" }}>
+									<p className={styles["compression-summary"]}>
 										<button type="button" onClick={clearImage}>
 											Clear
 										</button>
@@ -740,11 +733,7 @@ export default function Upload() {
 									<strong>Article Content</strong> (Markdown supported).
 									<br />
 									Use empty lines to separate paragraphs. See{" "}
-									<Link
-										target="_blank"
-										href="/articles/1970/1/news-features/Writing-in-Markdown-568"
-										style={{ textDecoration: "underline" }}
-									>
+									<Link target="_blank" href="/articles/1970/1/news-features/Writing-in-Markdown-568">
 										this guide
 									</Link>{" "}
 									for details.
@@ -841,9 +830,6 @@ export default function Upload() {
 							className={styles["section-preview"]}
 							style={{
 								flex: previewWidth !== null ? `0 0 ${Math.max(previewWidth, 0)}px` : undefined,
-								width: previewWidth !== null ? `${Math.max(previewWidth, 0)}px` : undefined,
-								minWidth: 0,
-								overflow: "auto",
 								display: previewWidth === 0 ? "none" : undefined,
 							}}
 						>

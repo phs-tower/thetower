@@ -83,6 +83,12 @@
 		}
 	}
 
+	.issue-date {
+		display: flex;
+		gap: 1rem;
+		align-items: center;
+	}
+
 	strong {
 		font-family: $font-header;
 	}
@@ -164,25 +170,43 @@
 		transform: translate(0px);
 	}
 }
-.upload-status.normal {
-	color: #8b8b8b;
-}
-.upload-status.success {
-	color: green;
-}
-.upload-status.error {
-	color: red;
-}
 
-.spinner {
-	display: inline-block;
-	width: 16px;
-	height: 16px;
-	border: 2px solid rgb(94, 150, 229);
-	border-top: 2px solid transparent;
-	border-radius: 50%;
-	margin-left: 8px;
-	animation: spin 1s linear infinite;
+.save-indicator {
+	position: fixed;
+	bottom: 10px;
+	right: 10px;
+	text-align: right;
+
+	.upload-status {
+		font-size: 1.6rem;
+		transition: color 2s ease;
+	}
+
+	.upload-status.normal {
+		color: #8b8b8b;
+	}
+	.upload-status.success {
+		color: green;
+	}
+	.upload-status.error {
+		color: red;
+	}
+
+	.spinner {
+		display: inline-block;
+		width: 16px;
+		height: 16px;
+		border: 2px solid rgb(94, 150, 229);
+		border-top: 2px solid transparent;
+		border-radius: 50%;
+		margin-left: 8px;
+		animation: spin 1s linear infinite;
+	}
+
+	.save-info {
+		font-size: 0.6rem;
+		color: #8b8b8b;
+	}
 }
 
 .section-info {
@@ -202,13 +226,15 @@
 
 	.section-input {
 		flex: 1 1 auto;
+		// min-width: 40ch;
 	}
 
 	.section-preview {
-		max-width: none;
-		min-width: 20ch;
-		width: 40%;
+		max-width: 100ch;
+		min-width: 60ch;
+		width: 100%;
 		border: 1px solid black;
+		overflow: auto;
 	}
 
 	@media screen and (max-width: 1000px) {
@@ -225,4 +251,12 @@
 	cursor: col-resize;
 	user-select: none;
 	align-self: stretch;
+}
+
+.compression-summary {
+	color: #888;
+	margin-top: 6px;
+	display: flex;
+	align-items: center;
+	gap: 8px;
 }
