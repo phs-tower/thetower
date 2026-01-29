@@ -1,1 +1,168 @@
-
+{
+	"sections": [
+		{
+			"name": "Senior Editors",
+			"members": [
+				{
+					"name": "Aritra Ray",
+					"position": "Editor-in-Chief"
+				},
+				{
+					"name": "Harry Dweck",
+					"position": "Managing Editor"
+				},
+				{
+					"name": "Claire Yang",
+					"position": "Managing Editor"
+				}
+			]
+		},
+		{
+			"name": "Online",
+			"members": [
+				{
+					"name": "Alexander Sheng",
+					"position": "Online Co-Editor"
+				},
+				{
+					"name": "Aryan Singla",
+					"position": "Online Co-Editor"
+				}
+			]
+		},
+		{
+			"name": "News & Features",
+			"members": [
+				{
+					"name": "Joy Chen",
+					"position": "News & Features Co-Editor"
+				},
+				{
+					"name": "Rohan Srivastava",
+					"position": "News & Features Co-Editor"
+				}
+			]
+		},
+		{
+			"name": "Opinions",
+			"members": [
+				{
+					"name": "Stephanie Liao",
+					"position": "Opinions Co-Editor"
+				},
+				{
+					"name": "Fangwu Yu",
+					"position": "Opinions Co-Editor"
+				}
+			]
+		},
+		{
+			"name": "Vanguard",
+			"members": [
+				{
+					"name": "Samantha Henderson",
+					"position": "Vanguard Co-Editor"
+				},
+				{
+					"name": "Finn Wedmid",
+					"position": "Vanguard Co-Editor"
+				}
+			]
+		},
+		{
+			"name": "Arts & Entertainment",
+			"members": [
+				{
+					"name": "Agatha Patten",
+					"position": "Arts & Entertainment Co-Editor"
+				},
+				{
+					"name": "Maeve Walsh",
+					"position": "Arts & Entertainment Co-Editor"
+				}
+			]
+		},
+		{
+			"name": "Sports",
+			"members": [
+				{
+					"name": "Joshua Huang",
+					"position": "Sports Co-Editor"
+				},
+				{
+					"name": "Kaelan Patel",
+					"position": "Sports Co-Editor"
+				},
+				{
+					"name": "Micheal Yang",
+					"position": "Sports Co-Editor"
+				}
+			]
+		},
+		{
+			"name": "Visuals",
+			"members": [
+				{
+					"name": "Katherine Chen",
+					"position": "Visuals Co-Editor"
+				},
+				{
+					"name": "Emily Kim",
+					"position": "Visuals Co-Editor"
+				},
+				{
+					"name": "Luna Xu",
+					"position": "Visuals Co-Editor"
+				}
+			]
+		},
+		{
+			"name": "Copy",
+			"members": [
+				{
+					"name": "Jacob Rogart",
+					"position": "Co-Head Copy Editor"
+				},
+				{
+					"name": "Yunsheng Xu",
+					"position": "Co-Head Copy Editor"
+				}
+			]
+		},
+		{
+			"name": "Business",
+			"members": [
+				{
+					"name": "Nathan Bansal",
+					"position": "Business Co-Editor"
+				},
+				{
+					"name": "Maxime DeVico",
+					"position": "Business Co-Editor"
+				}
+			]
+		},
+		{
+			"name": "Multimedia",
+			"members": [
+				{
+					"name": "Avantika Palayekar",
+					"position": "Multimedia Co-Editor"
+				},
+				{
+					"name": "Aarna Vachrajani",
+					"position": "Multimedia Co-Editor"
+				}
+			]
+		},
+		{
+			"name": "Outreach",
+			"members": [
+				{
+					"name": "Alexander Gu",
+					"position": "Outreach Editor"
+				}
+			]
+		}
+	]
+}
