@@ -336,7 +336,7 @@ function Footer() {
 			<span>&copy; 2017-{new Date().getFullYear()} The Tower</span>
 			<span>
 				Site by Luke Tong &apos;23, Jieruei Chang &apos;24, Henry Langmack &apos;25, Ayush Shrivastava &apos;25, Anita Ndubisi &apos;26, Om
-				Mehta &apos;26, Aryan Singla &apos;27, and Aryan Singla &apos;28
+				Mehta &apos;26, Aryan Singla &apos;27, and Alexander Sheng &apos;28
 			</span>
 		</footer>
 	);
