@@ -87,6 +87,7 @@ export function Nav() {
 					href="/about"
 					name="ABOUT"
 					subsections={[
+						{ name: "2026 Staff", href: "/about/2026" },
 						{ name: "2025 Staff", href: "/about/2025" },
 						{ name: "2024 Staff", href: "/about/2024" },
 						{ name: "2023 Staff", href: "/about/2023" },
