@@ -31,7 +31,7 @@ export const socialLinks = [
 	},
 ];
 
-export const years = ["2025", "2024", "2023", "2022"];
+export const years = ["2026, 2025", "2024", "2023", "2022"];
 // add an empty string "" between every year so a line seperator appears
 
 export const categorySlugs = new Map<string, string>([
