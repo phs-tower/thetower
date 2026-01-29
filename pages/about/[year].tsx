@@ -31,7 +31,7 @@ interface Params {
 
 export async function getStaticPaths() {
 	return {
-		paths: [{ params: { year: "2022" } }, { params: { year: "2023" } }, { params: { year: "2024" } }, { params: { year: "2025" } }],
+		paths: [{ params: { year: "2022" } }, { params: { year: "2023" } }, { params: { year: "2024" } }, { params: { year: "2025" } }, { params: { year: "2026" } }],
 		fallback: false,
 	};
 }
