@@ -26,6 +26,10 @@ interface Props {
 	thumbHeight?: string | number;
 	/** Optional note to render directly under the image area */
 	noteBelowImage?: React.ReactNode;
+	/** Optional uppercase label shown above the text stack */
+	eyebrow?: React.ReactNode;
+	/** Optional preview text excerpt */
+	showPreviewText?: boolean;
 }
 
 // Utility: Extract photographer name from contentInfo
@@ -45,6 +49,16 @@ function getPhotographerName(contentInfo?: string | null): string | null {
 	return null;
 }
 
+function buildPreviewText(content: string, length: number) {
+	const cleaned = content
+		.replace(/<[^>]*>/g, " ")
+		.replace(/\s+/g, " ")
+		.trim();
+	if (!cleaned) return "";
+	if (cleaned.length <= length) return cleaned;
+	return shortenText(cleaned, length);
+}
+
 export default function ArticlePreview({
 	article,
 	category,
@@ -54,6 +68,8 @@ export default function ArticlePreview({
 	fit = "cover",
 	thumbHeight,
 	noteBelowImage,
+	eyebrow,
+	showPreviewText = false,
 }: Props) {
 	if (!article) return <></>;
 
@@ -87,6 +103,9 @@ export default function ArticlePreview({
 			case "large":
 				charlen = 250;
 				break;
+			case "category-list":
+				charlen = 220;
+				break;
 			// case "medium":
 			// 	charlen = 150;
 			// 	break;
@@ -97,6 +116,7 @@ export default function ArticlePreview({
 
 	let showimg = "";
 	if (!article.img?.includes(".")) showimg = "noimg"; // article.img = "/assets/default.png";
+	const previewText = showPreviewText && charlen > 0 && article.content ? buildPreviewText(article.content, charlen) : "";
 
 	return (
 		<div className={"article-preview " + style + " " + size + " " + showimg}>
@@ -153,6 +173,16 @@ export default function ArticlePreview({
 
 				.img-wrapper .category-list {
 					width: 20vw;
+				}
+
+				.article-eyebrow {
+					font-size: 0.8rem;
+					font-weight: 700;
+					text-transform: uppercase;
+					letter-spacing: 0.08em;
+					color: ${styles.color.accent};
+					margin: 0 0 0.35rem;
+					display: block;
 				}
 
 				span {
@@ -216,6 +246,10 @@ export default function ArticlePreview({
 					/* font-family: ${styles.font.serifText}, ${styles.font.stack}; */
 					margin-top: 1vh;
 					margin-bottom: 2vh;
+					color: #666;
+					font-size: 0.98rem;
+					font-weight: 400;
+					line-height: 1.45;
 				}
 				img {
 					width: 100%;
@@ -419,6 +453,7 @@ export default function ArticlePreview({
 				</div>
 				{noteBelowImage ? <div className="note-below-image">{noteBelowImage}</div> : null}
 				<div>
+					{eyebrow ? <div className="article-eyebrow">{eyebrow}</div> : null}
 					<section className="category">
 						{category && (
 							<Link href={"/category/" + article.category}>
@@ -448,7 +483,7 @@ export default function ArticlePreview({
 						))}
 					</section>
 
-					{/* <section className="preview-text">{shortenText(article.content, charlen)}</section> */}
+					{previewText ? <section className="preview-text">{previewText}</section> : null}
 				</div>
 			</div>
 		</div>

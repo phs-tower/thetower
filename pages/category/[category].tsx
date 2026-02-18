@@ -190,7 +190,7 @@ export default function CategoryPage(props: Props) {
 				<div>
 					<section>
 						{articles.map(a => (
-							<ArticlePreview key={a.id} article={a} style="row" size="category-list" />
+							<ArticlePreview key={a.id} article={a} style="row" size="category-list" showPreviewText />
 						))}
 					</section>
 					<p id="loading" style={{ display: loadingDisplay }}>

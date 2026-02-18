@@ -13,6 +13,8 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/react";
 import { displayFullDate } from "~/lib/utils";
 import { usePathname } from "next/navigation";
+import { staffMenuItems } from "~/lib/staff";
+import PromoPopup from "~/components/promo-popup.client";
 
 import "./global.scss";
 import "./nav.scss";
@@ -54,6 +56,28 @@ function SectionLink({ href, name: section, subsections }: { href: string; name:
 }
 
 export function Nav() {
+	const [aboutSubsections, setAboutSubsections] = useState(staffMenuItems);
+
+	useEffect(() => {
+		let cancelled = false;
+		const refreshStaffYears = async () => {
+			try {
+				const res = await fetch("/api/staff-years");
+				if (!res.ok) return;
+				const payload = (await res.json()) as { years?: number[] };
+				if (!cancelled && Array.isArray(payload.years)) {
+					setAboutSubsections(payload.years.map(year => ({ name: `${year} Staff`, href: `/about/${year}` })));
+				}
+			} catch {
+				/* noop */
+			}
+		};
+		refreshStaffYears();
+		return () => {
+			cancelled = true;
+		};
+	}, []);
+
 	return (
 		<nav>
 			<Masthead />
@@ -83,17 +107,7 @@ export function Nav() {
 					name="SPORTS"
 					subsections={[{ name: "Student Athletes", href: "/category/sports/student-athletes" }]}
 				/>
-				<SectionLink
-					href="/about"
-					name="ABOUT"
-					subsections={[
-						{ name: "2026 Staff", href: "/about/2026" },
-						{ name: "2025 Staff", href: "/about/2025" },
-						{ name: "2024 Staff", href: "/about/2024" },
-						{ name: "2023 Staff", href: "/about/2023" },
-						{ name: "2022 Staff", href: "/about/2022" },
-					]}
-				/>
+				<SectionLink href="/about" name="ABOUT" subsections={aboutSubsections} />
 				<SectionLink href="/archives" name="ARCHIVES" />
 			</div>
 		</nav>
@@ -228,12 +242,6 @@ export default function App({ Component, pageProps }: AppProps) {
 		fetch("/api/track", { method: "POST" }).catch(() => {});
 	}, [router.asPath]);
 
-	// Consistent 3.5% side padding on all pages except article pages (leave articles as-is)
-	// const isArticle = router.pathname.startsWith("/articles");
-	// const mainStyle = isArticle
-	// 	? ({ maxWidth: "1200px", margin: "0 auto", paddingInline: "1rem" } as const)
-	// 	: ({ maxWidth: "100%", margin: 0, paddingInline: "3.5%" } as const);
-
 	return (
 		<>
 			<Head>
@@ -242,6 +250,7 @@ export default function App({ Component, pageProps }: AppProps) {
 			</Head>
 			{/* <Banner /> */}
 			<Nav />
+			<PromoPopup />
 			<main className="content">
 				<Component {...pageProps} />
 			</main>

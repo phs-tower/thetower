@@ -11,6 +11,26 @@ import { useRouter } from "next/router";
 import Link from "next/link";
 import styles from "~/lib/styles";
 
+const PHOTO_KEYWORDS = ["photo", "image", "graphic"];
+
+const getPhotoLabelForSearch = (article: article, searchTerm: string): "IMAGE" | undefined => {
+	const normalized = searchTerm.trim().toLowerCase();
+	if (!normalized) return undefined;
+
+	const listed = Array.isArray(article.authors) && article.authors.some(name => name?.trim().toLowerCase() === normalized);
+	if (listed) return undefined;
+
+	const info = article.contentInfo;
+	if (!info) return undefined;
+
+	const isPhotoCredit = info.split(/\r?\n/).some(line => {
+		const lower = line.toLowerCase();
+		return lower.includes(normalized) && PHOTO_KEYWORDS.some(keyword => lower.includes(keyword));
+	});
+
+	return isPhotoCredit ? "IMAGE" : undefined;
+};
+
 // Instead of using a string array for sections, we now define an array of objects with actual category keys
 const sections = [
 	{ value: "Any", label: "Any" },
@@ -41,7 +61,6 @@ export async function getServerSideProps({ params, query }: Params) {
 
 	const sidebarArticles = shuffle(await getCurrArticles());
 
-	// ✅ Don't return articles if search is empty
 	if (!rawSearch.trim()) {
 		return {
 			props: {
@@ -80,21 +99,20 @@ export default function Category({ search, articles, sidebar, sort, section }: P
 	const [suggestions, setSuggestions] = useState<any[]>([]);
 	const [activeIndex, setActiveIndex] = useState(-1);
 	const [sortBy, setSortBy] = useState<Props["sort"]>(sort);
-	// selectedSection stores the category key (e.g. "news-features")
+
 	const [selectedSection, setSelectedSection] = useState(section);
 	const [showSuggestions, setShowSuggestions] = useState(false);
 
 	const inputRef = useRef<HTMLInputElement>(null);
 	const suggestionsCache = useRef<Map<string, any[]>>(new Map());
 
-	// Sidebar caching – keep a local copy and optionally reuse from sessionStorage
 	const [cachedSidebar, setCachedSidebar] = useState<article[]>(sidebar);
 	useEffect(() => {
 		try {
 			const stored = sessionStorage.getItem("tower_sidebar_cache");
 			if (stored) {
 				const parsed = JSON.parse(stored);
-				// Honor expiry if present; otherwise accept
+
 				if (!parsed?.expiry || Date.now() < parsed.expiry) {
 					if (Array.isArray(parsed?.data)) {
 						setCachedSidebar(parsed.data);
@@ -103,12 +121,11 @@ export default function Category({ search, articles, sidebar, sort, section }: P
 				}
 			}
 		} catch {}
-		// Fallback to current props and refresh cache for 15 minutes
+
 		sessionStorage.setItem("tower_sidebar_cache", JSON.stringify({ data: sidebar, expiry: Date.now() + 15 * 60 * 1000 }));
 		setCachedSidebar(sidebar);
 	}, [sidebar]);
 
-	// Fast suggestions: debounce + abort in-flight + in-memory cache
 	useEffect(() => {
 		if (!showSuggestions) return;
 		const trimmed = manualQuery.trim();
@@ -145,11 +162,10 @@ export default function Category({ search, articles, sidebar, sort, section }: P
 		};
 	}, [manualQuery, sortBy, showSuggestions]);
 
-	// Update URL immediately on filter changes using router.replace
 	const updateFilter = (newSort?: Props["sort"], newSection?: string) => {
 		const finalSort = newSort ?? sortBy ?? "newest";
 		const finalSection = newSection ?? selectedSection;
-		// Use router.replace so that navigation happens without adding a new history entry.
+
 		router.replace(`/search/${encodeURIComponent(search)}?sort=${finalSort}&section=${finalSection}`);
 	};
 
@@ -171,7 +187,7 @@ export default function Category({ search, articles, sidebar, sort, section }: P
 		} else if (e.key === "Enter") {
 			if (activeIndex >= 0 && suggestions[activeIndex]) {
 				const s = suggestions[activeIndex];
-				// Do not update the text in the search box beyond what the user already typed
+
 				handleSearchRedirect(s.type === "article" ? s.title : s.name);
 				setShowSuggestions(false);
 			} else {
@@ -453,7 +469,13 @@ export default function Category({ search, articles, sidebar, sort, section }: P
 										year: "numeric",
 									})}
 								</div>
-								<ArticlePreview article={article} style="row" size="category-list" />
+								<ArticlePreview
+									article={article}
+									style="row"
+									size="category-list"
+									eyebrow={getPhotoLabelForSearch(article, search)}
+									showPreviewText
+								/>
 							</div>
 						);
 					})}

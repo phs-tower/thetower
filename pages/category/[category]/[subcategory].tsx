@@ -213,7 +213,7 @@ export default function Subcategory(props: Props) {
 				<div>
 					<section>
 						{articles.map(art => (
-							<ArticlePreview key={art.id} article={art} style="row" size="category-list" />
+							<ArticlePreview key={art.id} article={art} style="row" size="category-list" showPreviewText />
 						))}
 					</section>
 					<p id="loading" style={{ display: loadingDisplay }}>

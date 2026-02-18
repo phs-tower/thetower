@@ -5,6 +5,21 @@ import Head from "next/head";
 import ArticlePreview from "~/components/preview.client";
 import { getArticlesByAuthor } from "~/lib/queries";
 
+const PHOTO_KEYWORDS = ["photo", "image", "graphic"];
+
+function getPhotoLabel(article: article, normalizedAuthor: string): "IMAGE" | undefined {
+	if (!normalizedAuthor) return undefined;
+	const isListedAuthor = Array.isArray(article.authors) && article.authors.some(name => name?.trim().toLowerCase() === normalizedAuthor);
+	if (isListedAuthor) return undefined;
+	const info = article.contentInfo;
+	if (!info) return undefined;
+	const isPhotoCredit = info.split(/\r?\n/).some(line => {
+		const lower = line.toLowerCase();
+		return lower.includes(normalizedAuthor) && PHOTO_KEYWORDS.some(keyword => lower.includes(keyword));
+	});
+	return isPhotoCredit ? "IMAGE" : undefined;
+}
+
 interface Params {
 	params: {
 		author: string;
@@ -31,6 +46,7 @@ export async function getServerSideProps({ params }: Params) {
 export default function Credit({ author, articles }: Props) {
 	const title = `${author}'s Work | The Tower`;
 	const metaDesc = `${author}'s contributions to The Tower — either as an author or a photographer.`;
+	const normalizedAuthor = author.trim().toLowerCase();
 
 	return (
 		<div className="credit">
@@ -56,7 +72,7 @@ export default function Credit({ author, articles }: Props) {
 					font-size: 1.1rem;
 					margin-top: 5vh;
 				}
-				:global(.credit .article-preview.row.small) {
+				:global(.credit .article-preview.row.small > .small-preview) {
 					display: grid;
 					grid-template-columns: minmax(13.5rem, 17rem) 1fr;
 					gap: 2.25rem;
@@ -86,21 +102,29 @@ export default function Credit({ author, articles }: Props) {
 				:global(.credit .article-preview.row.small .title) {
 					margin-top: 0;
 				}
+				:global(.credit .article-preview.row.small > .small-preview > div:last-child) {
+					position: relative;
+					display: flex;
+					flex-direction: column;
+					justify-content: center;
+					padding-top: 1.1rem;
+				}
+				:global(.credit .article-preview.row.small > .small-preview > div:last-child .article-eyebrow) {
+					position: absolute;
+					top: 0;
+					left: 0;
+					margin: 0;
+				}
 				/* Ensure placeholder-image rows still use two-column layout on desktop */
 				:global(.credit .article-preview.row.small.noimg) {
 					grid-template-columns: minmax(13.5rem, 17rem) 1fr !important;
 				}
 				@media (max-width: 900px) {
-					:global(.credit .article-preview.row.small) {
-						grid-template-columns: 1fr;
+					:global(.credit .article-preview.row.small > .small-preview) {
 						gap: 1.5rem;
 					}
 					:global(.credit .article-preview.row.small .img-wrapper) {
 						justify-content: flex-start;
-					}
-					/* On small screens, keep single-column even for .noimg */
-					:global(.credit .article-preview.row.small.noimg) {
-						grid-template-columns: 1fr !important;
 					}
 					:global(.credit .article-preview.row.small .preview-image) {
 						max-width: 100% !important;
@@ -114,7 +138,16 @@ export default function Credit({ author, articles }: Props) {
 					<h1>{author}&apos;s Work</h1>
 
 					{articles.length > 0 ? (
-						articles.map(article => <ArticlePreview key={article.id} article={article} style="row" size="small" shrinkThumb />)
+						articles.map(article => (
+							<ArticlePreview
+								key={article.id}
+								article={article}
+								style="row"
+								size="small"
+								shrinkThumb
+								eyebrow={getPhotoLabel(article, normalizedAuthor)}
+							/>
+						))
 					) : (
 						<p className="empty">No work found with this name.</p>
 					)}

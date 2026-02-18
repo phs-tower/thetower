@@ -2,25 +2,14 @@
 
 import Head from "next/head";
 import CreditLink from "~/components/credit.client";
+import type { StaffSection } from "~/lib/staff";
+import { getStaffSections, getStaffYearsFromContent, staffYearExists } from "~/lib/staff.server";
 
 import styles from "./about.module.scss";
 
-type Member = {
-	name: string;
-	position: string;
-	sections?: string[];
-	pictureUrl?: string;
-};
-/** @todo make these profile pic tiles instead of just links (hover --> show description) */
-
-type Section = {
-	name: string;
-	members: Member[];
-};
-
 interface Props {
-	year: number;
-	sections: Section[];
+	year: string;
+	sections: StaffSection[];
 }
 
 interface Params {
@@ -30,18 +19,20 @@ interface Params {
 }
 
 export async function getStaticPaths() {
-	return {
-		paths: [{ params: { year: "2022" } }, { params: { year: "2023" } }, { params: { year: "2024" } }, { params: { year: "2025" } }, { params: { year: "2026" } }],
-		fallback: false,
-	};
+	const paths = getStaffYearsFromContent().map(year => ({ params: { year: year.toString() } }));
+	return { paths, fallback: false };
 }
 
 export async function getStaticProps({ params }: Params) {
-	let data = await import(`~/content/${params.year}.json`);
+	const { year } = params;
+	if (!staffYearExists(year)) {
+		return { notFound: true };
+	}
+
 	return {
 		props: {
-			year: params.year,
-			sections: data.sections,
+			year,
+			sections: getStaffSections(year),
 		},
 	};
 }
