@@ -280,7 +280,7 @@ function Footer() {
 					})}
 				</div>
 				<Link
-					href="https://docs.google.com/forms/d/e/1FAIpQLSeine_aZUId0y2OjY2FZyJ93ZliGQZos-6c3VwkPg2IhXsGfg/viewform?usp=sf_link"
+					href="https://forms.gle/zWq3kfLigfHt9JAQA"
 					className="home-btn"
 				>
 					Report problem Â»
