@@ -143,11 +143,9 @@ export default function Article({ article }: Props) {
 		if (sessionStorage.getItem(key)) return;
 		sessionStorage.setItem(key, "1");
 
-		// Send articleId to API so it increments both site_analytics and article_analytics
+		// Increment site analytics once per article per tab/session
 		fetch("/api/track", {
 			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ articleId: article.id }),
 		}).catch(() => {});
 	}, [article.id]);
 
