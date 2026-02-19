@@ -194,7 +194,15 @@ function Masthead() {
 						<p>{displayFullDate().toUpperCase()}</p>
 					</div>
 					<button id="menu" data-open={menuOpen} onClick={() => setMenuOpen(!menuOpen)}>
-						<i className={`fa-solid ${menuX ? "fa-x" : "fa-bars"}`}></i>
+						{menuX ? (
+							<svg viewBox="0 0 24 24" aria-hidden="true">
+								<path d="M6 6l12 12M18 6l-12 12" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+							</svg>
+						) : (
+							<svg viewBox="0 0 24 24" aria-hidden="true">
+								<path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+							</svg>
+						)}
 						<span>Sections</span>
 					</button>
 				</div>
@@ -220,7 +228,10 @@ function Masthead() {
 								router.push(`/search/${q}`);
 							}}
 						>
-							<i className="fa-solid fa-search"></i>
+							<svg viewBox="0 0 24 24" aria-hidden="true">
+								<circle cx="11" cy="11" r="6.5" stroke="currentColor" strokeWidth="2" fill="none" />
+								<path d="M16.2 16.2l4.3 4.3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+							</svg>
 						</button>
 					</div>
 				</div>
@@ -279,10 +290,7 @@ function Footer() {
 						);
 					})}
 				</div>
-				<Link
-					href="https://forms.gle/zWq3kfLigfHt9JAQA"
-					className="home-btn"
-				>
+				<Link href="https://forms.gle/zWq3kfLigfHt9JAQA" className="home-btn">
 					Report problem Â»
 				</Link>
 			</div>

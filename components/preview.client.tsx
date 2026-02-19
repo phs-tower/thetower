@@ -22,13 +22,9 @@ interface Props {
 	 * Control how thumbnails fit inside their frame. Default is "cover".
 	 */
 	fit?: "cover" | "contain";
-	/** Optional override for non-featured thumbnail height (e.g., "18rem"). */
 	thumbHeight?: string | number;
-	/** Optional note to render directly under the image area */
 	noteBelowImage?: React.ReactNode;
-	/** Optional uppercase label shown above the text stack */
 	eyebrow?: React.ReactNode;
-	/** Optional preview text excerpt */
 	showPreviewText?: boolean;
 }
 

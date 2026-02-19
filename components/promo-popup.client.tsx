@@ -26,8 +26,25 @@ export default function PromoPopup() {
 
 	useEffect(() => {
 		if (isDismissed()) return;
-		const id = setTimeout(() => setOpen(true), 800);
-		return () => clearTimeout(id);
+		let timeoutId: ReturnType<typeof setTimeout> | null = null;
+		let triggered = false;
+
+		const maybeOpen = () => {
+			if (triggered || open) return;
+			if (window.scrollY < 500) return;
+			triggered = true;
+			timeoutId = setTimeout(() => setOpen(true), 350);
+			window.removeEventListener("scroll", maybeOpen);
+		};
+
+		window.addEventListener("scroll", maybeOpen, { passive: true });
+		// In case user reloads mid-scroll
+		maybeOpen();
+
+		return () => {
+			window.removeEventListener("scroll", maybeOpen);
+			if (timeoutId) clearTimeout(timeoutId);
+		};
 	}, []);
 
 	useEffect(() => {
@@ -53,7 +70,7 @@ export default function PromoPopup() {
 			<div className="promo-bubble-stack">
 				<a
 					className="promo-bubble"
-					href="https://docs.google.com/document/d/1YoGYc_Uyp4sriOOglcYHjU3UU_MWDnhuDkXuA-ssP50/edit?usp=sharing"
+					href="https://docs.google.com/forms/d/e/1FAIpQLSfYkeJynVHL3mKkBoeNiY51_aMv1ViwiSe0fD8Q3LbCo7nngA/viewform"
 					target="_blank"
 					rel="noreferrer"
 				>
@@ -79,7 +96,7 @@ export default function PromoPopup() {
 								</a>
 							</Link>
 							<a
-								href="https://docs.google.com/document/d/1YoGYc_Uyp4sriOOglcYHjU3UU_MWDnhuDkXuA-ssP50/edit?usp=sharing"
+								href="https://docs.google.com/forms/d/e/1FAIpQLSfYkeJynVHL3mKkBoeNiY51_aMv1ViwiSe0fD8Q3LbCo7nngA/viewform"
 								target="_blank"
 								rel="noreferrer"
 								className="secondary"
@@ -118,31 +135,60 @@ export default function PromoPopup() {
 					min-width: 0;
 					text-align: center;
 					white-space: nowrap;
+					position: relative;
+					overflow: hidden;
+					transform: translateY(0) scale(1);
+					transition: transform 0.22s ease, box-shadow 0.22s ease, background 0.22s ease, opacity 0.22s ease;
+				}
+				.promo-bubble::before {
+					content: "";
+					position: absolute;
+					top: -30%;
+					left: -70%;
+					width: 45%;
+					height: 160%;
+					transform: rotate(18deg);
+					background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.32), rgba(255, 255, 255, 0));
+					pointer-events: none;
+					transition: left 0.4s ease;
 				}
 				.promo-bubble:hover {
 					background: ${styles.color.darkAccent};
-					opacity: 0.98;
+					opacity: 1;
+					transform: translateY(-2px) scale(1.02);
+					box-shadow: 0 14px 30px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.12) inset;
+				}
+				.promo-bubble:hover::before {
+					left: 130%;
+				}
+				.promo-bubble:active {
+					transform: translateY(0) scale(0.99);
+				}
+				.promo-bubble:focus-visible {
+					outline: 2px solid #fff;
+					outline-offset: 2px;
 				}
 				.promo-overlay {
 					position: fixed;
 					inset: 0;
 					display: grid;
 					place-items: center;
-					background: rgba(0, 0, 0, 0.45);
-					backdrop-filter: blur(4px);
+					background: rgba(0, 0, 0, 0.28);
+					backdrop-filter: blur(2px);
 					z-index: 2000;
 					padding: 1.5rem;
+					animation: overlay-in 260ms ease-out;
 				}
 				.promo-card {
-					background: #fff;
+					background: #f9fbff;
 					border-radius: 0.85rem;
 					padding: 2rem 2.25rem 1.5rem;
 					max-width: 32rem;
 					width: 100%;
-					box-shadow: 0 20px 45px rgba(0, 0, 0, 0.25);
+					box-shadow: 0 16px 36px rgba(0, 0, 0, 0.16);
 					position: relative;
-					animation: popup-in 180ms ease-out;
-					border: 1px solid #e6e6e6;
+					animation: popup-in 260ms ease-out;
+					border: 1px solid #e9eef5;
 				}
 				.promo-close {
 					position: absolute;
@@ -153,9 +199,26 @@ export default function PromoPopup() {
 					font-size: 1.5rem;
 					color: #666;
 					cursor: pointer;
+					width: 2rem;
+					height: 2rem;
+					border-radius: 999px;
+					display: grid;
+					place-items: center;
+					transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease;
+				}
+				.promo-close:hover {
+					background: rgba(6, 27, 64, 0.08);
+					color: ${styles.color.accent};
+				}
+				.promo-close:active {
+					transform: scale(0.96);
+				}
+				.promo-close:focus-visible {
+					outline: 2px solid ${styles.color.accent};
+					outline-offset: 2px;
 				}
 				.promo-kicker {
-					color: ${styles.color.accent};
+					color: rgba(6, 27, 64, 0.7);
 					font-weight: 700;
 					letter-spacing: 0.12em;
 					text-transform: uppercase;
@@ -169,11 +232,13 @@ export default function PromoPopup() {
 				}
 				p {
 					margin: 0 0 1.5rem;
-					color: #444;
+					color: #5a5a5a;
 					line-height: 1.45;
 				}
 				.emph {
 					font-family: ${styles.font.serifHeader};
+					color: ${styles.color.accent};
+					font-style: italic;
 				}
 				.promo-actions {
 					display: flex;
@@ -196,20 +261,46 @@ export default function PromoPopup() {
 					border-color: ${styles.color.darkAccent};
 				}
 				.promo-later {
-					margin-top: 1rem;
+					margin-top: 0.85rem;
 					border: none;
 					background: none;
-					color: #666;
+					color: #8b8b8b;
 					cursor: pointer;
+					padding: 0;
+					border-radius: 0;
+					font-weight: 500;
+					font-size: 0.9rem;
+					letter-spacing: 0;
+					transition: color 0.2s ease, text-decoration-color 0.2s ease;
+				}
+				.promo-later:hover {
+					color: ${styles.color.accent};
+					text-decoration: underline;
+					text-underline-offset: 3px;
+				}
+				.promo-later:active {
+					transform: none;
+				}
+				.promo-later:focus-visible {
+					outline: 2px solid ${styles.color.accent};
+					outline-offset: 2px;
 				}
 				@keyframes popup-in {
 					from {
 						opacity: 0;
-						transform: translateY(6px) scale(0.98);
+						transform: translateY(10px) scale(0.98);
 					}
 					to {
 						opacity: 1;
 						transform: translateY(0) scale(1);
+					}
+				}
+				@keyframes overlay-in {
+					from {
+						opacity: 0;
+					}
+					to {
+						opacity: 1;
 					}
 				}
 				@media (max-width: 520px) {

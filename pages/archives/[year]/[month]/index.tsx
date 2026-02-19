@@ -82,16 +82,7 @@ export default function Index({ articles, year, month }: Props) {
 					</div>
 					{/* Center column: Featured */}
 					<div>
-						<div style={{ marginBottom: "0.5rem" }}>
-							{featured && (
-								<ArticlePreview
-									article={featured}
-									style="box"
-									size="featured"
-									noteBelowImage={!featuredFromFlag ? <span>Featured may not be accurate.</span> : undefined}
-								/>
-							)}
-						</div>
+						<div style={{ marginBottom: "0.5rem" }}>{featured && <ArticlePreview article={featured} style="box" size="featured" />}</div>
 					</div>
 					{/* Right column: Sports + Arts & Entertainment */}
 					<div>
