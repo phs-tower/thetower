@@ -19,6 +19,14 @@ interface Props {
 	article: article;
 }
 
+const ARTICLE_COLUMN_AD = {
+	src: "/assets/fledermaus-article-column-2026.jpg",
+	href: "https://www.thestateoperanj.org/",
+	alt: "Die Fledermaus 2026 presented by The State Opera of New Jersey",
+	width: 1224,
+	height: 2000,
+};
+
 interface Params {
 	params: {
 		year: string;
@@ -98,13 +106,29 @@ export function ArticleContent({ article }: Props) {
 				)}
 			</div>
 
-			{article.markdown ? (
-				<div className={articleStyles["main-article"]} dangerouslySetInnerHTML={{ __html: article.content }} />
-			) : (
-				<div className={articleStyles["main-article"]}>
-					<LegacyArticleContent article={article} />
-				</div>
-			)}
+			<div className={articleStyles["article-body"]}>
+				{article.markdown ? (
+					<div className={articleStyles["main-article"]} dangerouslySetInnerHTML={{ __html: article.content }} />
+				) : (
+					<div className={articleStyles["main-article"]}>
+						<LegacyArticleContent article={article} />
+					</div>
+				)}
+
+				<aside className={articleStyles["article-column-ad"]} aria-label="Article sponsor">
+					<a href={ARTICLE_COLUMN_AD.href} target="_blank" rel="noreferrer" className={articleStyles["article-column-ad-image-link"]}>
+						<Image
+							src={ARTICLE_COLUMN_AD.src}
+							alt={ARTICLE_COLUMN_AD.alt}
+							width={ARTICLE_COLUMN_AD.width}
+							height={ARTICLE_COLUMN_AD.height}
+						/>
+					</a>
+					<a href={ARTICLE_COLUMN_AD.href} target="_blank" rel="noreferrer" className={articleStyles["article-column-ad-caption-link"]}>
+						Die Fledermaus 2026 presented by The State Opera of New Jersey
+					</a>
+				</aside>
+			</div>
 		</section>
 	);
 }
