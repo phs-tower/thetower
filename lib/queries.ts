@@ -75,6 +75,44 @@ export async function getPublishedArticles() {
 
 	return articles;
 }
+
+export async function getRecommendedCategoryArticle(category: string) {
+	if (!prisma) return null;
+	return await prisma.article.findFirst({
+		where: {
+			category,
+			published: true,
+		},
+		orderBy: [{ year: "desc" }, { month: "desc" }, { id: "asc" }],
+	});
+}
+
+export async function getArticlesByIssue(month: number, year: number) {
+	if (!prisma) return [];
+	return await prisma.article.findMany({
+		where: {
+			month,
+			year,
+		},
+		orderBy: [{ id: "desc" }],
+		select: {
+			id: true,
+			title: true,
+			category: true,
+			subcategory: true,
+			published: true,
+			month: true,
+			year: true,
+		},
+	});
+}
+
+export async function getArticleByIdAny(id: number) {
+	if (!prisma) return null;
+	return await prisma.article.findFirst({
+		where: { id },
+	});
+}
 export async function getArticle(year: string, month: string, cat: string, id: string, slug: string): Promise<article | null> {
 	if (!prisma)
 		return {
@@ -549,11 +587,42 @@ export async function uploadArticle(info: {
 	year: number;
 	img: string;
 	content: string;
+	contentInfo?: string;
+	markdown?: boolean;
 }) {
 	if (!prisma) throw new Error("no!");
 	console.log("uploadArticle called");
 	await prisma.article.create({ data: info });
 	console.log("upload complete from uploadArticle");
+}
+
+export async function updateArticleById(
+	id: number,
+	info: {
+		title: string;
+		authors: string[];
+		category: string;
+		subcategory: string;
+		month: number;
+		year: number;
+		img: string;
+		content: string;
+		contentInfo?: string;
+		markdown?: boolean;
+	}
+) {
+	if (!prisma) throw new Error("no!");
+	await prisma.article.update({
+		where: { id },
+		data: info,
+	});
+}
+
+export async function deleteDraftById(id: number) {
+	if (!prisma) throw new Error("no!");
+	await prisma.article.delete({
+		where: { id },
+	});
 }
 
 export async function uploadSpread(info: { title: string; src: string; month: number; year: number; category: string }) {
@@ -600,31 +669,52 @@ async function compressImg(image: Buffer, options?: { targetBytes?: number; marg
 	return await sharp(image).webp({ quality: mid, alphaQuality: mid }).toBuffer();
 }
 
-export async function uploadFile(file: formidable.File, bucket: string) {
+export async function uploadFile(file: formidable.File, bucket: string, options?: { skipCompression?: boolean }) {
 	if (!supabase) throw new Error("not happening");
 
 	let fileContent = await readFile(file.filepath);
 	console.log("uploadering...");
 	const originalName = file.originalFilename || "upload";
-	const mimeType = file.mimetype || "application/octet-stream";
+	const mimeType = (file.mimetype || "application/octet-stream").toLowerCase();
 
 	// minimal mime → ext map (extend if you need more)
 	const EXT_FROM_MIME: Record<string, string> = {
+		"image/jpg": "jpg",
 		"image/jpeg": "jpg",
 		"image/png": "png",
 		"image/gif": "gif",
 		"image/webp": "webp",
+		"image/heic": "heic",
+		"image/heif": "heif",
+		"image/heic-sequence": "heic",
+		"image/heif-sequence": "heif",
 		"application/pdf": "pdf",
+	};
+	const MIME_FROM_EXT: Record<string, string> = {
+		jpg: "image/jpeg",
+		jpeg: "image/jpeg",
+		png: "image/png",
+		gif: "image/gif",
+		webp: "image/webp",
+		heic: "image/heic",
+		heif: "image/heif",
+		pdf: "application/pdf",
 	};
 
 	// try mimetype first; fall back to original filename’s ext; finally "bin"
 	const extFromMime = EXT_FROM_MIME[mimeType];
 	const extFromName = path.extname(originalName).slice(1).toLowerCase();
 	let ext = (extFromMime || extFromName || "bin").replace(/[^a-z0-9]/gi, "") || "bin";
+	let finalMimeType = mimeType === "application/octet-stream" ? MIME_FROM_EXT[ext] || mimeType : mimeType;
 	console.log(ext);
-	if (["jpg", "png", "gif", "webp"].includes(ext)) {
-		fileContent = await compressImg(fileContent);
-		ext = "webp";
+	if (!options?.skipCompression && ["jpg", "jpeg", "png", "gif", "webp", "heic", "heif"].includes(ext)) {
+		try {
+			fileContent = await compressImg(fileContent);
+			ext = "webp";
+			finalMimeType = "image/webp";
+		} catch (error) {
+			console.error("Could not compress image, uploading original file instead.", error);
+		}
 	}
 	// sanitize base (strip ext, slugify, trim length)
 	const base =
@@ -644,7 +734,7 @@ export async function uploadFile(file: formidable.File, bucket: string) {
 
 	console.log("Uploading to:", bucket, key);
 
-	const { data, error } = await supabase.storage.from(bucket).upload(key, fileContent, { contentType: mimeType, upsert: false });
+	const { data, error } = await supabase.storage.from(bucket).upload(key, fileContent, { contentType: finalMimeType, upsert: false });
 
 	if (error) {
 		console.error("Could not upload file: ", error);

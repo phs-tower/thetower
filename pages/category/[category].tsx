@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { article } from "@prisma/client";
 import Head from "next/head";
 import ArticlePreview from "~/components/preview.client";
-import { getArticlesExceptCategory, getArticlesByCategory } from "~/lib/queries";
+import { getArticlesExceptCategory, getArticlesByCategory, getRecommendedCategoryArticle } from "~/lib/queries";
 import { expandCategorySlug } from "~/lib/utils";
 import shuffle from "lodash/shuffle";
 import styles from "~/lib/styles";
@@ -19,6 +19,7 @@ interface Props {
 	category: string;
 	articles: article[];
 	sidebar: article[];
+	recommended: article | null;
 }
 
 export const getStaticPaths: GetStaticPaths<Params> = async () => {
@@ -30,9 +31,10 @@ export const getStaticPaths: GetStaticPaths<Params> = async () => {
 };
 
 export const getStaticProps: GetStaticProps<Props, Params> = async ({ params }) => {
-	const [initialArticles, sidebarRaw] = await Promise.all([
+	const [initialArticles, sidebarRaw, recommended] = await Promise.all([
 		getArticlesByCategory(params!.category, 10, 0, 0),
 		getArticlesExceptCategory(params!.category),
+		getRecommendedCategoryArticle(params!.category),
 	]);
 
 	return {
@@ -40,19 +42,21 @@ export const getStaticProps: GetStaticProps<Props, Params> = async ({ params }) 
 			category: params!.category,
 			articles: initialArticles,
 			sidebar: shuffle(sidebarRaw),
+			recommended,
 		},
 		revalidate: 60,
 	};
 };
 
 export default function CategoryPage(props: Props) {
-	const { category, sidebar, articles: initialArticles } = props;
+	const { category, sidebar, articles: initialArticles, recommended } = props;
 
 	const [articles, setArticles] = useState<article[]>(initialArticles);
 	const [cursor, setCursor] = useState<number | null>(initialArticles.length > 0 ? initialArticles[initialArticles.length - 1].id : null);
 	const [loadingDisplay, setLoadingDisplay] = useState<"none" | "block">("none");
 	const [loadingContent, setLoadingContent] = useState("Loading articles, please wait...");
 	const [showSidebar, setShowSidebar] = useState(false);
+	const visibleArticles = recommended ? articles.filter(a => a.id !== recommended.id) : articles;
 
 	// Reset state when props.articles changes (on category switch)
 	useEffect(() => {
@@ -171,6 +175,25 @@ export default function CategoryPage(props: Props) {
 				#loading {
 					display: none;
 				}
+				.recommended-card {
+					background: linear-gradient(135deg, #f1f5fc 0%, #e8eef9 100%);
+					border: 1px solid #b8c6df;
+					border-left: 5px solid #102e63;
+					padding: 0.8rem;
+					margin-bottom: 1.2rem;
+				}
+				.recommended-label {
+					display: inline-block;
+					background: #102e63;
+					color: #fff;
+					font-family: ${styles.font.sans};
+					font-size: 0.78rem;
+					font-weight: 700;
+					letter-spacing: 0.08em;
+					text-transform: uppercase;
+					padding: 0.22rem 0.55rem;
+					margin-bottom: 0.5rem;
+				}
 
 				@media (max-width: 1000px) {
 					.grid {
@@ -189,7 +212,13 @@ export default function CategoryPage(props: Props) {
 			<div className="grid">
 				<div>
 					<section>
-						{articles.map(a => (
+						{recommended && (
+							<div className="recommended-card">
+								<span className="recommended-label">Recommended</span>
+								<ArticlePreview article={recommended} style="row" size="category-list" showPreviewText />
+							</div>
+						)}
+						{visibleArticles.map(a => (
 							<ArticlePreview key={a.id} article={a} style="row" size="category-list" showPreviewText />
 						))}
 					</section>

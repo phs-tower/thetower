@@ -12,11 +12,13 @@
 	textarea,
 	a,
 	input,
+	button,
 	label {
 		font-size: 1.2rem;
 	}
 
-	input {
+	input,
+	button {
 		border-radius: 0;
 		border: 1px solid var(--accent-dark);
 		padding: 0.5rem;
@@ -92,6 +94,12 @@
 	strong {
 		font-family: $font-header;
 	}
+}
+
+.editor-note {
+	color: #7a7a7a;
+	font-size: 0.9rem !important;
+	margin-top: -0.2rem;
 }
 
 #selectHolder {
@@ -259,4 +267,78 @@
 	display: flex;
 	align-items: center;
 	gap: 8px;
+}
+
+.existing-articles {
+	margin-top: 1rem;
+	padding: 0.8rem;
+	border: 1px solid #d1d1d1;
+	background: #fafafa;
+
+	p {
+		margin: 0.45rem 0;
+		color: #666;
+	}
+}
+
+.existing-articles-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.75rem;
+}
+
+.existing-articles-actions {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.delete-draft-button {
+	border-color: #b63535 !important;
+	color: #8a1818;
+}
+
+.existing-articles-list {
+	display: flex;
+	flex-direction: column;
+	gap: 0.45rem;
+	margin-top: 0.6rem;
+
+	button {
+		text-align: left;
+		background: white;
+		border: 1px solid #cfcfcf;
+		padding: 0.6rem 0.7rem;
+		display: flex;
+		flex-direction: column;
+		gap: 0.2rem;
+	}
+
+	button:hover {
+		border-color: rgb(94, 150, 229);
+	}
+
+	button:disabled {
+		opacity: 0.6;
+		cursor: not-allowed;
+	}
+
+	button:disabled:hover {
+		border-color: #cfcfcf;
+	}
+
+	span {
+		font-size: 0.98rem;
+		line-height: 1.25;
+	}
+
+	small {
+		color: #777;
+	}
+}
+
+.existing-article-active {
+	border-color: rgb(94, 150, 229) !important;
+	background: #eef5ff !important;
 }

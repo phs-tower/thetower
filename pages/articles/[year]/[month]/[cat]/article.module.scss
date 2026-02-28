@@ -57,11 +57,14 @@ section.content {
 	width: min(100%, 22rem);
 	margin: 0 auto;
 	align-self: center;
+	border: 1px solid #cfcfcf;
+	background: #f8f8f8;
+	box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
 
 	a.article-column-ad-image-link {
 		display: block;
-		border: 1px solid #d8d8d8;
-		background: #f7f7f7;
+		padding: 0.7rem;
+		background: #f8f8f8;
 
 		&:hover {
 			opacity: 1;
@@ -75,9 +78,24 @@ section.content {
 	}
 }
 
+.article-column-ad-label {
+	padding: 0.45rem 0.7rem;
+	background: #111;
+	color: #fff;
+	font-family: var(--font-sans);
+	font-size: 0.72rem;
+	font-weight: 700;
+	letter-spacing: 0.13em;
+	text-align: center;
+}
+
+.article-column-ad-caption {
+	padding: 0 0.7rem 0.7rem;
+}
+
 a.article-column-ad-caption-link {
 	display: block;
-	margin-top: 0.55rem;
+	margin-top: 0.15rem;
 	font-family: var(--font-sans);
 	font-size: 0.92rem;
 	line-height: 1.35;
@@ -189,7 +207,29 @@ a.return-to-category {
 	}
 }
 
-@media screen and (min-width: 1480px) {
+@media screen and (min-width: 901px) and (max-width: 1279px) {
+	.article-body {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) clamp(17rem, 30vw, 23rem);
+		gap: 1.2rem;
+		align-items: start;
+	}
+
+	.main-article {
+		grid-column: 1;
+		width: 100%;
+	}
+
+	.article-column-ad {
+		grid-column: 2;
+		margin: 0;
+		width: 100%;
+		margin-top: 12.5rem;
+		align-self: start;
+	}
+}
+
+@media screen and (min-width: 1280px) {
 	.article-body {
 		display: grid;
 		grid-template-columns: minmax(0, 1fr);
@@ -199,7 +239,7 @@ a.return-to-category {
 	.main-article {
 		grid-column: 1;
 		grid-row: 1;
-		width: min(100%, 78ch);
+		width: min(100%, 72ch);
 		justify-self: start;
 	}
 
@@ -209,13 +249,9 @@ a.return-to-category {
 		justify-self: end;
 		margin: 0;
 		margin-top: 12.5rem;
-		align-self: start;
 		width: clamp(20rem, 27vw, 30rem);
-		transform: translateX(calc(92% + clamp(0rem, 0.2vw, 0.35rem)));
-	}
-
-	a.article-column-ad-caption-link {
-		text-align: center;
+		align-self: start;
+		transform: translateX(calc(70% + clamp(0.2rem, 0.55vw, 0.55rem)));
 	}
 }
 

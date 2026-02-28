@@ -2,50 +2,114 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/router";
 import styles from "~/lib/styles";
 
-const DISMISS_KEY = "tower_promo_dismissed_at";
-const DISMISS_DAYS = 3;
+const METER_KEY = "tower_promo_meter_v1";
+const DISMISS_MONTH_KEY = "tower_promo_dismissed_month";
+const SHOWN_SESSION_KEY = "tower_promo_shown_session";
+const COUNTED_SESSION_PREFIX = "tower_promo_counted_path:";
 
-const isDismissed = () => {
-	if (typeof window === "undefined") return false;
+const MONTHLY_READ_LIMIT = 2;
+const MIN_SCROLL_RATIO = 0.5;
+const MIN_ENGAGED_MS = 60_000;
+const HARD_ENGAGED_MS = 150_000;
+
+type MeterState = {
+	month: string;
+	reads: number;
+};
+
+const monthKeyNow = () => {
+	const d = new Date();
+	return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+};
+
+const readMeter = (): MeterState => {
+	if (typeof window === "undefined") return { month: monthKeyNow(), reads: 0 };
 	try {
-		const raw = localStorage.getItem(DISMISS_KEY);
-		if (!raw) return false;
-		const ts = Number(raw);
-		if (!Number.isFinite(ts)) return false;
-		const ageDays = (Date.now() - ts) / (1000 * 60 * 60 * 24);
-		return ageDays < DISMISS_DAYS;
+		const raw = localStorage.getItem(METER_KEY);
+		if (!raw) return { month: monthKeyNow(), reads: 0 };
+		const parsed = JSON.parse(raw) as MeterState;
+		if (!parsed || typeof parsed.month !== "string" || typeof parsed.reads !== "number") return { month: monthKeyNow(), reads: 0 };
+		if (parsed.month !== monthKeyNow()) return { month: monthKeyNow(), reads: 0 };
+		return { month: parsed.month, reads: Math.max(0, Math.floor(parsed.reads)) };
 	} catch {
-		return false;
+		return { month: monthKeyNow(), reads: 0 };
+	}
+};
+
+const writeMeter = (meter: MeterState) => {
+	try {
+		localStorage.setItem(METER_KEY, JSON.stringify(meter));
+	} catch {
+		// ignore storage errors
 	}
 };
 
 export default function PromoPopup() {
 	const [open, setOpen] = useState(false);
+	const router = useRouter();
 
 	useEffect(() => {
-		if (isDismissed()) return;
-		let timeoutId: ReturnType<typeof setTimeout> | null = null;
-		let triggered = false;
+		if (!router.isReady) return;
+		const path = router.asPath.split("?")[0];
+		if (!path.startsWith("/articles/")) return;
+
+		const sessionCountKey = `${COUNTED_SESSION_PREFIX}${path}`;
+		if (sessionStorage.getItem(sessionCountKey)) return;
+		sessionStorage.setItem(sessionCountKey, "1");
+
+		const meter = readMeter();
+		const month = monthKeyNow();
+		const next: MeterState = meter.month === month ? { month, reads: meter.reads + 1 } : { month, reads: 1 };
+		writeMeter(next);
+	}, [router.isReady, router.asPath]);
+
+	useEffect(() => {
+		if (!router.isReady) return;
+		if (sessionStorage.getItem(SHOWN_SESSION_KEY) === "1") return;
+
+		const month = monthKeyNow();
+		if (localStorage.getItem(DISMISS_MONTH_KEY) === month) return;
+		const meter = readMeter();
+		if (meter.month !== month || meter.reads < MONTHLY_READ_LIMIT) return;
+
+		let engagedMs = 0;
+		let maxScrollRatio = 0;
 
 		const maybeOpen = () => {
-			if (triggered || open) return;
-			if (window.scrollY < 500) return;
-			triggered = true;
-			timeoutId = setTimeout(() => setOpen(true), 350);
-			window.removeEventListener("scroll", maybeOpen);
+			const enoughEngagement = (engagedMs >= MIN_ENGAGED_MS && maxScrollRatio >= MIN_SCROLL_RATIO) || engagedMs >= HARD_ENGAGED_MS;
+			if (!enoughEngagement) return;
+			if (sessionStorage.getItem(SHOWN_SESSION_KEY) === "1") return;
+			sessionStorage.setItem(SHOWN_SESSION_KEY, "1");
+			setOpen(true);
+			window.removeEventListener("scroll", onScroll);
+			clearInterval(intervalId);
 		};
 
-		window.addEventListener("scroll", maybeOpen, { passive: true });
-		// In case user reloads mid-scroll
-		maybeOpen();
+		const onScroll = () => {
+			const maxScrollable = document.documentElement.scrollHeight - window.innerHeight;
+			const ratio = maxScrollable > 0 ? window.scrollY / maxScrollable : 1;
+			maxScrollRatio = Math.max(maxScrollRatio, ratio);
+			maybeOpen();
+		};
+
+		const intervalId = setInterval(() => {
+			if (document.visibilityState === "visible") {
+				engagedMs += 1000;
+				maybeOpen();
+			}
+		}, 1000);
+
+		window.addEventListener("scroll", onScroll, { passive: true });
+		onScroll();
 
 		return () => {
-			window.removeEventListener("scroll", maybeOpen);
-			if (timeoutId) clearTimeout(timeoutId);
+			window.removeEventListener("scroll", onScroll);
+			clearInterval(intervalId);
 		};
-	}, []);
+	}, [router.isReady, router.asPath]);
 
 	useEffect(() => {
 		if (!open) return;
@@ -59,7 +123,8 @@ export default function PromoPopup() {
 	const close = () => {
 		setOpen(false);
 		try {
-			localStorage.setItem(DISMISS_KEY, String(Date.now()));
+			sessionStorage.setItem(SHOWN_SESSION_KEY, "1");
+			localStorage.setItem(DISMISS_MONTH_KEY, monthKeyNow());
 		} catch {
 			// ignore storage errors
 		}

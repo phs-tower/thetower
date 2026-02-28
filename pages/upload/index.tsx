@@ -6,6 +6,7 @@ import Link from "next/link";
 import { remark } from "remark";
 import html from "remark-html";
 import confetti from "canvas-confetti";
+import { article } from "@prisma/client";
 import styles from "./upload.module.scss";
 import { ArticleContent } from "../articles/[year]/[month]/[cat]/[slug]";
 import { SpreadContent } from "../spreads/[year]/[month]/[cat]/[slug]";
@@ -31,8 +32,17 @@ type FormDataType = {
 	year?: number | null;
 };
 
+type UploadListItem = Pick<article, "id" | "title" | "category" | "subcategory" | "published" | "month" | "year">;
+
 // 72 hours in ms
 const THREE_DAYS_MS = 72 * 60 * 60 * 1000;
+const VALID_IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".heic", ".heif"];
+const MONTH_NAMES = ["", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+function hasAllowedImageExtension(fileName: string) {
+	const lowerName = fileName.toLowerCase();
+	return VALID_IMAGE_EXTENSIONS.some(ext => lowerName.endsWith(ext));
+}
 
 function SavingIndicator({ uploadStatus, isSaving }: { uploadStatus: string; isSaving: boolean }) {
 	return (
@@ -62,6 +72,15 @@ export default function Upload() {
 	const [spreadData, setSpreadData] = useState<string>("");
 	const [imgOrigBytes, setImgOrigBytes] = useState<number | null>(null);
 	const [serverImgBytes, setServerImgBytes] = useState<number | null>(null);
+	const [issueArticles, setIssueArticles] = useState<UploadListItem[]>([]);
+	const [issueArticlesLoading, setIssueArticlesLoading] = useState(false);
+	const [loadingArticleId, setLoadingArticleId] = useState<number | null>(null);
+	const [deletingDraft, setDeletingDraft] = useState(false);
+	const [editingArticleId, setEditingArticleId] = useState<number | null>(null);
+
+	const selectedMonth = formData.month ?? new Date().getMonth() + 1;
+	const selectedYear = formData.year ?? new Date().getFullYear();
+	const filteredIssueArticles = category ? issueArticles.filter(item => item.category === category) : issueArticles;
 
 	const errorRef = useRef<HTMLParagraphElement>(null);
 
@@ -179,6 +198,11 @@ export default function Upload() {
 		}
 	}, [hydrated, formData.content]);
 
+	useEffect(() => {
+		if (!hydrated) return;
+		void refreshIssueArticles(selectedMonth, selectedYear);
+	}, [hydrated, selectedMonth, selectedYear]);
+
 	// Re-trigger error animation
 	function triggerErrorAnimation() {
 		if (errorRef.current) {
@@ -198,6 +222,110 @@ export default function Upload() {
 			i++;
 		}
 		return `${Math.round(b * 10) / 10} ${units[i]}`;
+	}
+
+	async function refreshIssueArticles(month: number, year: number) {
+		setIssueArticlesLoading(true);
+		try {
+			const response = await fetch("/api/load/articles-by-issue", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ month, year }),
+			});
+			const data = await response.json();
+			if (!response.ok) throw new Error(data?.message || "Could not load uploaded articles.");
+			setIssueArticles(Array.isArray(data) ? data : []);
+		} catch (error) {
+			console.error(error);
+			setIssueArticles([]);
+		} finally {
+			setIssueArticlesLoading(false);
+		}
+	}
+
+	async function loadArticleForEditing(id: number) {
+		setLoadingArticleId(id);
+		try {
+			const response = await fetch("/api/load/article-by-id", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ id }),
+			});
+			const loaded = (await response.json()) as article & { message?: string };
+			if (!response.ok) throw new Error(loaded?.message || "Could not load this article.");
+			if (loaded.published) throw new Error("Published articles are locked and cannot be edited here.");
+
+			setEditingArticleId(loaded.id);
+			setCategory(loaded.category);
+			setFormData({
+				category: loaded.category,
+				subcategory: loaded.subcategory,
+				title: loaded.title,
+				authors: loaded.authors.join(", "),
+				content: loaded.content,
+				contentInfo: loaded.contentInfo ?? "",
+				img: null,
+				spread: null,
+				imgData: loaded.img || null,
+				imgName: loaded.img ? "existing image" : null,
+				multi: null,
+				month: loaded.month,
+				year: loaded.year,
+			});
+			setImgOrigBytes(null);
+			setServerImgBytes(null);
+			setUploadResponse(`Loaded "${loaded.title}" for editing.`);
+		} catch (error: any) {
+			console.error(error);
+			setUploadResponse(`Failed to load article: ${error?.message || "Unknown error"}`);
+			setUploadStatus("error");
+			triggerErrorAnimation();
+		} finally {
+			setLoadingArticleId(null);
+		}
+	}
+
+	async function deleteLoadedDraft() {
+		if (editingArticleId === null) return;
+		if (!window.confirm("Delete this draft permanently? This cannot be undone.")) return;
+
+		setDeletingDraft(true);
+		try {
+			const response = await fetch("/api/upload/delete-draft", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ id: editingArticleId }),
+			});
+			const data = await response.json();
+			if (!response.ok) throw new Error(data?.message || "Failed to delete draft.");
+
+			const month = formData.month ?? new Date().getMonth() + 1;
+			const year = formData.year ?? new Date().getFullYear();
+			clearEditingState();
+			setUploadResponse(data.message || "Draft deleted.");
+			setUploadStatus("success");
+			void refreshIssueArticles(month, year);
+		} catch (error: any) {
+			console.error(error);
+			setUploadResponse(`Failed to delete draft: ${error?.message || "Unknown error"}`);
+			setUploadStatus("error");
+			triggerErrorAnimation();
+		} finally {
+			setDeletingDraft(false);
+		}
+	}
+
+	function clearEditingState() {
+		setEditingArticleId(null);
+		setCategory("");
+		setFormData({
+			month: selectedMonth,
+			year: selectedYear,
+		});
+		setPreviewContent("");
+		setSpreadData("");
+		setImgOrigBytes(null);
+		setServerImgBytes(null);
 	}
 
 	function changeCategory(e: ChangeEvent<HTMLSelectElement>) {
@@ -242,10 +370,8 @@ export default function Upload() {
 		if (!inp.files || !inp.files[0]) return;
 		let image = inp.files[0];
 
-		const validExtensions = [".jpg", ".jpeg", ".png", ".gif", ".webp"];
-		const nameLower = image.name.toLowerCase();
-		if (!validExtensions.some(ext => nameLower.endsWith(ext))) {
-			alert("Invalid file format. Please select a JPG, JPEG, PNG, WEBP, or GIF file.");
+		if (!hasAllowedImageExtension(image.name)) {
+			alert("Invalid file format. Please select a JPG, JPEG, PNG, WEBP, GIF, HEIC, or HEIF file.");
 			inp.value = "";
 			setFormData({ ...formData, img: null, imgData: null, imgName: null });
 			setSpreadData("");
@@ -407,6 +533,7 @@ export default function Upload() {
 		const chosenYear = String(formData.year ?? now.getFullYear());
 		fd.append("month", chosenMonth);
 		fd.append("year", chosenYear);
+		if (editingArticleId !== null) fd.append("article-id", String(editingArticleId));
 
 		// Send original image to server; server handles compression
 		let preparedImg: File | null = formData.img ?? null;
@@ -447,6 +574,7 @@ export default function Upload() {
 			fd.append("authors", JSON.stringify(authors));
 			if (formData.content) fd.append("content", formData.content);
 			if (preparedImg) fd.append("img", preparedImg);
+			else if (editingArticleId !== null) fd.append("existing-img", formData.imgData ? String(formData.imgData) : "");
 			// Append header info if provided
 			if (formData.contentInfo) fd.append("content-info", formData.contentInfo);
 		}
@@ -483,10 +611,10 @@ export default function Upload() {
 				setUploadStatus("success");
 				if (errorRef.current) errorRef.current.classList.remove("error-message");
 				confetti();
-				setFormData({});
-				setPreviewContent("");
+				clearEditingState();
 				localStorage.removeItem("uploadFormData");
 				localStorage.removeItem("uploadFormTimestamp");
+				void refreshIssueArticles(Number(chosenMonth), Number(chosenYear));
 			}
 		} catch (error: any) {
 			console.error(error);
@@ -530,6 +658,7 @@ export default function Upload() {
 				<p>
 					Upload articles for the next issue here. <strong>For editor use only.</strong>
 				</p>
+				<p className={styles["editor-note"]}>★Editors should upload their best article first!</p>
 				<br />
 				<form onSubmit={submitArticle}>
 					<h3>Section</h3>
@@ -646,7 +775,7 @@ export default function Upload() {
 							>
 								<h3>Article</h3>
 								<p>
-									<strong>Header image</strong> (JPG, JPEG, PNG, WEBP, or GIF only):
+									<strong>Header image</strong> (JPG, JPEG, PNG, WEBP, GIF, HEIC, or HEIF):
 								</p>
 
 								<div className={styles["file-input"]}>
@@ -664,7 +793,7 @@ export default function Upload() {
 										<input
 											id="img-upload"
 											type="file"
-											accept=".jpg,.jpeg,.png,.gif,.webp"
+											accept=".jpg,.jpeg,.png,.gif,.webp,.heic,.heif"
 											onChange={e => updateImage(e.target)}
 										/>
 									</label>
@@ -685,7 +814,7 @@ export default function Upload() {
 								<br />
 								<br />
 								{/* If a header image is attached, show a resizable Header Info field */}
-								{formData.img && (
+								{(formData.img || formData.imgData) && (
 									<>
 										<strong>Header Info</strong>
 										<p>
@@ -740,7 +869,56 @@ export default function Upload() {
 								</p>
 								<textarea id={styles.contentInput} onChange={updateContent} value={formData.content || ""} />
 								<div style={{ marginTop: "0.6rem" }}>
-									<input type="submit" />
+									<button type="submit">{editingArticleId !== null ? "Update Article" : "Submit Article"}</button>
+								</div>
+								<div className={styles["existing-articles"]}>
+									<div className={styles["existing-articles-header"]}>
+										<strong>{`Uploaded Articles (${MONTH_NAMES[selectedMonth]} ${selectedYear})`}</strong>
+										{editingArticleId !== null && (
+											<div className={styles["existing-articles-actions"]}>
+												<button type="button" onClick={clearEditingState}>
+													New article
+												</button>
+												<button
+													type="button"
+													onClick={deleteLoadedDraft}
+													disabled={deletingDraft}
+													className={styles["delete-draft-button"]}
+												>
+													{deletingDraft ? "Deleting..." : "Delete Draft"}
+												</button>
+											</div>
+										)}
+									</div>
+									{issueArticlesLoading && <p>Loading uploaded articles...</p>}
+									{!issueArticlesLoading && filteredIssueArticles.length === 0 && (
+										<p>
+											{category
+												? "No uploaded articles for this category this month yet."
+												: "No uploaded articles for this month yet."}
+										</p>
+									)}
+									{!issueArticlesLoading && filteredIssueArticles.length > 0 && (
+										<div className={styles["existing-articles-list"]}>
+											{filteredIssueArticles.map(item => (
+												<button
+													type="button"
+													key={item.id}
+													onClick={() => loadArticleForEditing(item.id)}
+													className={editingArticleId === item.id ? styles["existing-article-active"] : ""}
+													disabled={loadingArticleId === item.id || item.published}
+												>
+													<span>
+														{item.title} <small>#{item.id}</small>
+													</span>
+													<span>
+														{item.category} / {item.subcategory} • {item.published ? "published (locked)" : "draft"}
+													</span>
+													{loadingArticleId === item.id && <span>Loading...</span>}
+												</button>
+											))}
+										</div>
+									)}
 								</div>
 								<br />
 							</div>
@@ -837,6 +1015,7 @@ export default function Upload() {
 							<div style={{ textAlign: "left" }}>
 								{formData.category && ["news-features", "opinions", "sports", "arts-entertainment"].includes(formData.category) && (
 									<ArticleContent
+										showColumnAd={false}
 										article={{
 											id: -1,
 											title: formData.title ? formData.title : "Enter title to update preview",

@@ -2,7 +2,7 @@
 
 import { NextApiRequest, NextApiResponse } from "next";
 import formidable from "formidable";
-import { uploadArticle, uploadMulti, uploadSpread, uploadFile } from "~/lib/queries";
+import { getArticleByIdAny, updateArticleById, uploadArticle, uploadMulti, uploadSpread, uploadFile } from "~/lib/queries";
 
 async function uploadVang(files: formidable.Files, fields: formidable.Fields, chosenMonth: number, chosenYear: number) {
 	let ret = { code: 500, error: "" };
@@ -71,16 +71,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 		}
 
 		// Just a standard Article!
-		let imgURL = "";
+		const providedArticleId = Number((fields as any)?.["article-id"]?.[0] ?? "");
+		const isEditingArticle = Number.isInteger(providedArticleId) && providedArticleId > 0;
+		const hasExistingImgField = Object.prototype.hasOwnProperty.call(fields, "existing-img");
+		const existingImgFromClient = String((fields as any)?.["existing-img"]?.[0] ?? "");
+
+		let existingArticle = null;
+		if (isEditingArticle) {
+			existingArticle = await getArticleByIdAny(providedArticleId);
+			if (!existingArticle) return res.status(404).json({ message: "Upload failed: article to edit was not found." });
+			if (existingArticle.published) return res.status(403).json({ message: "Published articles are locked and cannot be edited here." });
+		}
+
+		let imgURL = existingArticle?.img ?? "";
 		if (files.img) {
 			console.log("uploading file...");
+			const clientCompressed = ((fields as any)["img-client-compressed"]?.[0] ?? "") === "1";
 
-			let upload = await uploadFile(files.img[0], "images");
+			let upload = await uploadFile(files.img[0], "images", { skipCompression: clientCompressed });
 			if (upload.code != 200) return res.status(upload.code).json({ message: upload.message });
 			imgURL = upload.message;
 			// Attach server final size if available
 			(fields as any).serverImgSizeBytes = String((upload as any).sizeBytes ?? "");
 			console.log("upload complete");
+		} else if (isEditingArticle) {
+			// Preserve existing image when provided by client; allow clearing by passing empty string.
+			imgURL = hasExistingImgField ? existingImgFromClient : existingArticle?.img ?? "";
 		}
 
 		console.log("passing field checks...");
@@ -107,7 +123,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 		};
 
 		try {
-			await uploadArticle(articleInfo);
+			if (isEditingArticle) await updateArticleById(providedArticleId, articleInfo);
+			else await uploadArticle(articleInfo);
 		} catch (e) {
 			console.log(e);
 			return res.status(500).json({ message: `Unexpected problem in the server! Message: ${e}` });
@@ -116,7 +133,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 		console.log("returning success message");
 		// bubble final server-compressed size to client if present
 		const serverImgSizeBytes = (fields as any).serverImgSizeBytes ? Number((fields as any).serverImgSizeBytes) : undefined;
-		return res.status(200).json({ message: "Uploaded!", serverImgSizeBytes });
+		return res.status(200).json({ message: isEditingArticle ? "Updated!" : "Uploaded!", serverImgSizeBytes });
 	});
 }
 

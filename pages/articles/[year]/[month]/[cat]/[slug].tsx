@@ -19,6 +19,10 @@ interface Props {
 	article: article;
 }
 
+interface ArticleContentProps extends Props {
+	showColumnAd?: boolean;
+}
+
 const ARTICLE_COLUMN_AD = {
 	src: "/assets/fledermaus-article-column-2026.jpg",
 	href: "https://www.thestateoperanj.org/",
@@ -75,7 +79,7 @@ export function ReturnToCategoryButton({ category }: { category: string }) {
 	);
 }
 
-export function ArticleContent({ article }: Props) {
+export function ArticleContent({ article, showColumnAd = true }: ArticleContentProps) {
 	return (
 		<section className={articleStyles["content"]}>
 			<div className={articleStyles["titleblock"]}>
@@ -115,19 +119,29 @@ export function ArticleContent({ article }: Props) {
 					</div>
 				)}
 
-				<aside className={articleStyles["article-column-ad"]} aria-label="Article sponsor">
-					<a href={ARTICLE_COLUMN_AD.href} target="_blank" rel="noreferrer" className={articleStyles["article-column-ad-image-link"]}>
-						<Image
-							src={ARTICLE_COLUMN_AD.src}
-							alt={ARTICLE_COLUMN_AD.alt}
-							width={ARTICLE_COLUMN_AD.width}
-							height={ARTICLE_COLUMN_AD.height}
-						/>
-					</a>
-					<a href={ARTICLE_COLUMN_AD.href} target="_blank" rel="noreferrer" className={articleStyles["article-column-ad-caption-link"]}>
-						Die Fledermaus 2026 presented by The State Opera of New Jersey
-					</a>
-				</aside>
+				{showColumnAd && (
+					<aside className={articleStyles["article-column-ad"]} aria-label="Article sponsor">
+						<div className={articleStyles["article-column-ad-label"]}>ADVERTISEMENT</div>
+						<a href={ARTICLE_COLUMN_AD.href} target="_blank" rel="noreferrer" className={articleStyles["article-column-ad-image-link"]}>
+							<Image
+								src={ARTICLE_COLUMN_AD.src}
+								alt={ARTICLE_COLUMN_AD.alt}
+								width={ARTICLE_COLUMN_AD.width}
+								height={ARTICLE_COLUMN_AD.height}
+							/>
+						</a>
+						<div className={articleStyles["article-column-ad-caption"]}>
+							<a
+								href={ARTICLE_COLUMN_AD.href}
+								target="_blank"
+								rel="noreferrer"
+								className={articleStyles["article-column-ad-caption-link"]}
+							>
+								Die Fledermaus 2026 presented by The State Opera of New Jersey
+							</a>
+						</div>
+					</aside>
+				)}
 			</div>
 		</section>
 	);
