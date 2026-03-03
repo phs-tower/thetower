@@ -37,11 +37,17 @@ type UploadListItem = Pick<article, "id" | "title" | "category" | "subcategory" 
 // 72 hours in ms
 const THREE_DAYS_MS = 72 * 60 * 60 * 1000;
 const VALID_IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".heic", ".heif"];
+const HEIC_EXTENSIONS = [".heic", ".heif"];
 const MONTH_NAMES = ["", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 function hasAllowedImageExtension(fileName: string) {
 	const lowerName = fileName.toLowerCase();
 	return VALID_IMAGE_EXTENSIONS.some(ext => lowerName.endsWith(ext));
+}
+
+function isHeicLike(fileName: string) {
+	const lowerName = fileName.toLowerCase();
+	return HEIC_EXTENSIONS.some(ext => lowerName.endsWith(ext));
 }
 
 function SavingIndicator({ uploadStatus, isSaving }: { uploadStatus: string; isSaving: boolean }) {
@@ -224,6 +230,26 @@ export default function Upload() {
 		return `${Math.round(b * 10) / 10} ${units[i]}`;
 	}
 
+	async function convertHeicToPng(source: File): Promise<File> {
+		const fd = new FormData();
+		fd.append("img", source);
+		const response = await fetch("/api/upload/convert-image", {
+			method: "POST",
+			body: fd,
+		});
+		if (!response.ok) {
+			let msg = "Could not convert HEIC image.";
+			try {
+				const data = await response.json();
+				msg = data?.message || msg;
+			} catch {}
+			throw new Error(msg);
+		}
+		const converted = await response.blob();
+		const outName = source.name.replace(/\.(heic|heif)$/i, ".png");
+		return new File([converted], outName, { type: "image/png", lastModified: Date.now() });
+	}
+
 	async function refreshIssueArticles(month: number, year: number) {
 		setIssueArticlesLoading(true);
 		try {
@@ -380,6 +406,21 @@ export default function Upload() {
 
 		// Track original size and preview the original (no client compression)
 		setImgOrigBytes(image.size);
+
+		if (isHeicLike(image.name)) {
+			try {
+				setUploadResponse("Converting HEIC/HEIF to PNG for preview...");
+				image = await convertHeicToPng(image);
+			} catch (error: any) {
+				setUploadResponse(`Image conversion failed: ${error?.message || "Could not convert HEIC/HEIF."}`);
+				setUploadStatus("error");
+				triggerErrorAnimation();
+				inp.value = "";
+				setFormData({ ...formData, img: null, imgData: null, imgName: null });
+				return;
+			}
+		}
+
 		const reader = new FileReader();
 		reader.onload = () => {
 			setFormData({
@@ -495,9 +536,10 @@ export default function Upload() {
 			triggerErrorAnimation();
 			return;
 		}
+		const hasImage = Boolean(formData.img || (formData.imgData && formData.imgData.trim() !== ""));
 		// For non-vanguard/multimedia, confirm missing fields
 		if (formData.category !== "vanguard" && formData.category !== "multimedia") {
-			if (!formData.img) {
+			if (!hasImage) {
 				if (!window.confirm("No image uploaded. Proceed without an image?")) {
 					setUploadResponse("Upload cancelled by user.");
 					setUploadStatus("error");

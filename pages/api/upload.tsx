@@ -4,17 +4,28 @@ import { NextApiRequest, NextApiResponse } from "next";
 import formidable from "formidable";
 import { getArticleByIdAny, updateArticleById, uploadArticle, uploadMulti, uploadSpread, uploadFile } from "~/lib/queries";
 
+function getSingleFile(fileField: formidable.File | formidable.File[] | undefined) {
+	if (!fileField) return null;
+	return Array.isArray(fileField) ? fileField[0] ?? null : fileField;
+}
+
+function getFirstFieldValue(field: string | string[] | undefined) {
+	if (Array.isArray(field)) return field[0] ?? "";
+	return field ?? "";
+}
+
 async function uploadVang(files: formidable.Files, fields: formidable.Fields, chosenMonth: number, chosenYear: number) {
 	let ret = { code: 500, error: "" };
 
-	if (!files.spread) return { ...ret, error: "Did you upload a spread?" };
+	const spreadFile = getSingleFile(files.spread);
+	if (!spreadFile) return { ...ret, error: "Did you upload a spread?" };
 
-	const upload = await uploadFile(files.spread[0], "spreads");
+	const upload = await uploadFile(spreadFile, "spreads");
 	if (upload.code != 200) return { ...ret, code: upload.code, error: upload.message };
 
 	try {
 		await uploadSpread({
-			title: fields.title ? fields.title[0] : "No title provided",
+			title: getFirstFieldValue(fields.title) || "No title provided",
 			src: upload.message,
 			month: chosenMonth,
 			year: chosenYear,
@@ -42,27 +53,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 		const currentMonth = today.getMonth() + 1;
 		const currentYear = today.getFullYear();
 		// allow client to provide custom month/year
-		const providedMonth = parseInt((fields as any)?.month?.[0] ?? "", 10);
-		const providedYear = parseInt((fields as any)?.year?.[0] ?? "", 10);
+		const providedMonth = parseInt(getFirstFieldValue((fields as any)?.month), 10);
+		const providedYear = parseInt(getFirstFieldValue((fields as any)?.year), 10);
 		const chosenMonth = !isNaN(providedMonth) && providedMonth >= 1 && providedMonth <= 12 ? providedMonth : currentMonth;
 		const chosenYear = !isNaN(providedYear) && providedYear >= 2010 && providedYear <= currentYear + 1 ? providedYear : currentYear;
 
-		if (!fields.category) return res.status(500).json({ message: "Did you provide a category?" });
+		const category = getFirstFieldValue(fields.category);
+		if (!category) return res.status(500).json({ message: "Did you provide a category?" });
 
-		if (fields.category[0] == "vanguard") {
+		if (category == "vanguard") {
 			const status = await uploadVang(files, fields, chosenMonth, chosenYear);
 			return res.status(status.code).json({ message: status.error ?? "Uploaded!" });
 		}
-		if (fields.category[0] == "multimedia") {
-			if (!fields.subcategory || !fields.multi)
-				return res.status(500).json({ message: "Did you provide a subcategory and a link to the resource?" });
+		if (category == "multimedia") {
+			const subcategory = getFirstFieldValue(fields.subcategory);
+			const multi = getFirstFieldValue(fields.multi);
+			if (!subcategory || !multi) return res.status(500).json({ message: "Did you provide a subcategory and a link to the resource?" });
 			try {
 				await uploadMulti({
-					format: fields.subcategory[0],
-					src_id: fields.multi[0],
+					format: subcategory,
+					src_id: multi,
 					month: chosenMonth,
 					year: chosenYear,
-					title: fields.title ? fields.title[0] : "",
+					title: getFirstFieldValue(fields.title),
 				});
 				return res.status(200).json({ message: "Uploaded!" });
 			} catch (e) {
@@ -71,10 +84,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 		}
 
 		// Just a standard Article!
-		const providedArticleId = Number((fields as any)?.["article-id"]?.[0] ?? "");
+		const providedArticleId = Number(getFirstFieldValue((fields as any)?.["article-id"]));
 		const isEditingArticle = Number.isInteger(providedArticleId) && providedArticleId > 0;
 		const hasExistingImgField = Object.prototype.hasOwnProperty.call(fields, "existing-img");
-		const existingImgFromClient = String((fields as any)?.["existing-img"]?.[0] ?? "");
+		const existingImgFromClient = String(getFirstFieldValue((fields as any)?.["existing-img"]));
 
 		let existingArticle = null;
 		if (isEditingArticle) {
@@ -84,15 +97,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 		}
 
 		let imgURL = existingArticle?.img ?? "";
-		if (files.img) {
+		let serverImgSizeBytes: number | undefined;
+		const imageFile = getSingleFile(files.img);
+		if (imageFile) {
 			console.log("uploading file...");
-			const clientCompressed = ((fields as any)["img-client-compressed"]?.[0] ?? "") === "1";
+			const clientCompressed = getFirstFieldValue((fields as any)["img-client-compressed"]) === "1";
 
-			let upload = await uploadFile(files.img[0], "images", { skipCompression: clientCompressed });
+			let upload = await uploadFile(imageFile, "images", { skipCompression: clientCompressed });
 			if (upload.code != 200) return res.status(upload.code).json({ message: upload.message });
 			imgURL = upload.message;
-			// Attach server final size if available
-			(fields as any).serverImgSizeBytes = String((upload as any).sizeBytes ?? "");
+			serverImgSizeBytes = typeof (upload as any).sizeBytes === "number" ? Number((upload as any).sizeBytes) : undefined;
 			console.log("upload complete");
 		} else if (isEditingArticle) {
 			// Preserve existing image when provided by client; allow clearing by passing empty string.
@@ -100,7 +114,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 		}
 
 		console.log("passing field checks...");
-		if (!fields.subcategory || !fields.title || !fields.authors) {
+		const subcategory = getFirstFieldValue(fields.subcategory);
+		const title = getFirstFieldValue(fields.title);
+		const authorsRaw = getFirstFieldValue(fields.authors);
+		if (!subcategory || !title || !authorsRaw) {
 			return res.status(500).json({
 				message: `Some checks that should've already passed failed on the server. Content: ${JSON.stringify(
 					fields
@@ -110,12 +127,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 		console.log("checks completed, creating articleInfo object");
 
 		const articleInfo = {
-			category: fields.category[0],
-			subcategory: fields.subcategory[0],
-			title: fields.title[0],
-			authors: fields.authors ? JSON.parse(fields.authors[0]) : [],
-			content: fields.content ? fields.content[0] : "",
-			contentInfo: fields["content-info"] ? fields["content-info"][0] : "",
+			category,
+			subcategory,
+			title,
+			authors: authorsRaw ? JSON.parse(authorsRaw) : [],
+			content: getFirstFieldValue(fields.content),
+			contentInfo: getFirstFieldValue(fields["content-info"]),
 			img: imgURL,
 			month: chosenMonth,
 			year: chosenYear,
@@ -131,8 +148,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 		}
 
 		console.log("returning success message");
-		// bubble final server-compressed size to client if present
-		const serverImgSizeBytes = (fields as any).serverImgSizeBytes ? Number((fields as any).serverImgSizeBytes) : undefined;
 		return res.status(200).json({ message: isEditingArticle ? "Updated!" : "Uploaded!", serverImgSizeBytes });
 	});
 }
