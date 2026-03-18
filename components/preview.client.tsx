@@ -26,6 +26,7 @@ interface Props {
 	noteBelowImage?: React.ReactNode;
 	eyebrow?: React.ReactNode;
 	showPreviewText?: boolean;
+	showIssueDate?: boolean;
 }
 
 // Utility: Extract photographer name from contentInfo
@@ -66,6 +67,7 @@ export default function ArticlePreview({
 	noteBelowImage,
 	eyebrow,
 	showPreviewText = false,
+	showIssueDate = false,
 }: Props) {
 	if (!article) return <></>;
 
@@ -258,6 +260,12 @@ export default function ArticlePreview({
 					white-space: nowrap;
 					overflow: hidden;
 					text-overflow: ellipsis;
+				}
+				.issue-date {
+					margin-top: 0.55rem;
+					color: #8a8a8a;
+					font-size: 0.98rem;
+					font-family: ${styles.font.sans};
 				}
 				.article-preview > .large-preview {
 					background-color: var(--background);
@@ -457,6 +465,7 @@ export default function ArticlePreview({
 							</Link>
 						)}
 					</section>
+					{showIssueDate ? <section className="issue-date">{displayDate(article.year, article.month)}</section> : null}
 					<section className="title">
 						<Link
 							href={`/articles/${article.year}/${article.month}/${article.category}/${article.title

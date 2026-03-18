@@ -215,11 +215,11 @@ export default function CategoryPage(props: Props) {
 						{recommended && (
 							<div className="recommended-card">
 								<span className="recommended-label">Recommended</span>
-								<ArticlePreview article={recommended} style="row" size="category-list" showPreviewText />
+								<ArticlePreview article={recommended} style="row" size="category-list" showPreviewText showIssueDate />
 							</div>
 						)}
 						{visibleArticles.map(a => (
-							<ArticlePreview key={a.id} article={a} style="row" size="category-list" showPreviewText />
+							<ArticlePreview key={a.id} article={a} style="row" size="category-list" showPreviewText showIssueDate />
 						))}
 					</section>
 					<p id="loading" style={{ display: loadingDisplay }}>

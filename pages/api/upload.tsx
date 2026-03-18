@@ -2,7 +2,18 @@
 
 import { NextApiRequest, NextApiResponse } from "next";
 import formidable from "formidable";
-import { getArticleByIdAny, updateArticleById, uploadArticle, uploadMulti, uploadSpread, uploadFile } from "~/lib/queries";
+import { readFile } from "fs/promises";
+import {
+	getArticleByIdAny,
+	getSpreadByIssue,
+	updateArticleById,
+	uploadArticle,
+	uploadBuffer,
+	uploadFile,
+	uploadMulti,
+	uploadSpread,
+} from "~/lib/queries";
+import { buildSpreadSource, getSpreadPageImageUrl, parseSpreadSource } from "~/lib/utils";
 
 function getSingleFile(fileField: formidable.File | formidable.File[] | undefined) {
 	if (!fileField) return null;
@@ -14,19 +25,52 @@ function getFirstFieldValue(field: string | string[] | undefined) {
 	return field ?? "";
 }
 
-async function uploadVang(files: formidable.Files, fields: formidable.Fields, chosenMonth: number, chosenYear: number) {
+function normalizeVanguardSubcategory(category: string, subcategory: string) {
+	return category === "vanguard" && subcategory === "random-musings" ? "articles" : subcategory;
+}
+
+function getSpreadPageFiles(files: formidable.Files) {
+	return Object.entries(files)
+		.map(([fieldName, fileValue]) => ({
+			fieldName,
+			pageNumber: Number(fieldName.replace("spread-page-", "")),
+			file: getSingleFile(fileValue),
+		}))
+		.filter(entry => entry.fieldName.startsWith("spread-page-") && entry.file && Number.isInteger(entry.pageNumber) && entry.pageNumber > 0)
+		.sort((a, b) => a.pageNumber - b.pageNumber) as { fieldName: string; pageNumber: number; file: formidable.File }[];
+}
+
+async function uploadVanguardSpread(files: formidable.Files, fields: formidable.Fields, chosenMonth: number, chosenYear: number) {
 	let ret = { code: 500, error: "" };
 
 	const spreadFile = getSingleFile(files.spread);
 	if (!spreadFile) return { ...ret, error: "Did you upload a spread?" };
+	const spreadPageFiles = getSpreadPageFiles(files);
+	const pageCount = Number(getFirstFieldValue((fields as any)["spread-page-count"]));
+	if (!pageCount || spreadPageFiles.length === 0) {
+		return { ...ret, error: "The PDF preview pages could not be generated. Re-select the spread PDF and try again." };
+	}
+	if (spreadPageFiles.length !== pageCount) {
+		return { ...ret, error: "The Vanguard spread page previews were incomplete. Re-select the PDF and try again." };
+	}
 
 	const upload = await uploadFile(spreadFile, "spreads");
 	if (upload.code != 200) return { ...ret, code: upload.code, error: upload.message };
+	if (!("path" in upload) || typeof upload.path !== "string") {
+		return { ...ret, error: "The spread PDF uploaded, but its preview image path could not be determined." };
+	}
 
 	try {
+		for (const pageEntry of spreadPageFiles) {
+			const pageBuffer = await readFile(pageEntry.file.filepath);
+			const pagePath = upload.path.replace(/\.pdf$/i, `-page-${pageEntry.pageNumber}.png`);
+			const pageUpload = await uploadBuffer(pageBuffer, "spreads", pagePath, pageEntry.file.mimetype || "image/png");
+			if (pageUpload.code !== 200) return { ...ret, code: pageUpload.code, error: pageUpload.message };
+		}
+
 		await uploadSpread({
 			title: getFirstFieldValue(fields.title) || "No title provided",
-			src: upload.message,
+			src: buildSpreadSource(upload.message, pageCount),
 			month: chosenMonth,
 			year: chosenYear,
 			category: "vanguard",
@@ -60,13 +104,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
 		const category = getFirstFieldValue(fields.category);
 		if (!category) return res.status(500).json({ message: "Did you provide a category?" });
+		const rawSubcategory = getFirstFieldValue(fields.subcategory);
+		const subcategory = normalizeVanguardSubcategory(category, rawSubcategory);
 
-		if (category == "vanguard") {
-			const status = await uploadVang(files, fields, chosenMonth, chosenYear);
+		if (category == "vanguard" && subcategory == "spreads") {
+			const status = await uploadVanguardSpread(files, fields, chosenMonth, chosenYear);
 			return res.status(status.code).json({ message: status.error ?? "Uploaded!" });
 		}
 		if (category == "multimedia") {
-			const subcategory = getFirstFieldValue(fields.subcategory);
 			const multi = getFirstFieldValue(fields.multi);
 			if (!subcategory || !multi) return res.status(500).json({ message: "Did you provide a subcategory and a link to the resource?" });
 			try {
@@ -99,6 +144,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 		let imgURL = existingArticle?.img ?? "";
 		let serverImgSizeBytes: number | undefined;
 		const imageFile = getSingleFile(files.img);
+		const vanguardPageNumber = Number(getFirstFieldValue((fields as any)["vanguard-page-number"]));
+		const hasVanguardPageNumber = Number.isInteger(vanguardPageNumber) && vanguardPageNumber > 0;
+		const isVanguardArticle = category === "vanguard" && subcategory === "articles";
 		if (imageFile) {
 			console.log("uploading file...");
 			const clientCompressed = getFirstFieldValue((fields as any)["img-client-compressed"]) === "1";
@@ -108,13 +156,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 			imgURL = upload.message;
 			serverImgSizeBytes = typeof (upload as any).sizeBytes === "number" ? Number((upload as any).sizeBytes) : undefined;
 			console.log("upload complete");
+		} else if (isVanguardArticle && hasVanguardPageNumber) {
+			const spread = await getSpreadByIssue("vanguard", chosenMonth, chosenYear);
+			if (!spread) {
+				return res
+					.status(400)
+					.json({ message: "Upload failed: upload the Vanguard spread PDF for this issue before uploading Vanguard articles." });
+			}
+
+			const { pageCount } = parseSpreadSource(spread.src);
+			if (pageCount && vanguardPageNumber > pageCount) {
+				return res.status(400).json({
+					message: `Upload failed: the selected Vanguard spread only has ${pageCount} page${pageCount === 1 ? "" : "s"}.`,
+				});
+			}
+
+			imgURL = getSpreadPageImageUrl(spread.src, vanguardPageNumber);
 		} else if (isEditingArticle) {
 			// Preserve existing image when provided by client; allow clearing by passing empty string.
 			imgURL = hasExistingImgField ? existingImgFromClient : existingArticle?.img ?? "";
 		}
 
 		console.log("passing field checks...");
-		const subcategory = getFirstFieldValue(fields.subcategory);
 		const title = getFirstFieldValue(fields.title);
 		const authorsRaw = getFirstFieldValue(fields.authors);
 		if (!subcategory || !title || !authorsRaw) {
@@ -122,6 +185,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 				message: `Some checks that should've already passed failed on the server. Content: ${JSON.stringify(
 					fields
 				)}. Contact online editor(s).`,
+			});
+		}
+		if (isVanguardArticle && !imgURL) {
+			return res.status(400).json({
+				message: "Upload failed: choose a valid Vanguard page number after uploading the issue spread PDF.",
 			});
 		}
 		console.log("checks completed, creating articleInfo object");

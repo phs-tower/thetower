@@ -6,11 +6,13 @@ import Link from "next/link";
 import { remark } from "remark";
 import html from "remark-html";
 import confetti from "canvas-confetti";
-import { article } from "@prisma/client";
+import { article, spreads } from "@prisma/client";
 import styles from "./upload.module.scss";
 import { ArticleContent } from "../articles/[year]/[month]/[cat]/[slug]";
-import { SpreadContent } from "../spreads/[year]/[month]/[cat]/[slug]";
 import dynamic from "next/dynamic";
+import SpreadGallery from "~/components/spreadgallery.client";
+import { getSpreadPageImageUrl, inferVanguardPageFromImageUrl, parseSpreadSource } from "~/lib/utils";
+import { getPdfJs } from "~/lib/pdfjs-client";
 
 const Video = dynamic(() => import("~/components/video.client"), { ssr: false });
 const Podcast = dynamic(() => import("~/components/podcast.client"), { ssr: false });
@@ -30,6 +32,7 @@ type FormDataType = {
 	imgName?: string | null;
 	month?: number | null;
 	year?: number | null;
+	vanguardPageNumber?: number | null;
 };
 
 type UploadListItem = Pick<article, "id" | "title" | "category" | "subcategory" | "published" | "month" | "year">;
@@ -48,6 +51,10 @@ function hasAllowedImageExtension(fileName: string) {
 function isHeicLike(fileName: string) {
 	const lowerName = fileName.toLowerCase();
 	return HEIC_EXTENSIONS.some(ext => lowerName.endsWith(ext));
+}
+
+function normalizeVanguardSubcategory(subcategory?: string | null) {
+	return subcategory === "random-musings" ? "articles" : subcategory;
 }
 
 function SavingIndicator({ uploadStatus, isSaving }: { uploadStatus: string; isSaving: boolean }) {
@@ -75,7 +82,8 @@ export default function Upload() {
 	const [category, setCategory] = useState<string>("");
 	const [uploadResponse, setUploadResponse] = useState("");
 	const [previewContent, setPreviewContent] = useState("");
-	const [spreadData, setSpreadData] = useState<string>("");
+	const [spreadPageAssets, setSpreadPageAssets] = useState<File[]>([]);
+	const [spreadPreviewUrls, setSpreadPreviewUrls] = useState<string[]>([]);
 	const [imgOrigBytes, setImgOrigBytes] = useState<number | null>(null);
 	const [serverImgBytes, setServerImgBytes] = useState<number | null>(null);
 	const [issueArticles, setIssueArticles] = useState<UploadListItem[]>([]);
@@ -83,17 +91,70 @@ export default function Upload() {
 	const [loadingArticleId, setLoadingArticleId] = useState<number | null>(null);
 	const [deletingDraft, setDeletingDraft] = useState(false);
 	const [editingArticleId, setEditingArticleId] = useState<number | null>(null);
+	const [issueVanguardSpread, setIssueVanguardSpread] = useState<spreads | null | undefined>(undefined);
+	const [issueVanguardSpreadLoading, setIssueVanguardSpreadLoading] = useState(false);
 
 	const selectedMonth = formData.month ?? new Date().getMonth() + 1;
 	const selectedYear = formData.year ?? new Date().getFullYear();
-	const filteredIssueArticles = category ? issueArticles.filter(item => item.category === category) : issueArticles;
+	const filteredIssueArticles = category
+		? issueArticles.filter(item => {
+				if (item.category !== category) return false;
+				if (category === "vanguard" && formData.subcategory && formData.subcategory !== "spreads") {
+					if (formData.subcategory === "articles") {
+						return item.subcategory === "articles" || item.subcategory === "random-musings";
+					}
+					return item.subcategory === formData.subcategory;
+				}
+				return true;
+		  })
+		: issueArticles;
 
 	const errorRef = useRef<HTMLParagraphElement>(null);
+	const spreadPreviewUrlsRef = useRef<string[]>([]);
 
 	// Resizable preview panel
 	const containerRef = useRef<HTMLDivElement>(null);
 	const [dragging, setDragging] = useState(false);
 	const [previewWidth, setPreviewWidth] = useState<number | null>(null); // px; 0 => hidden
+
+	const isVanguardSpread = category === "vanguard" && (formData.subcategory || "spreads") === "spreads";
+	const isVanguardArticle = category === "vanguard" && formData.subcategory === "articles";
+	const isArticleLikeSection = Boolean(category && category !== "multimedia" && !isVanguardSpread);
+	const usesExistingVanguardSpreadImage =
+		isVanguardArticle && !formData.img && inferVanguardPageFromImageUrl(formData.imgData ?? undefined) !== null;
+	const hasManualHeaderImage = Boolean(formData.img || (formData.imgData && !usesExistingVanguardSpreadImage));
+	const needsManualHeaderImage = isArticleLikeSection;
+	const selectedVanguardPageNumber =
+		isVanguardArticle && formData.vanguardPageNumber && formData.vanguardPageNumber > 0 ? formData.vanguardPageNumber : null;
+	const issueVanguardSpreadPageCount = issueVanguardSpread ? parseSpreadSource(issueVanguardSpread.src).pageCount : 0;
+	const selectedVanguardPagePreview =
+		selectedVanguardPageNumber &&
+		!hasManualHeaderImage &&
+		issueVanguardSpread &&
+		(!issueVanguardSpreadPageCount || selectedVanguardPageNumber <= issueVanguardSpreadPageCount)
+			? getSpreadPageImageUrl(issueVanguardSpread.src, selectedVanguardPageNumber)
+			: "";
+	const showMissingVanguardSpreadWarning =
+		isVanguardArticle &&
+		!hasManualHeaderImage &&
+		Boolean(selectedVanguardPageNumber) &&
+		!issueVanguardSpreadLoading &&
+		issueVanguardSpread === null;
+	const articlePreviewImage =
+		isVanguardArticle && !hasManualHeaderImage
+			? selectedVanguardPagePreview ||
+			  (selectedVanguardPageNumber
+					? issueVanguardSpreadLoading || issueVanguardSpread === undefined
+						? formData.imgData || ""
+						: ""
+					: formData.imgData || "")
+			: formData.imgData || "";
+
+	useEffect(() => {
+		return () => {
+			spreadPreviewUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
+		};
+	}, []);
 
 	useEffect(() => {
 		if (!hydrated) return;
@@ -166,8 +227,9 @@ export default function Upload() {
 			const loaded = JSON.parse(stored);
 			// Do not load persisted month/year; always default to latest
 			const { month: _ignoredMonth, year: _ignoredYear, ...rest } = loaded || {};
-			setFormData(rest);
-			if (rest.category) setCategory(rest.category);
+			const normalizedRest = rest?.category === "vanguard" ? { ...rest, subcategory: normalizeVanguardSubcategory(rest.subcategory) } : rest;
+			setFormData(normalizedRest);
+			if (normalizedRest?.category) setCategory(normalizedRest.category);
 		} else {
 			localStorage.removeItem("uploadFormData");
 			localStorage.removeItem("uploadFormTimestamp");
@@ -179,8 +241,8 @@ export default function Upload() {
 		if (!hydrated) return;
 		setIsSaving(true);
 		// Persist core fields only; month/year should not be saved
-		const { category, subcategory, title, authors, content, multi, contentInfo } = formData;
-		const fieldsToStore = { category, subcategory, title, authors, content, multi, contentInfo };
+		const { category, subcategory, title, authors, content, multi, contentInfo, vanguardPageNumber } = formData;
+		const fieldsToStore = { category, subcategory, title, authors, content, multi, contentInfo, vanguardPageNumber };
 		try {
 			localStorage.setItem("uploadFormData", JSON.stringify(fieldsToStore));
 			localStorage.setItem("uploadFormTimestamp", Date.now().toString());
@@ -209,6 +271,42 @@ export default function Upload() {
 		void refreshIssueArticles(selectedMonth, selectedYear);
 	}, [hydrated, selectedMonth, selectedYear]);
 
+	useEffect(() => {
+		if (!hydrated || !isVanguardArticle) {
+			setIssueVanguardSpread(undefined);
+			setIssueVanguardSpreadLoading(false);
+			return;
+		}
+
+		let cancelled = false;
+
+		async function loadIssueVanguardSpread() {
+			setIssueVanguardSpread(undefined);
+			setIssueVanguardSpreadLoading(true);
+			try {
+				const response = await fetch("/api/load/spread-by-issue", {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({ category: "vanguard", month: selectedMonth, year: selectedYear }),
+				});
+				const data = await response.json();
+				if (!response.ok) throw new Error(data?.message || "Could not load the Vanguard spread for this issue.");
+				if (!cancelled) setIssueVanguardSpread(data ?? null);
+			} catch (error) {
+				console.error(error);
+				if (!cancelled) setIssueVanguardSpread(null);
+			} finally {
+				if (!cancelled) setIssueVanguardSpreadLoading(false);
+			}
+		}
+
+		void loadIssueVanguardSpread();
+
+		return () => {
+			cancelled = true;
+		};
+	}, [hydrated, isVanguardArticle, selectedMonth, selectedYear]);
+
 	// Re-trigger error animation
 	function triggerErrorAnimation() {
 		if (errorRef.current) {
@@ -228,6 +326,64 @@ export default function Upload() {
 			i++;
 		}
 		return `${Math.round(b * 10) / 10} ${units[i]}`;
+	}
+
+	function replaceSpreadPreviewUrls(urls: string[]) {
+		spreadPreviewUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
+		spreadPreviewUrlsRef.current = urls;
+		setSpreadPreviewUrls(urls);
+	}
+
+	function setFileInputVisualState(inp: HTMLInputElement) {
+		const label = inp.parentElement;
+		const fileName = inp.files?.[0]?.name ?? "";
+		const nameTarget = label?.querySelector("span.img-name");
+
+		if (nameTarget) nameTarget.textContent = fileName;
+		if (label) {
+			if (fileName) label.classList.add(styles["has-file"]);
+			else label.classList.remove(styles["has-file"]);
+		}
+	}
+
+	async function buildPdfPreviewImages(source: File) {
+		const pdfjs = await getPdfJs();
+		const loadingTask = pdfjs.getDocument({ data: await source.arrayBuffer(), disableWorker: true } as any);
+		const pdf = await loadingTask.promise;
+		const pageFiles: File[] = [];
+		const previewUrls: string[] = [];
+
+		for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
+			const page = await pdf.getPage(pageNumber);
+			const viewport = page.getViewport({ scale: 1.8 });
+			const canvas = document.createElement("canvas");
+			const context = canvas.getContext("2d");
+			if (!context) throw new Error("Could not create a canvas context for this PDF preview.");
+
+			canvas.width = Math.ceil(viewport.width);
+			canvas.height = Math.ceil(viewport.height);
+
+			await page.render({ canvasContext: context as any, viewport } as any).promise;
+
+			const blob = await new Promise<Blob>((resolve, reject) => {
+				canvas.toBlob(result => {
+					if (result) resolve(result);
+					else reject(new Error("Could not convert the Vanguard spread page into an image."));
+				}, "image/png");
+			});
+
+			page.cleanup();
+
+			const imageFile = new File([blob], `${source.name.replace(/\.pdf$/i, "")}-page-${pageNumber}.png`, {
+				type: "image/png",
+				lastModified: Date.now(),
+			});
+			pageFiles.push(imageFile);
+			previewUrls.push(URL.createObjectURL(blob));
+		}
+
+		await loadingTask.destroy();
+		return { pageFiles, previewUrls, pageCount: pdf.numPages };
 	}
 
 	async function convertHeicToPng(source: File): Promise<File> {
@@ -280,12 +436,13 @@ export default function Upload() {
 			const loaded = (await response.json()) as article & { message?: string };
 			if (!response.ok) throw new Error(loaded?.message || "Could not load this article.");
 			if (loaded.published) throw new Error("Published articles are locked and cannot be edited here.");
+			const normalizedSubcategory = loaded.category === "vanguard" ? normalizeVanguardSubcategory(loaded.subcategory) : loaded.subcategory;
 
 			setEditingArticleId(loaded.id);
 			setCategory(loaded.category);
 			setFormData({
 				category: loaded.category,
-				subcategory: loaded.subcategory,
+				subcategory: normalizedSubcategory,
 				title: loaded.title,
 				authors: loaded.authors.join(", "),
 				content: loaded.content,
@@ -297,9 +454,13 @@ export default function Upload() {
 				multi: null,
 				month: loaded.month,
 				year: loaded.year,
+				vanguardPageNumber:
+					loaded.category === "vanguard" && normalizedSubcategory === "articles" ? inferVanguardPageFromImageUrl(loaded.img) : null,
 			});
 			setImgOrigBytes(null);
 			setServerImgBytes(null);
+			replaceSpreadPreviewUrls([]);
+			setSpreadPageAssets([]);
 			setUploadResponse(`Loaded "${loaded.title}" for editing.`);
 		} catch (error: any) {
 			console.error(error);
@@ -344,23 +505,57 @@ export default function Upload() {
 	function clearEditingState() {
 		setEditingArticleId(null);
 		setCategory("");
+		setIssueVanguardSpread(undefined);
+		setIssueVanguardSpreadLoading(false);
 		setFormData({
 			month: selectedMonth,
 			year: selectedYear,
 		});
 		setPreviewContent("");
-		setSpreadData("");
+		replaceSpreadPreviewUrls([]);
+		setSpreadPageAssets([]);
 		setImgOrigBytes(null);
 		setServerImgBytes(null);
 	}
 
 	function changeCategory(e: ChangeEvent<HTMLSelectElement>) {
-		setCategory(e.target.value);
-		setFormData({ ...formData, category: e.target.value });
+		const nextCategory = e.target.value;
+		const nextSubcategory =
+			nextCategory === "vanguard"
+				? formData.category === "vanguard" && formData.subcategory
+					? normalizeVanguardSubcategory(formData.subcategory)
+					: "spreads"
+				: nextCategory === "multimedia"
+				? formData.subcategory === "youtube" || formData.subcategory === "podcast"
+					? formData.subcategory
+					: ""
+				: formData.subcategory;
+
+		setCategory(nextCategory);
+		setFormData({
+			...formData,
+			category: nextCategory,
+			subcategory: nextSubcategory,
+			vanguardPageNumber: nextCategory === "vanguard" && nextSubcategory === "articles" ? formData.vanguardPageNumber : null,
+		});
+		if (nextCategory !== "vanguard" || nextSubcategory !== "spreads") {
+			replaceSpreadPreviewUrls([]);
+			setSpreadPageAssets([]);
+		}
 	}
 
 	function changeSubcategory(e: ChangeEvent<HTMLSelectElement>) {
-		setFormData({ ...formData, subcategory: e.target.value });
+		const nextSubcategory = e.target.value;
+		setFormData({
+			...formData,
+			subcategory: nextSubcategory,
+			spread: nextSubcategory === "spreads" ? formData.spread : null,
+			vanguardPageNumber: nextSubcategory === "articles" ? formData.vanguardPageNumber : null,
+		});
+		if (category === "vanguard" && nextSubcategory !== "spreads") {
+			replaceSpreadPreviewUrls([]);
+			setSpreadPageAssets([]);
+		}
 	}
 
 	function updateTitle(e: ChangeEvent<HTMLInputElement>) {
@@ -379,6 +574,11 @@ export default function Upload() {
 	function changeYear(e: ChangeEvent<HTMLInputElement>) {
 		const y = parseInt(e.target.value, 10);
 		setFormData({ ...formData, year: !isNaN(y) ? y : null });
+	}
+
+	function updateVanguardPageNumber(e: ChangeEvent<HTMLInputElement>) {
+		const value = parseInt(e.target.value, 10);
+		setFormData({ ...formData, vanguardPageNumber: !isNaN(value) ? value : null });
 	}
 
 	async function updateContent(e: ChangeEvent<HTMLTextAreaElement>) {
@@ -400,7 +600,7 @@ export default function Upload() {
 			alert("Invalid file format. Please select a JPG, JPEG, PNG, WEBP, GIF, HEIC, or HEIF file.");
 			inp.value = "";
 			setFormData({ ...formData, img: null, imgData: null, imgName: null });
-			setSpreadData("");
+			setFileInputVisualState(inp);
 			return;
 		}
 
@@ -417,37 +617,37 @@ export default function Upload() {
 				triggerErrorAnimation();
 				inp.value = "";
 				setFormData({ ...formData, img: null, imgData: null, imgName: null });
+				setFileInputVisualState(inp);
 				return;
 			}
 		}
 
 		const reader = new FileReader();
 		reader.onload = () => {
-			setFormData({
-				...formData,
+			setFormData(prev => ({
+				...prev,
 				img: image,
 				imgData: reader.result as string,
 				imgName: image.name,
-			});
+			}));
 		};
 		reader.readAsDataURL(image);
+		setFileInputVisualState(inp);
 	}
 
 	function clearImage() {
 		setFormData({ ...formData, img: null, imgData: null, imgName: null });
 		setImgOrigBytes(null);
 		setServerImgBytes(null);
-		const inp = document.getElementById("img-upload") as HTMLInputElement | null;
+		const inp = document.getElementById("article-img-upload") as HTMLInputElement | null;
 		if (inp) {
 			inp.value = "";
-			if (inp.parentElement) {
-				inp.parentElement.classList.remove(styles["has-file"]);
-			}
+			setFileInputVisualState(inp);
 		}
 	}
 
 	// Update PDF spread (for Vanguard)
-	function updateSpread(inp: HTMLInputElement) {
+	async function updateSpread(inp: HTMLInputElement) {
 		if (!inp.files || !inp.files[0]) return;
 		const file = inp.files[0];
 		if (file.type !== "application/pdf") {
@@ -457,6 +657,7 @@ export default function Upload() {
 			triggerErrorAnimation();
 			inp.value = "";
 			setFormData({ ...formData, spread: null });
+			setFileInputVisualState(inp);
 			return;
 		}
 		const fiftyMB = 50 * 1024 * 1024;
@@ -469,11 +670,29 @@ export default function Upload() {
 			triggerErrorAnimation();
 			inp.value = "";
 			setFormData({ ...formData, spread: null });
+			setFileInputVisualState(inp);
 			return;
 		}
-		setFormData({ ...formData, spread: file });
 
-		setSpreadData(URL.createObjectURL(file));
+		try {
+			setUploadResponse("Converting Vanguard spread PDF into page images...");
+			const { pageFiles, previewUrls } = await buildPdfPreviewImages(file);
+			setFormData(prev => ({ ...prev, spread: file }));
+			setSpreadPageAssets(pageFiles);
+			replaceSpreadPreviewUrls(previewUrls);
+			setFileInputVisualState(inp);
+			setUploadResponse(`Prepared ${pageFiles.length} Vanguard spread page${pageFiles.length === 1 ? "" : "s"} for upload.`);
+		} catch (error: any) {
+			console.error(error);
+			inp.value = "";
+			setFormData(prev => ({ ...prev, spread: null }));
+			setSpreadPageAssets([]);
+			replaceSpreadPreviewUrls([]);
+			setFileInputVisualState(inp);
+			setUploadResponse(`Upload failed: ${error?.message || "Could not process the Vanguard PDF."}`);
+			setUploadStatus("error");
+			triggerErrorAnimation();
+		}
 	}
 
 	function updateMulti(e: ChangeEvent<HTMLInputElement>) {
@@ -536,9 +755,23 @@ export default function Upload() {
 			triggerErrorAnimation();
 			return;
 		}
-		const hasImage = Boolean(formData.img || (formData.imgData && formData.imgData.trim() !== ""));
-		// For non-vanguard/multimedia, confirm missing fields
-		if (formData.category !== "vanguard" && formData.category !== "multimedia") {
+		const hasLinkedImage = Boolean(formData.imgData && formData.imgData.trim() !== "");
+		const hasVanguardImageSource = Boolean(formData.img || hasLinkedImage || (formData.vanguardPageNumber && formData.vanguardPageNumber > 0));
+		const hasImage = isVanguardArticle ? hasVanguardImageSource : Boolean(formData.img || hasLinkedImage);
+		if (isVanguardArticle && !hasVanguardImageSource) {
+			setUploadResponse("Upload failed: choose a Vanguard spread page or upload a custom image for this article.");
+			setUploadStatus("error");
+			triggerErrorAnimation();
+			return;
+		}
+		if (isVanguardSpread && (!formData.spread || spreadPageAssets.length === 0)) {
+			setUploadResponse("Upload failed: upload the Vanguard spread PDF so the page images can be generated.");
+			setUploadStatus("error");
+			triggerErrorAnimation();
+			return;
+		}
+		// For article-style uploads, confirm missing fields
+		if (isArticleLikeSection) {
 			if (!hasImage) {
 				if (!window.confirm("No image uploaded. Proceed without an image?")) {
 					setUploadResponse("Upload cancelled by user.");
@@ -578,17 +811,22 @@ export default function Upload() {
 		if (editingArticleId !== null) fd.append("article-id", String(editingArticleId));
 
 		// Send original image to server; server handles compression
-		let preparedImg: File | null = formData.img ?? null;
+		let preparedImg: File | null = isVanguardArticle ? null : formData.img ?? null;
 
 		// Vanguard
-		if (formData.category === "vanguard") {
+		if (isVanguardSpread) {
 			if (!formData.spread) {
-				setUploadResponse("Upload failed: You need to upload a spread for Vanguard.");
+				setUploadResponse("Upload failed: You need to upload a spread PDF for Vanguard.");
 				setUploadStatus("error");
 				triggerErrorAnimation();
 				return;
 			}
+			fd.append("subcategory", "spreads");
 			fd.append("spread", formData.spread);
+			fd.append("spread-page-count", String(spreadPageAssets.length));
+			spreadPageAssets.forEach((pageFile, index) => {
+				fd.append(`spread-page-${index + 1}`, pageFile);
+			});
 			fd.append("title", formData.title);
 		}
 		// Multimedia
@@ -619,6 +857,7 @@ export default function Upload() {
 			else if (editingArticleId !== null) fd.append("existing-img", formData.imgData ? String(formData.imgData) : "");
 			// Append header info if provided
 			if (formData.contentInfo) fd.append("content-info", formData.contentInfo);
+			if (isVanguardArticle && formData.vanguardPageNumber) fd.append("vanguard-page-number", String(formData.vanguardPageNumber));
 		}
 
 		setUploadResponse("Uploading; please stay on this page...");
@@ -740,6 +979,15 @@ export default function Upload() {
 								<option value="editorials">Editorials</option>
 								<option value="cheers-jeers">Cheers & Jeers</option>
 							</select>
+							<select
+								id="vanguard-subcat"
+								style={{ display: category === "vanguard" ? "inline" : "none" }}
+								value={formData.subcategory || "spreads"}
+								onChange={changeSubcategory}
+							>
+								<option value="spreads">Spread PDF</option>
+								<option value="articles">Articles</option>
+							</select>
 							{/* ARTS & ENTERTAINMENT */}
 							<select
 								id="ae-subcat"
@@ -810,53 +1058,86 @@ export default function Upload() {
 
 					<div className={styles["section-info"]} ref={containerRef}>
 						<section className={styles["section-input"]}>
-							{/* Standard Sections (non-Vanguard / non-Multimedia) */}
-							<div
-								id={styles["std-sections"]}
-								style={{ display: category === "vanguard" || category === "multimedia" ? "none" : "block" }}
-							>
-								<h3>Article</h3>
-								<p>
-									<strong>Header image</strong> (JPG, JPEG, PNG, WEBP, GIF, HEIC, or HEIF):
-								</p>
-
-								<div className={styles["file-input"]}>
-									<label
-										onDragEnter={e => e.currentTarget.classList.add(styles["dragover"])}
-										onDragLeave={e => e.currentTarget.classList.remove(styles["dragover"])}
-										onDragEnd={e => e.currentTarget.classList.remove(styles["dragover"])}
-										onDragOver={e => e.preventDefault()}
-										onDrop={inputImageDrop.bind(globalThis, updateImage)}
-									>
-										<span className={styles["drop-img-prompt"]}>Drop Header Image Here (or click to upload)</span>
-										<span className={styles["uploaded-prompt"]}>
-											<i className="fa-solid fa-check"></i> <span className="img-name"></span> uploaded!
-										</span>
-										<input
-											id="img-upload"
-											type="file"
-											accept=".jpg,.jpeg,.png,.gif,.webp,.heic,.heif"
-											onChange={e => updateImage(e.target)}
-										/>
-									</label>
-								</div>
-								{imgOrigBytes !== null && (
-									<p className={styles["compression-summary"]}>
-										<button type="button" onClick={clearImage}>
-											Clear
-										</button>
-										<span>
-											Original size: {formatBytes(imgOrigBytes)}
-											{serverImgBytes !== null
-												? ` \u2192 Compressed: ${formatBytes(serverImgBytes)}`
-												: " (will be compressed on upload)"}
-										</span>
-									</p>
+							<div id={styles["std-sections"]} style={{ display: isArticleLikeSection ? "block" : "none" }}>
+								<h3>{category === "vanguard" ? "Vanguard Article" : "Article"}</h3>
+								{isVanguardArticle && (
+									<>
+										<p className={styles["vanguard-note"]}>
+											Upload the issue spread PDF first if this article should use one of the spread pages as its image. You can
+											also upload a custom header image here instead. If both are provided, the custom image wins.
+										</p>
+										<label className={styles["vanguard-page-field"]}>
+											<strong>Spread page number</strong>
+											<input
+												type="number"
+												min={1}
+												step={1}
+												value={formData.vanguardPageNumber ? String(formData.vanguardPageNumber) : ""}
+												onChange={updateVanguardPageNumber}
+											/>
+										</label>
+										{showMissingVanguardSpreadWarning && (
+											<p className={styles["vanguard-warning"]}>
+												Spread does not exist for {MONTH_NAMES[selectedMonth]} {selectedYear}
+											</p>
+										)}
+										<br />
+										<br />
+									</>
 								)}
-								<br />
-								<br />
-								{/* If a header image is attached, show a resizable Header Info field */}
-								{(formData.img || formData.imgData) && (
+
+								{needsManualHeaderImage && (
+									<>
+										<p>
+											<strong>{isVanguardArticle ? "Custom header image" : "Header image"}</strong>{" "}
+											{isVanguardArticle
+												? "(optional; JPG, JPEG, PNG, WEBP, GIF, HEIC, or HEIF):"
+												: "(JPG, JPEG, PNG, WEBP, GIF, HEIC, or HEIF):"}
+										</p>
+
+										<div className={styles["file-input"]}>
+											<label
+												onDragEnter={e => e.currentTarget.classList.add(styles["dragover"])}
+												onDragLeave={e => e.currentTarget.classList.remove(styles["dragover"])}
+												onDragEnd={e => e.currentTarget.classList.remove(styles["dragover"])}
+												onDragOver={e => e.preventDefault()}
+												onDrop={inputImageDrop.bind(globalThis, updateImage)}
+											>
+												<span className={styles["drop-img-prompt"]}>
+													{isVanguardArticle
+														? "Drop Custom Header Image Here (or click to upload)"
+														: "Drop Header Image Here (or click to upload)"}
+												</span>
+												<span className={styles["uploaded-prompt"]}>
+													<i className="fa-solid fa-check"></i> <span className="img-name"></span> uploaded!
+												</span>
+												<input
+													id="article-img-upload"
+													type="file"
+													accept=".jpg,.jpeg,.png,.gif,.webp,.heic,.heif"
+													onChange={e => updateImage(e.target)}
+												/>
+											</label>
+										</div>
+										{imgOrigBytes !== null && (
+											<p className={styles["compression-summary"]}>
+												<button type="button" onClick={clearImage}>
+													Clear
+												</button>
+												<span>
+													Original size: {formatBytes(imgOrigBytes)}
+													{serverImgBytes !== null
+														? ` \u2192 Compressed: ${formatBytes(serverImgBytes)}`
+														: " (will be compressed on upload)"}
+												</span>
+											</p>
+										)}
+										<br />
+										<br />
+									</>
+								)}
+
+								{needsManualHeaderImage && hasManualHeaderImage && (
 									<>
 										<strong>Header Info</strong>
 										<p>
@@ -885,7 +1166,6 @@ export default function Upload() {
 								<br />
 								<br />
 
-								{/* Hide entire authors block if category=opinions & subcategory=editorials */}
 								{!(category === "opinions" && formData.subcategory === "editorials") && (
 									<>
 										<strong>Author(s)</strong>
@@ -910,9 +1190,89 @@ export default function Upload() {
 									for details.
 								</p>
 								<textarea id={styles.contentInput} onChange={updateContent} value={formData.content || ""} />
-								<div style={{ marginTop: "0.6rem" }}>
-									<button type="submit">{editingArticleId !== null ? "Update Article" : "Submit Article"}</button>
+								<br />
+							</div>
+
+							<div id={styles.vanguard} style={{ display: isVanguardSpread ? "block" : "none" }}>
+								<h3>Vanguard Spread</h3>
+								<p>
+									<strong>Title</strong>
+									<br />
+									<input type="text" onChange={updateTitle} value={formData.title || ""} />
+								</p>
+								<br />
+								<strong>Spread (PDF)</strong>
+								<p>
+									Upload the issue PDF once here. The uploader will generate stable page images from it so Vanguard articles can
+									reuse page 1 or page 2 directly.
+								</p>
+								<div className={styles["file-input"]}>
+									<label
+										onDragEnter={e => e.currentTarget.classList.add(styles["dragover"])}
+										onDragLeave={e => e.currentTarget.classList.remove(styles["dragover"])}
+										onDragEnd={e => e.currentTarget.classList.remove(styles["dragover"])}
+										onDragOver={e => e.preventDefault()}
+										onDrop={inputImageDrop.bind(globalThis, updateSpread)}
+									>
+										<span className={styles["drop-img-prompt"]}>Drop Spread PDF Here (or click to upload)</span>
+										<span className={styles["uploaded-prompt"]}>
+											<i className="fa-solid fa-check"></i>
+											<span className="img-name"></span> uploaded!
+										</span>
+										<input id="spread-upload" type="file" accept=".pdf" onChange={e => void updateSpread(e.target)} />
+									</label>
 								</div>
+								{spreadPageAssets.length > 0 && (
+									<p className={styles["spread-summary"]}>
+										Prepared {spreadPageAssets.length} page image{spreadPageAssets.length === 1 ? "" : "s"} for this spread.
+									</p>
+								)}
+							</div>
+
+							{/* Multimedia: YouTube or Podcast */}
+							<div id={styles.multimedia} style={{ display: category === "multimedia" ? "block" : "none" }}>
+								{formData.subcategory === "youtube" ? (
+									<>
+										<h3>YouTube Video</h3>
+										<strong>Title</strong>
+										<br />
+										<input type="text" onChange={updateTitle} value={formData.title || ""} />
+										<br />
+										<br />
+										<p>
+											Submit only the video ID (e.g. for https://www.youtube.com/watch?v=
+											<b>TKfS5zVfGBc</b>).
+										</p>
+									</>
+								) : formData.subcategory === "podcast" ? (
+									<>
+										<h3>Podcast</h3>
+										<p>
+											Submit only the part after e.g. https://rss.com/podcasts/
+											<b>towershorts/1484378/</b>
+										</p>
+									</>
+								) : (
+									!formData.subcategory && <p>Please select “YouTube Video” or “Podcast”.</p>
+								)}
+								<input type="text" onChange={updateMulti} value={formData.multi || ""} />
+							</div>
+
+							{formData.category && (
+								<div className={styles["submit-row"]}>
+									<button type="submit">
+										{editingArticleId !== null && isArticleLikeSection
+											? "Update Article"
+											: isVanguardSpread
+											? "Submit Spread"
+											: formData.category === "multimedia"
+											? "Submit Multimedia"
+											: "Submit Article"}
+									</button>
+								</div>
+							)}
+
+							{isArticleLikeSection && (
 								<div className={styles["existing-articles"]}>
 									<div className={styles["existing-articles-header"]}>
 										<strong>{`Uploaded Articles (${MONTH_NAMES[selectedMonth]} ${selectedYear})`}</strong>
@@ -954,7 +1314,11 @@ export default function Upload() {
 														{item.title} <small>#{item.id}</small>
 													</span>
 													<span>
-														{item.category} / {item.subcategory} • {item.published ? "published (locked)" : "draft"}
+														{item.category} /{" "}
+														{item.category === "vanguard"
+															? normalizeVanguardSubcategory(item.subcategory)
+															: item.subcategory}{" "}
+														• {item.published ? "published (locked)" : "draft"}
 													</span>
 													{loadingArticleId === item.id && <span>Loading...</span>}
 												</button>
@@ -962,82 +1326,7 @@ export default function Upload() {
 										</div>
 									)}
 								</div>
-								<br />
-							</div>
-
-							{/* Vanguard: requires a PDF spread */}
-							<div id={styles.vanguard} style={{ display: category === "vanguard" ? "block" : "none" }}>
-								<h3>Vanguard</h3>
-								<p>
-									<strong>Title</strong>
-									<br />
-									<input type="text" onChange={updateTitle} value={formData.title || ""} />
-								</p>
-								<br />
-								<strong>Spread (PDF)</strong>
-								<p>
-									Please upload a single PDF with no special characters in the file name. If you have multiple pages, combine them
-									into one PDF as it appears in the physical issue.
-								</p>
-								{/* <input type="file" accept=".pdf" onChange={updateSpread} /> */}
-								<div className={styles["file-input"]}>
-									<label
-										onDragEnter={e => {
-											e.currentTarget.classList.add(styles["dragover"]);
-										}}
-										onDragLeave={e => {
-											e.currentTarget.classList.remove(styles["dragover"]);
-										}}
-										onDragEnd={e => {
-											e.currentTarget.classList.remove(styles["dragover"]);
-										}}
-										onDragOver={e => e.preventDefault()}
-										onDrop={inputImageDrop.bind(globalThis, updateSpread)}
-									>
-										<span className={styles["drop-img-prompt"]}>Drop Spread PDF Here (or click to upload)</span>
-										<span className={styles["uploaded-prompt"]}>
-											<i className="fa-solid fa-check"></i>
-											<span className="img-name"></span> uploaded!
-										</span>
-										<input
-											id="img-upload"
-											type="file"
-											accept=".jpg,.jpeg,.png,.gif,.webp"
-											onChange={e => updateImage(e.target)}
-										/>
-										<input type="file" accept=".pdf" onChange={e => updateSpread(e.target)} />
-									</label>
-								</div>
-							</div>
-
-							{/* Multimedia: YouTube or Podcast */}
-							<div id={styles.multimedia} style={{ display: category === "multimedia" ? "block" : "none" }}>
-								{formData.subcategory === "youtube" ? (
-									<>
-										<h3>YouTube Video</h3>
-										<strong>Title</strong>
-										<br />
-										<input type="text" onChange={updateTitle} value={formData.title || ""} />
-										<br />
-										<br />
-										<p>
-											Submit only the video ID (e.g. for https://www.youtube.com/watch?v=
-											<b>TKfS5zVfGBc</b>).
-										</p>
-									</>
-								) : formData.subcategory === "podcast" ? (
-									<>
-										<h3>Podcast</h3>
-										<p>
-											Submit only the part after e.g. https://rss.com/podcasts/
-											<b>towershorts/1484378/</b>
-										</p>
-									</>
-								) : (
-									!formData.subcategory && <p>Please select “YouTube Video” or “Podcast”.</p>
-								)}
-								<input type="text" onChange={updateMulti} value={formData.multi || ""} />
-							</div>
+							)}
 						</section>
 						<div
 							className={styles["splitter"]}
@@ -1055,7 +1344,7 @@ export default function Upload() {
 						>
 							{/* PREVIEW BLOCK */}
 							<div style={{ textAlign: "left" }}>
-								{formData.category && ["news-features", "opinions", "sports", "arts-entertainment"].includes(formData.category) && (
+								{isArticleLikeSection && (
 									<ArticleContent
 										showColumnAd={false}
 										article={{
@@ -1072,24 +1361,18 @@ export default function Upload() {
 											authors: (formData.authors ?? "").split(", "),
 											month: formData.month ?? new Date().getMonth() + 1,
 											year: formData.year ?? new Date().getFullYear(),
-											img: formData.imgData ? `${formData.imgData}` : "",
+											img: articlePreviewImage,
 											markdown: true,
 											contentInfo: formData.contentInfo ?? null,
 											featured: null,
 										}}
 									/>
 								)}
-								{formData.category === "vanguard" && (
-									<SpreadContent
-										spread={{
-											id: -1,
-											title: formData.title ?? "",
-											src: spreadData,
-											month: formData.month ?? new Date().getMonth() + 1,
-											year: formData.year ?? new Date().getFullYear(),
-											category: null,
-										}}
-									/>
+								{isVanguardSpread && (
+									<div style={{ padding: "1rem" }}>
+										<h3>{formData.title || "Vanguard spread preview"}</h3>
+										<SpreadGallery spreadSrc="" pagePreviewUrls={spreadPreviewUrls} showDownload={false} />
+									</div>
 								)}
 
 								{formData.category === "multimedia" && formData.subcategory === "youtube" && (

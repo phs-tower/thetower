@@ -448,7 +448,7 @@ export default function Category({ search, articles, sidebar, sort, section }: P
 					>
 						{sections.map(sec => (
 							<option key={sec.value} value={sec.value}>
-								Filter by Section: {sec.value === "vanguard" ? "Vanguard (Broken)" : sec.label}
+								Filter by Section: {sec.label}
 							</option>
 						))}
 					</select>

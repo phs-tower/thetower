@@ -40,3 +40,40 @@ export function shortenText(text: string, length: number) {
 	sentences.pop();
 	return sentences.join(" ").replace(/[\n\r\t\s]+/g, " ") + "...";
 }
+
+export function stripSpreadSourceHash(src: string) {
+	return src.split("#")[0] ?? src;
+}
+
+export function parseSpreadSource(src: string) {
+	const [pdfUrl, hash = ""] = src.split("#", 2);
+	const params = new URLSearchParams(hash);
+	const parsedPageCount = Number(params.get("pages") ?? "");
+	const pageCount = Number.isInteger(parsedPageCount) && parsedPageCount > 0 ? parsedPageCount : 0;
+
+	return {
+		pdfUrl,
+		pageCount,
+	};
+}
+
+export function buildSpreadSource(pdfUrl: string, pageCount: number) {
+	const cleanPdfUrl = stripSpreadSourceHash(pdfUrl);
+	if (!pageCount || pageCount < 1) return cleanPdfUrl;
+	return `${cleanPdfUrl}#pages=${pageCount}`;
+}
+
+export function getSpreadPageImageUrl(src: string, pageNumber: number) {
+	if (!pageNumber || pageNumber < 1) return "";
+	const { pdfUrl } = parseSpreadSource(src);
+	return stripSpreadSourceHash(pdfUrl).replace(/\.pdf$/i, `-page-${pageNumber}.png`);
+}
+
+export function inferVanguardPageFromImageUrl(img: string | null | undefined) {
+	if (!img) return null;
+	const match = img.match(/-page-(\d+)\.(png|webp|jpg|jpeg)$/i);
+	if (!match) return null;
+
+	const parsed = Number(match[1]);
+	return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+}

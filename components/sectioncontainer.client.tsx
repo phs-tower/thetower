@@ -1,10 +1,12 @@
 /** @format */
+/* eslint-disable @next/next/no-img-element */
 
 import styles from "~/lib/styles";
 import ArticlePreview from "./preview.client";
 import { article, spreads } from "@prisma/client";
-import Image from "next/image";
 import Link from "next/link";
+import { getSpreadPageImageUrl, parseSpreadSource } from "~/lib/utils";
+import { PdfPageThumbnail } from "./pdfspreadfallback.client";
 
 interface SectionProps {
 	category: string;
@@ -101,69 +103,204 @@ interface VangProps {
 }
 
 export function VanguardContainer({ desc, spreads }: VangProps) {
+	const latestSpread = spreads[0];
+	if (!latestSpread) return null;
+
+	const { pageCount, pdfUrl } = parseSpreadSource(latestSpread.src);
+	const spreadHref = `/spreads/${latestSpread.year}/${latestSpread.month}/vanguard/${encodeURI(latestSpread.title)}`;
+	const pages = Array.from({ length: Math.min(pageCount > 0 ? pageCount : 2, 2) }, (_, index) => ({
+		pageNumber: index + 1,
+		src: pageCount > 0 ? getSpreadPageImageUrl(latestSpread.src, index + 1) : "",
+	}));
+	const pageOne = pages[0];
+	const pageTwo = pages[1];
+	const canRenderPages = pageCount > 0 || Boolean(pdfUrl);
+
 	return (
 		<div id="vanguard">
 			<style jsx>{`
-				.row-container {
-					display: flex;
-					gap: 1rem;
-					list-style: none;
-					overflow-x: scroll;
-					scroll-snap-type: x mandatory;
+				.spread-shell {
+					padding: 0.6rem 0 0;
+					max-width: 92rem;
+					margin: 0 auto;
 				}
 
-				.item {
-					flex-shrink: 0;
-					width: 16rem;
-					height: 100%;
-					background-color: #fff;
-					scroll-snap-align: start;
+				.page-header {
+					display: grid;
+					grid-template-columns: minmax(0, 1.08fr) auto minmax(0, 1.52fr);
+					column-gap: 0.7rem;
+					align-items: center;
+				}
+
+				.pages-grid {
+					display: grid;
+					grid-template-columns: minmax(0, 1.08fr) minmax(0, 1.52fr);
+					column-gap: 0;
+					align-items: start;
 				}
 
 				h3 {
 					font-family: ${styles.font.sans};
 				}
 
-				.vang-large-preview {
-					background-color: white;
-					padding: 10px;
-					margin-bottom: 10px;
-					border-bottom: 1px solid gainsboro;
+				.spread-title {
+					margin: 0.5rem 0 0.9rem;
+					font-size: clamp(1.22rem, 1.8vw, 1.5rem);
+					font-style: italic;
+					line-height: 1.12;
 				}
 
-				.article-preview > .large-preview:hover {
-					background-color: #f0f0f077;
-					transition-duration: 0.1s;
+				.spread-title a:hover {
+					text-decoration: underline;
 				}
 
-				.title a {
-					font-size: 1.5rem;
-					color: ${styles.color.primary} !important !important !important;
-					font-weight: bold;
+				.page-header {
+					margin-bottom: 0.65rem;
+				}
+
+				.page-label {
+					display: block;
+					text-align: center;
+					font-family: ${styles.font.sans};
+					font-size: 0.88rem;
+					font-weight: 700;
+					letter-spacing: 0.08em;
+					text-transform: uppercase;
+					color: ${styles.color.accent};
+				}
+
+				.page-label.page-1-label {
+					grid-column: 1;
+				}
+
+				.page-label.page-2-label {
+					grid-column: 3;
+				}
+
+				.page-divider {
+					grid-column: 2;
+					font-family: ${styles.font.sans};
+					font-size: 0.95rem;
+					font-weight: 700;
+					color: ${styles.color.accent};
+				}
+
+				.page-card {
+					display: block;
+					text-decoration: none;
+					min-width: 0;
+				}
+
+				.page-card.page-1 {
+					grid-column: 1;
+				}
+
+				.page-card.page-2 {
+					grid-column: 2;
+				}
+
+				.page-frame {
+					padding: 0.45rem;
+					background: #fff;
+					box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+					border: 1px solid #ececec;
+					box-sizing: border-box;
+				}
+
+				.page-frame :global(img) {
+					display: block;
+					width: 100%;
+					height: auto;
+					background: white;
+				}
+
+				.page-frame :global(.pdf-thumb-fallback) {
+					display: grid;
+					place-items: center;
+					width: 100%;
+					min-height: 12rem;
+					padding: 1rem;
+					text-align: center;
+					color: #666;
+					background: #fafafa;
+				}
+
+				.empty-state {
+					padding: 1rem 0;
+					color: #666;
+				}
+
+				@media (max-width: 900px) {
+					.page-header,
+					.pages-grid {
+						grid-template-columns: 1fr;
+						row-gap: 0.9rem;
+					}
+
+					.page-label.page-1-label,
+					.page-label.page-2-label,
+					.page-card.page-1,
+					.page-card.page-2 {
+						grid-column: 1;
+					}
+
+					.page-divider {
+						display: none;
+					}
 				}
 			`}</style>
 			<h3>VANGUARD</h3>
 			<p>{desc}</p>
-			<ul className="row-container">
-				{Object.values(spreads).map(article => (
-					<li key={article.id} className="item">
-						<div className="vang-large-preview">
-							<Image
-								src="/assets/white-tower.png"
-								width={309}
-								height={721}
-								alt="Image"
-								style={{ width: "16rem", height: "16rem", objectFit: "cover", backgroundColor: "black" }}
-							/>
-							<section className="title">
-								<Link href={article.src} legacyBehavior>
-									<a>{article.title}</a>
-								</Link>
-							</section>
+			<div className="spread-shell">
+				<h4 className="spread-title">
+					<Link href={spreadHref}>{latestSpread.title}</Link>
+				</h4>
+				{canRenderPages ? (
+					<>
+						<div className="page-header">
+							{pageOne ? <span className="page-label page-1-label">Page 1</span> : null}
+							{pageTwo ? <span className="page-divider">|</span> : null}
+							{pageTwo ? <span className="page-label page-2-label">Page 2</span> : null}
 						</div>
-					</li>
-				))}
-			</ul>
+						<div className="pages-grid">
+							{pageOne ? (
+								<Link href={spreadHref} className="page-card page-1">
+									<div className="page-frame">
+										{pageOne.src ? (
+											<img src={pageOne.src} alt={`${latestSpread.title} page ${pageOne.pageNumber}`} />
+										) : pdfUrl ? (
+											<PdfPageThumbnail
+												pdfUrl={pdfUrl}
+												pageNumber={pageOne.pageNumber}
+												alt={`${latestSpread.title} page ${pageOne.pageNumber}`}
+											/>
+										) : null}
+									</div>
+								</Link>
+							) : null}
+							{pageTwo ? (
+								<Link href={spreadHref} className="page-card page-2">
+									<div className="page-frame">
+										{pageTwo.src ? (
+											<img src={pageTwo.src} alt={`${latestSpread.title} page ${pageTwo.pageNumber}`} />
+										) : pdfUrl ? (
+											<PdfPageThumbnail
+												pdfUrl={pdfUrl}
+												pageNumber={pageTwo.pageNumber}
+												alt={`${latestSpread.title} page ${pageTwo.pageNumber}`}
+											/>
+										) : null}
+									</div>
+								</Link>
+							) : null}
+						</div>
+					</>
+				) : (
+					<p className="empty-state">
+						Page previews are not available for this spread yet. <Link href={spreadHref}>Open the full Vanguard spread.</Link>
+					</p>
+				)}
+			</div>
 		</div>
 	);
 }

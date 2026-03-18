@@ -15,7 +15,7 @@ import sponsorStyles from "./sponsor.module.scss";
 
 export async function getStaticProps() {
 	const articles = await getFrontpageArticles();
-	const vang = await getSpreadsByCategory("vanguard", 6, await getIdOfNewest("vanguard", null), 0);
+	const vang = await getSpreadsByCategory("vanguard", 1, await getIdOfNewest("spreads", "vanguard"), 0);
 
 	return {
 		props: {
@@ -125,14 +125,9 @@ export default function FrontPage({ articles, vang }: Props) {
 			<hr />
 			<br />
 			<SectionContainer category="SPORTS" desc="Updates on PHS games, tales of sports history, and more." articles={articles["sports"]} />
-
-			{/*<hr />
+			<hr />
 			<br />
-			<div id="vang-container">
-				<VanguardContainer desc="The most creative section, with the format changing each issue." spreads={vang} />
-			</div>
-
-			<SponsorBanner />*/}
+			<VanguardContainer desc="The most creative section, with the format changing each issue." spreads={vang} />
 			<SubBanner title="Consider subscribing to The Tower." />
 		</div>
 	);

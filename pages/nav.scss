@@ -237,10 +237,13 @@ nav {
 			z-index: 10;
 			padding: 0;
 			height: var(--masthead-height);
+			flex-shrink: 0;
 		}
 
 		#masthead img {
+			display: block;
 			height: var(--masthead-height);
+			width: auto;
 
 			/* Ensure the tower logo is visible on white header */
 			@media screen and (min-width: ($mobile + 1px)) {

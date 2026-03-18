@@ -12,7 +12,6 @@ import { socialLinks } from "~/lib/constants";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/react";
 import { displayFullDate } from "~/lib/utils";
-import { usePathname } from "next/navigation";
 import { staffMenuItems } from "~/lib/staff";
 import PromoPopup from "~/components/promo-popup.client";
 
@@ -96,7 +95,7 @@ export function Nav() {
 						{ name: "Cheers & Jeers", href: "/category/opinions/cheers-jeers" },
 					]}
 				/>
-				<SectionLink href="/category/vanguard" name="VANGUARD" />
+				<SectionLink href="/category/vanguard" name="VANGUARD" subsections={[{ name: "Articles", href: "/category/vanguard/articles" }]} />
 				<SectionLink
 					href="/category/arts-entertainment"
 					name="ARTS & ENTERTAINMENT"
@@ -121,35 +120,6 @@ function Masthead() {
 	const router = useRouter();
 	const searchInputRef = useRef<HTMLInputElement>(null);
 
-	// Close sections menu when navigating
-	const [startLocation, setStartLocation] = useState(usePathname());
-	const path = usePathname();
-	if (startLocation != path) {
-		setStartLocation(path);
-		if (menuOpen) setMenuOpen(false);
-	}
-
-	useEffect(() => document.addEventListener("keyup", e => e.key == "Escape" && setMenuOpen(false)));
-
-	let m = new Date().getMonth() + 1;
-	let y = new Date().getFullYear();
-	const getIssue = async () => {
-		if (await pdfExists(m, y)) {
-			setIssue({ month: m, year: y });
-			return;
-		}
-		for (let i = 0; i < 12; i++) {
-			m--;
-			if (m == 0) {
-				m = 12;
-				y--;
-			}
-			if (!(await pdfExists(m, y))) continue;
-			setIssue({ month: m, year: y });
-			return;
-		}
-	};
-	if (issue.year == 2022) getIssue();
 	async function pdfExists(month: number, year: number) {
 		const url = `https://yusjougmsdnhcsksadaw.supabase.co/storage/v1/object/public/prints/${month}-${year}.pdf`;
 		try {
@@ -162,11 +132,54 @@ function Masthead() {
 
 	const pdfLink = `https://yusjougmsdnhcsksadaw.supabase.co/storage/v1/object/public/prints/${issue.month}-${issue.year}.pdf`;
 
-	if (menuOpen != menuX) {
-		setTimeout(() => {
+	useEffect(() => {
+		const onKeyUp = (e: KeyboardEvent) => {
+			if (e.key === "Escape") setMenuOpen(false);
+		};
+		document.addEventListener("keyup", onKeyUp);
+		return () => document.removeEventListener("keyup", onKeyUp);
+	}, []);
+
+	useEffect(() => {
+		let cancelled = false;
+		const getIssue = async () => {
+			let month = new Date().getMonth() + 1;
+			let year = new Date().getFullYear();
+
+			if (await pdfExists(month, year)) {
+				if (!cancelled) setIssue({ month, year });
+				return;
+			}
+
+			for (let i = 0; i < 12; i++) {
+				month--;
+				if (month === 0) {
+					month = 12;
+					year--;
+				}
+				if (!(await pdfExists(month, year))) continue;
+				if (!cancelled) setIssue({ month, year });
+				return;
+			}
+		};
+
+		void getIssue();
+		return () => {
+			cancelled = true;
+		};
+	}, []);
+
+	useEffect(() => {
+		setMenuOpen(false);
+	}, [router.asPath]);
+
+	useEffect(() => {
+		const timeout = window.setTimeout(() => {
 			setMenuX(menuOpen);
 		}, 100);
-	}
+
+		return () => window.clearTimeout(timeout);
+	}, [menuOpen]);
 
 	// Clear global search box when navigating away from search
 	useEffect(() => {
@@ -180,7 +193,8 @@ function Masthead() {
 	return (
 		<div className="header">
 			<Link href="/home" id="masthead">
-				<img src="/assets/tower-short.png" draggable="false" />
+				{/* eslint-disable-next-line @next/next/no-img-element */}
+				<img src="/assets/tower-short.png" alt="" draggable="false" />
 				<h1 id="masthead-text">The Tower</h1>
 			</Link>
 			<div className="masthead-sides">
@@ -191,7 +205,7 @@ function Masthead() {
 								PRINT EDITION
 							</Link>
 						</span>
-						<p>{displayFullDate().toUpperCase()}</p>
+						<p suppressHydrationWarning>{displayFullDate().toUpperCase()}</p>
 					</div>
 					<button id="menu" data-open={menuOpen} onClick={() => setMenuOpen(!menuOpen)}>
 						{menuX ? (
@@ -324,9 +338,7 @@ function Footer() {
 						</Link>
 						<br />
 					</b>
-					<Link href="/category/vanguard/random-musings">Random Musings</Link>
-					<br />
-					<Link href="/category/vanguard/spreads">Spreads</Link>
+					<Link href="/category/vanguard/articles">Articles</Link>
 					<br />
 				</div>
 				<div>
@@ -350,7 +362,7 @@ function Footer() {
 				</div>
 			</div>
 			<hr />
-			<span>&copy; 2017-{new Date().getFullYear()} The Tower</span>
+			<span suppressHydrationWarning>&copy; 2017-{new Date().getFullYear()} The Tower</span>
 			<span>
 				Site by Luke Tong &apos;23, Jieruei Chang &apos;24, Henry Langmack &apos;25, Ayush Shrivastava &apos;25, Anita Ndubisi &apos;26, Om
 				Mehta &apos;26, Aryan Singla &apos;27, and Alexander Sheng &apos;28

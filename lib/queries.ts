@@ -21,6 +21,10 @@ if (process.env.SERVICE_ROLE == undefined) {
 const prisma = yolo ? undefined : new PrismaClient();
 const supabase = !process.env.SERVICE_ROLE ? undefined : createClient("https://yusjougmsdnhcsksadaw.supabase.co/", process.env.SERVICE_ROLE);
 
+function getArticleSubcategoryFilter(subcat: string) {
+	return subcat === "articles" ? { in: ["articles", "random-musings"] } : subcat;
+}
+
 export async function getFrontpageArticles() {
 	let articles: Record<string, article[]> = { "news-features": [], opinions: [], "arts-entertainment": [], sports: [], featured: [] };
 	if (!prisma) return articles;
@@ -104,6 +108,20 @@ export async function getArticlesByIssue(month: number, year: number) {
 			month: true,
 			year: true,
 		},
+	});
+}
+
+export async function getPublishedVanguardArticlesByIssue(month: number, year: number) {
+	if (!prisma) return [];
+	return await prisma.article.findMany({
+		where: {
+			category: "vanguard",
+			subcategory: getArticleSubcategoryFilter("articles"),
+			published: true,
+			month,
+			year,
+		},
+		orderBy: [{ id: "asc" }],
 	});
 }
 
@@ -249,7 +267,10 @@ export async function getIdOfNewest(cat: string, subcat: string | null) {
 			},
 		});
 	} else {
-		const where = subcat == null ? { category: cat, published: true } : { category: cat, subcategory: subcat, published: true };
+		const where =
+			subcat == null
+				? { category: cat, published: true }
+				: { category: cat, subcategory: getArticleSubcategoryFilter(subcat), published: true };
 
 		res = await prisma.article.findFirst({
 			orderBy: [
@@ -406,7 +427,7 @@ export async function getArticlesBySearch(query: string | string[]) {
 	});
 }
 
-export async function getArticlesBySubcategory(subcat: string, take: number, offsetCursor: number, skip: number) {
+export async function getArticlesBySubcategory(category: string, subcat: string, take: number, offsetCursor: number, skip: number) {
 	if (!prisma) return [];
 	const articles = await prisma.article.findMany({
 		orderBy: [
@@ -416,15 +437,17 @@ export async function getArticlesBySubcategory(subcat: string, take: number, off
 			{
 				month: "desc",
 			},
+			{
+				id: "desc",
+			},
 		],
 		where: {
-			subcategory: subcat,
+			category,
+			subcategory: getArticleSubcategoryFilter(subcat),
 			published: true,
 		},
 		take: take,
-		cursor: {
-			id: offsetCursor,
-		},
+		cursor: offsetCursor ? { id: offsetCursor } : undefined,
 		skip: skip,
 	});
 
@@ -437,7 +460,7 @@ export async function getArticlesByAuthor(author: string) {
 	if (!decoded) return [];
 
 	// Use Prisma query builder instead of raw SQL to avoid dev-time template issues
-	// 1) Exact match in authors[] (case-sensitive match is fine because links are generated from stored names)
+	// Exact match in authors[] (case-sensitive match is fine because links are generated from stored names)
 	const exactAuthorRows = await prisma.article.findMany({
 		where: {
 			published: true,
@@ -448,7 +471,7 @@ export async function getArticlesByAuthor(author: string) {
 		select: { id: true },
 	});
 
-	// 2) Photo credit match: contentInfo contains the name and includes a photo/image/graphic label
+	// Photo credit match: contentInfo contains the name and includes a photo/image/graphic label
 	const photoCreditRows = await prisma.article.findMany({
 		where: {
 			published: true,
@@ -501,6 +524,19 @@ export async function getSpreadsByCategory(category: string, take: number, offse
 	});
 
 	return spreads;
+}
+
+export async function getSpreadByIssue(category: string, month: number, year: number) {
+	if (!prisma) return null;
+
+	return await prisma.spreads.findFirst({
+		where: {
+			category,
+			month,
+			year,
+		},
+		orderBy: [{ id: "desc" }],
+	});
 }
 
 export async function getSpread(slug: string) {
@@ -669,6 +705,28 @@ async function compressImg(image: Buffer, options?: { targetBytes?: number; marg
 	return await sharp(image).webp({ quality: mid, alphaQuality: mid }).toBuffer();
 }
 
+export async function uploadBuffer(fileContent: Buffer, bucket: string, key: string, contentType: string) {
+	if (!supabase) throw new Error("not happening");
+
+	const { data, error } = await supabase.storage.from(bucket).upload(key, fileContent, { contentType, upsert: true });
+
+	if (error) {
+		console.error("Could not upload file: ", error);
+
+		// @ts-ignore
+		const status = error.status ?? error.statusCode ?? 500;
+		if (String(status) === "409") {
+			return { code: 409, message: "A file with that name already exists. (Key collision)" };
+		}
+
+		// @ts-ignore
+		return { code: Number(status) || 500, message: `${error.name || "UploadError"}: ${error.message}` };
+	}
+
+	const pub = supabase.storage.from(bucket).getPublicUrl(data.path);
+	return { code: 200, message: pub.data.publicUrl, path: data.path, sizeBytes: fileContent.length };
+}
+
 export async function uploadFile(file: formidable.File, bucket: string, options?: { skipCompression?: boolean }) {
 	if (!supabase) throw new Error("not happening");
 
@@ -733,22 +791,5 @@ export async function uploadFile(file: formidable.File, bucket: string, options?
 	);
 
 	console.log("Uploading to:", bucket, key);
-
-	const { data, error } = await supabase.storage.from(bucket).upload(key, fileContent, { contentType: finalMimeType, upsert: false });
-
-	if (error) {
-		console.error("Could not upload file: ", error);
-
-		// Supabase storage errors sometimes expose `statusCode` (string) or `status` (number)
-		// @ts-ignore
-		const status = error.status ?? error.statusCode ?? 500;
-		if (String(status) === "409") {
-			return { code: 409, message: "A file with that name already exists. (Key collision)" };
-		}
-		// @ts-ignore
-		return { code: Number(status) || 500, message: `${error.name || "UploadError"}: ${error.message}` };
-	}
-
-	const pub = supabase.storage.from(bucket).getPublicUrl(data.path);
-	return { code: 200, message: pub.data.publicUrl, sizeBytes: (fileContent as Buffer).length };
+	return await uploadBuffer(fileContent as Buffer, bucket, key, finalMimeType);
 }

@@ -8,6 +8,8 @@ const categories: { [key: string]: string } = {
 	"student-athletes": "sports",
 	"cheers-jeers": "opinions",
 	editorials: "opinions",
+	articles: "vanguard",
+	"random-musings": "vanguard",
 	youtube: "multimedia",
 	podcast: "multimedia",
 };
@@ -22,8 +24,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 	if (category != "multimedia") {
 		const articles =
 			cursor != null
-				? await getArticlesBySubcategory(subcat, 10, cursor, 1)
-				: await getArticlesBySubcategory(subcat, 10, await getIdOfNewest(category, subcat), 0);
+				? await getArticlesBySubcategory(category, subcat, 10, cursor, 1)
+				: await getArticlesBySubcategory(category, subcat, 10, await getIdOfNewest(category, subcat), 0);
 		return res.status(200).json(articles);
 	} else {
 		const items =

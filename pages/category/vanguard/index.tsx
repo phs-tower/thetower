@@ -25,7 +25,7 @@ export async function getServerSideProps() {
 
 export default function Category(props: Props) {
 	const [spreads, setSpreads] = useState(props.spreads);
-	const [cursor, setCursor] = useState(spreads[spreads.length - 1].id);
+	const [cursor, setCursor] = useState<number | null>(spreads.length > 0 ? spreads[spreads.length - 1].id : null);
 	const [loadingDisplay, setLoadingDisplay] = useState("none");
 	const [loadingContent, setLoadingContent] = useState("Loading spreads, please wait...");
 	const sidebar = props.sidebar;
@@ -75,48 +75,8 @@ export default function Category(props: Props) {
 					grid-template-columns: 1fr clamp(300px, 26vw, 400px);
 					grid-column-gap: 2vw;
 				}
-				:global(.vanguard .article-preview > .category-list-preview) {
-					display: grid;
-					grid-template-columns: minmax(21rem, 3.5fr) minmax(0, 4fr);
-					column-gap: 1.75rem;
-					align-items: start;
-				}
-				:global(.vanguard .article-preview.row.category-list .img-wrapper) {
-					display: flex;
-					justify-content: flex-start;
-					margin-right: 0 !important;
-				}
-				:global(.vanguard .article-preview.row.category-list .img-wrapper span) {
-					display: block !important;
-					width: 100% !important;
-				}
-				:global(.vanguard .article-preview.row.category-list .preview-image) {
-					width: 100% !important;
-					height: auto !important;
-					max-width: 24.5rem !important;
-					max-height: 13rem !important;
-					object-fit: cover !important;
-					border-radius: 0;
-					box-shadow: 0px 5px 12px #00000022;
-				}
-				:global(.vanguard .article-preview.row.category-list.noimg .preview-image) {
-					object-fit: contain !important;
-					background: black;
-				}
-				:global(.vanguard .article-preview.row.category-list .title) {
-					margin-top: 0;
-				}
-				@media (max-width: 900px) {
-					:global(.vanguard .article-preview > .category-list-preview) {
-						grid-template-columns: 1fr;
-						row-gap: 1.5rem;
-					}
-					:global(.vanguard .article-preview.row.category-list .preview-image) {
-						max-width: 100% !important;
-						max-height: 12rem !important;
-					}
-				}
 				.spreads {
+					display: grid;
 				}
 				.sidebar {
 					margin-top: 2vh;
@@ -149,13 +109,27 @@ export default function Category(props: Props) {
 				#loading {
 					display: none;
 				}
+
+				@media (max-width: 1000px) {
+					.grid {
+						grid-template-columns: 1fr;
+					}
+
+					.sidebar {
+						margin-top: 1rem;
+						padding-left: 0;
+						padding-right: 0;
+						border-left: none;
+						border-right: none;
+					}
+				}
 			`}</style>
 			<h1>Vanguard</h1>
 			<div className="grid">
 				<div>
 					<section className="spreads">
 						{spreads.map(spread => (
-							<Spread key={spread.id} spread={spread} />
+							<Spread key={spread.id} spread={spread} variant="category-list" />
 						))}
 					</section>
 					<p id="loading" style={{ display: loadingDisplay }}>

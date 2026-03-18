@@ -18,6 +18,7 @@ interface Params extends ParsedUrlQuery {
 }
 
 interface Props {
+	category: string;
 	subcategory: string;
 	articles: article[];
 	sidebar: article[];
@@ -26,7 +27,7 @@ export const getStaticPaths: GetStaticPaths = async () => {
 	const categoryToSubcats = {
 		"news-features": ["phs-profiles"],
 		opinions: ["editorials", "cheers-jeers"],
-		vanguard: ["random-musings", "spreads"],
+		vanguard: ["articles"],
 		"arts-entertainment": ["student-artists"],
 		sports: ["student-athletes"],
 	};
@@ -45,12 +46,21 @@ export const getStaticPaths: GetStaticPaths = async () => {
 
 export const getStaticProps: GetStaticProps<Props, Params> = async ({ params }) => {
 	const { category, subcategory } = params!;
+	if (category === "vanguard" && (subcategory === "spreads" || subcategory === "random-musings")) {
+		return {
+			redirect: {
+				destination: subcategory === "spreads" ? "/category/vanguard" : "/category/vanguard/articles",
+				permanent: false,
+			},
+		};
+	}
 
-	const articles = await getArticlesBySubcategory(subcategory, 10, await getIdOfNewest(category, subcategory), 0);
+	const articles = await getArticlesBySubcategory(category, subcategory, 10, await getIdOfNewest(category, subcategory), 0);
 	const sidebar = await getCurrArticles();
 
 	return {
 		props: {
+			category,
 			subcategory,
 			articles,
 			sidebar,
@@ -60,6 +70,7 @@ export const getStaticProps: GetStaticProps<Props, Params> = async ({ params }) 
 };
 
 export default function Subcategory(props: Props) {
+	const category = props.category;
 	const [articles, setArticles] = useState(props.articles);
 	const [cursor, setCursor] = useState<number | null>(props.articles.length > 0 ? props.articles[props.articles.length - 1].id : null);
 	const [loadingContent, setLoadingContent] = useState("Loading articles, please wait...");
@@ -70,6 +81,7 @@ export default function Subcategory(props: Props) {
 	const subcategory = props.subcategory;
 	const sidebar = props.sidebar;
 	const route = useRouter().asPath;
+	const pageTitle = category === "vanguard" && subcategory === "articles" ? "Vanguard Articles" : expandCategorySlug(subcategory);
 
 	useEffect(() => {
 		setArticles(props.articles);
@@ -105,9 +117,9 @@ export default function Subcategory(props: Props) {
 	return (
 		<div className="subcategory">
 			<Head>
-				<title>{`${expandCategorySlug(subcategory)} | The Tower`}</title>
-				<meta property="og:title" content={`${expandCategorySlug(subcategory)} | The Tower`} />
-				<meta property="og:description" content={`${expandCategorySlug(subcategory)} at the Tower`} />
+				<title>{`${pageTitle} | The Tower`}</title>
+				<meta property="og:title" content={`${pageTitle} | The Tower`} />
+				<meta property="og:description" content={`${pageTitle} at the Tower`} />
 			</Head>
 
 			<style jsx>{`
@@ -207,13 +219,22 @@ export default function Subcategory(props: Props) {
 				}
 			`}</style>
 
-			<h1>{expandCategorySlug(subcategory)}</h1>
+			<h1>{pageTitle}</h1>
 
 			<div className="grid">
 				<div>
 					<section>
 						{articles.map(art => (
-							<ArticlePreview key={art.id} article={art} style="row" size="category-list" showPreviewText />
+							<ArticlePreview
+								key={art.id}
+								article={art}
+								style="row"
+								size="category-list"
+								showPreviewText
+								showIssueDate
+								fit={category === "vanguard" && subcategory === "articles" ? "contain" : "cover"}
+								thumbHeight={category === "vanguard" && subcategory === "articles" ? "18rem" : undefined}
+							/>
 						))}
 					</section>
 					<p id="loading" style={{ display: loadingDisplay }}>
