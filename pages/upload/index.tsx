@@ -177,7 +177,7 @@ export default function Upload() {
 			}
 
 			const page = await pdf.getPage(pageNumber);
-			const viewport = page.getViewport({ scale: 1.8 });
+			const viewport = page.getViewport({ scale: 1.25 });
 			const canvas = document.createElement("canvas");
 			const context = canvas.getContext("2d");
 			if (!context) {
@@ -190,10 +190,14 @@ export default function Upload() {
 			await page.render({ canvasContext: context as any, viewport } as any).promise;
 
 			const blob = await new Promise<Blob>((resolve, reject) => {
-				canvas.toBlob(result => {
-					if (result) resolve(result);
-					else reject(new Error("Could not convert this Vanguard spread page into an image."));
-				}, "image/png");
+				canvas.toBlob(
+					result => {
+						if (result) resolve(result);
+						else reject(new Error("Could not convert this Vanguard spread page into an image."));
+					},
+					"image/webp",
+					0.82
+				);
 			});
 
 			page.cleanup();
@@ -201,8 +205,8 @@ export default function Upload() {
 
 			return {
 				previewUrl: URL.createObjectURL(blob),
-				file: new File([blob], `vanguard-${selectedYear}-${selectedMonth}-page-${pageNumber}.png`, {
-					type: "image/png",
+				file: new File([blob], `vanguard-${selectedYear}-${selectedMonth}-page-${pageNumber}.webp`, {
+					type: "image/webp",
 					lastModified: Date.now(),
 				}),
 			};
@@ -927,14 +931,17 @@ export default function Upload() {
 		if (editingArticleId !== null) fd.append("article-id", String(editingArticleId));
 
 		// Send original image to server; server handles compression
-		let preparedImg: File | null = isVanguardArticle ? null : formData.img ?? null;
+		let preparedImg: File | null = formData.img ?? null;
+		let preparedImgClientCompressed = false;
 		if (isVanguardArticle && !formData.img && selectedVanguardPageNumber && issueVanguardSpread && issueVanguardSpreadPageCount === 0) {
 			if (legacyVanguardPagePreviewFile) {
 				preparedImg = legacyVanguardPagePreviewFile;
+				preparedImgClientCompressed = true;
 			} else {
 				try {
 					const rendered = await buildLegacyVanguardSpreadPageAsset(issueVanguardSpread.src, selectedVanguardPageNumber);
 					preparedImg = rendered.file;
+					preparedImgClientCompressed = true;
 					URL.revokeObjectURL(rendered.previewUrl);
 				} catch (error: any) {
 					setUploadResponse(`Upload failed: ${error?.message || "Could not render the selected Vanguard spread page."}`);
@@ -986,7 +993,8 @@ export default function Upload() {
 			fd.append("authors", JSON.stringify(authors));
 			if (formData.content) fd.append("content", formData.content);
 			if (preparedImg) fd.append("img", preparedImg);
-			else if (editingArticleId !== null) fd.append("existing-img", formData.imgData ? String(formData.imgData) : "");
+			if (preparedImgClientCompressed) fd.append("img-client-compressed", "1");
+			if (!preparedImg && editingArticleId !== null) fd.append("existing-img", formData.imgData ? String(formData.imgData) : "");
 			// Append header info if provided
 			if (formData.contentInfo) fd.append("content-info", formData.contentInfo);
 			if (isVanguardArticle && formData.vanguardPageNumber) fd.append("vanguard-page-number", String(formData.vanguardPageNumber));

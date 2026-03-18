@@ -13,6 +13,7 @@ import SubBanner from "~/components/subbanner.client";
 import PhotoCredit from "~/components/photocredit";
 import Link from "next/link";
 import { useEffect } from "react";
+import { PdfPageThumbnail } from "~/components/pdfspreadfallback.client";
 
 import articleStyles from "./article.module.scss";
 
@@ -159,18 +160,12 @@ function getSpreadHref(spread: spreads) {
 	return `/spreads/${spread.year}/${spread.month}/vanguard/${encodeURI(spread.title)}`;
 }
 
-function getSpreadPreviewSrc(spread: spreads) {
-	const { pageCount } = parseSpreadSource(spread.src);
-	if (pageCount > 0) return getSpreadPageImageUrl(spread.src, 1);
-	return `/api/load/spread-page-preview?src=${encodeURIComponent(spread.src)}&page=1`;
-}
-
 function VanguardSpreadCard({ article, spread }: { article: article; spread: spreads | null }) {
 	if (!spread) return null;
 
 	const pageNumber = inferVanguardPageFromImageUrl(article.img);
 	const spreadHref = getSpreadHref(spread);
-	const previewSrc = getSpreadPreviewSrc(spread);
+	const { pageCount, pdfUrl } = parseSpreadSource(spread.src);
 
 	return (
 		<section className={articleStyles["related-spread-section"]}>
@@ -182,7 +177,13 @@ function VanguardSpreadCard({ article, spread }: { article: article; spread: spr
 
 			<Link href={spreadHref} className={articleStyles["related-spread-card"]}>
 				<div className={articleStyles["related-spread-thumb"]}>
-					<img src={previewSrc} alt={`${spread.title} preview`} />
+					{pageCount > 0 ? (
+						<img src={getSpreadPageImageUrl(spread.src, 1)} alt={`${spread.title} preview`} />
+					) : pdfUrl ? (
+						<PdfPageThumbnail pdfUrl={pdfUrl} alt={`${spread.title} preview`} />
+					) : (
+						<div className={articleStyles["related-spread-thumb-fallback"]}>Preview unavailable</div>
+					)}
 				</div>
 
 				<div className={articleStyles["related-spread-copy"]}>
