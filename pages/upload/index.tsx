@@ -53,6 +53,67 @@ function isHeicLike(fileName: string) {
 	return HEIC_EXTENSIONS.some(ext => lowerName.endsWith(ext));
 }
 
+function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality?: number) {
+	return new Promise<Blob>((resolve, reject) => {
+		canvas.toBlob(
+			result => {
+				if (result) resolve(result);
+				else reject(new Error("Could not convert this Vanguard spread page into an image."));
+			},
+			type,
+			quality
+		);
+	});
+}
+
+function resizeCanvas(source: HTMLCanvasElement, maxDimension: number) {
+	const largestDimension = Math.max(source.width, source.height);
+	if (largestDimension <= maxDimension) return source;
+
+	const scale = maxDimension / largestDimension;
+	const resized = document.createElement("canvas");
+	resized.width = Math.max(1, Math.round(source.width * scale));
+	resized.height = Math.max(1, Math.round(source.height * scale));
+
+	const resizedContext = resized.getContext("2d");
+	if (!resizedContext) throw new Error("Could not resize this Vanguard spread page.");
+
+	resizedContext.drawImage(source, 0, 0, resized.width, resized.height);
+	return resized;
+}
+
+async function buildCompactCanvasImageAsset(canvas: HTMLCanvasElement, fileStem: string, targetBytes = 900_000) {
+	let workingCanvas = resizeCanvas(canvas, 1400);
+	let bestBlob = await canvasToBlob(workingCanvas, "image/webp", 0.8);
+	const qualities = [0.8, 0.68, 0.56, 0.46];
+
+	for (let shrinkRound = 0; shrinkRound < 4; shrinkRound++) {
+		for (const quality of qualities) {
+			const blob = await canvasToBlob(workingCanvas, "image/webp", quality);
+			bestBlob = blob;
+			if (blob.size <= targetBytes) {
+				return {
+					previewUrl: URL.createObjectURL(blob),
+					file: new File([blob], `${fileStem}.webp`, {
+						type: "image/webp",
+						lastModified: Date.now(),
+					}),
+				};
+			}
+		}
+
+		workingCanvas = resizeCanvas(workingCanvas, Math.max(720, Math.round(Math.max(workingCanvas.width, workingCanvas.height) * 0.82)));
+	}
+
+	return {
+		previewUrl: URL.createObjectURL(bestBlob),
+		file: new File([bestBlob], `${fileStem}.webp`, {
+			type: "image/webp",
+			lastModified: Date.now(),
+		}),
+	};
+}
+
 function normalizeVanguardSubcategory(subcategory?: string | null) {
 	return subcategory === "random-musings" ? "articles" : subcategory;
 }
@@ -94,7 +155,6 @@ export default function Upload() {
 	const [issueVanguardSpread, setIssueVanguardSpread] = useState<spreads | null | undefined>(undefined);
 	const [issueVanguardSpreadLoading, setIssueVanguardSpreadLoading] = useState(false);
 	const [legacyVanguardPagePreviewUrl, setLegacyVanguardPagePreviewUrl] = useState("");
-	const [legacyVanguardPagePreviewFile, setLegacyVanguardPagePreviewFile] = useState<File | null>(null);
 	const [completedUploadMessage, setCompletedUploadMessage] = useState("");
 
 	const selectedMonth = formData.month ?? new Date().getMonth() + 1;
@@ -189,27 +249,10 @@ export default function Upload() {
 			canvas.height = Math.ceil(viewport.height);
 			await page.render({ canvasContext: context as any, viewport } as any).promise;
 
-			const blob = await new Promise<Blob>((resolve, reject) => {
-				canvas.toBlob(
-					result => {
-						if (result) resolve(result);
-						else reject(new Error("Could not convert this Vanguard spread page into an image."));
-					},
-					"image/webp",
-					0.82
-				);
-			});
-
 			page.cleanup();
 			await loadingTask.destroy();
 
-			return {
-				previewUrl: URL.createObjectURL(blob),
-				file: new File([blob], `vanguard-${selectedYear}-${selectedMonth}-page-${pageNumber}.webp`, {
-					type: "image/webp",
-					lastModified: Date.now(),
-				}),
-			};
+			return await buildCompactCanvasImageAsset(canvas, `vanguard-${selectedYear}-${selectedMonth}-page-${pageNumber}`);
 		},
 		[selectedMonth, selectedYear]
 	);
@@ -368,7 +411,6 @@ export default function Upload() {
 	useEffect(() => {
 		if (!isVanguardArticle || hasManualHeaderImage || !selectedVanguardPageNumber || !issueVanguardSpread || issueVanguardSpreadPageCount > 0) {
 			setLegacyVanguardPagePreviewUrl("");
-			setLegacyVanguardPagePreviewFile(null);
 			return;
 		}
 
@@ -377,19 +419,17 @@ export default function Upload() {
 
 		(async () => {
 			try {
-				const { previewUrl, file } = await buildLegacyVanguardSpreadPageAsset(issueVanguardSpread.src, selectedVanguardPageNumber);
+				const { previewUrl } = await buildLegacyVanguardSpreadPageAsset(issueVanguardSpread.src, selectedVanguardPageNumber);
 				previewUrlToRevoke = previewUrl;
 				if (cancelled) {
 					URL.revokeObjectURL(previewUrl);
 					return;
 				}
 				setLegacyVanguardPagePreviewUrl(previewUrl);
-				setLegacyVanguardPagePreviewFile(file);
 			} catch (error) {
 				console.error(error);
 				if (!cancelled) {
 					setLegacyVanguardPagePreviewUrl("");
-					setLegacyVanguardPagePreviewFile(null);
 				}
 			}
 		})();
@@ -613,7 +653,6 @@ export default function Upload() {
 		setIssueVanguardSpread(undefined);
 		setIssueVanguardSpreadLoading(false);
 		setLegacyVanguardPagePreviewUrl("");
-		setLegacyVanguardPagePreviewFile(null);
 		setFormData({
 			month: selectedMonth,
 			year: selectedYear,
@@ -934,21 +973,16 @@ export default function Upload() {
 		let preparedImg: File | null = formData.img ?? null;
 		let preparedImgClientCompressed = false;
 		if (isVanguardArticle && !formData.img && selectedVanguardPageNumber && issueVanguardSpread && issueVanguardSpreadPageCount === 0) {
-			if (legacyVanguardPagePreviewFile) {
-				preparedImg = legacyVanguardPagePreviewFile;
+			try {
+				const rendered = await buildLegacyVanguardSpreadPageAsset(issueVanguardSpread.src, selectedVanguardPageNumber);
+				preparedImg = rendered.file;
 				preparedImgClientCompressed = true;
-			} else {
-				try {
-					const rendered = await buildLegacyVanguardSpreadPageAsset(issueVanguardSpread.src, selectedVanguardPageNumber);
-					preparedImg = rendered.file;
-					preparedImgClientCompressed = true;
-					URL.revokeObjectURL(rendered.previewUrl);
-				} catch (error: any) {
-					setUploadResponse(`Upload failed: ${error?.message || "Could not render the selected Vanguard spread page."}`);
-					setUploadStatus("error");
-					triggerErrorAnimation();
-					return;
-				}
+				URL.revokeObjectURL(rendered.previewUrl);
+			} catch (error: any) {
+				setUploadResponse(`Upload failed: ${error?.message || "Could not render the selected Vanguard spread page."}`);
+				setUploadStatus("error");
+				triggerErrorAnimation();
+				return;
 			}
 		}
 
