@@ -82,12 +82,12 @@ function resizeCanvas(source: HTMLCanvasElement, maxDimension: number) {
 	return resized;
 }
 
-async function buildCompactCanvasImageAsset(canvas: HTMLCanvasElement, fileStem: string, targetBytes = 900_000) {
-	let workingCanvas = resizeCanvas(canvas, 1400);
-	let bestBlob = await canvasToBlob(workingCanvas, "image/webp", 0.8);
-	const qualities = [0.8, 0.68, 0.56, 0.46];
+async function buildCompactCanvasImageAsset(canvas: HTMLCanvasElement, fileStem: string, targetBytes = 3_000_000) {
+	let workingCanvas = resizeCanvas(canvas, 2200);
+	let bestBlob = await canvasToBlob(workingCanvas, "image/webp", 0.94);
+	const qualities = [0.94, 0.9, 0.86, 0.82, 0.76];
 
-	for (let shrinkRound = 0; shrinkRound < 4; shrinkRound++) {
+	for (let shrinkRound = 0; shrinkRound < 5; shrinkRound++) {
 		for (const quality of qualities) {
 			const blob = await canvasToBlob(workingCanvas, "image/webp", quality);
 			bestBlob = blob;
@@ -102,7 +102,7 @@ async function buildCompactCanvasImageAsset(canvas: HTMLCanvasElement, fileStem:
 			}
 		}
 
-		workingCanvas = resizeCanvas(workingCanvas, Math.max(720, Math.round(Math.max(workingCanvas.width, workingCanvas.height) * 0.82)));
+		workingCanvas = resizeCanvas(workingCanvas, Math.max(1200, Math.round(Math.max(workingCanvas.width, workingCanvas.height) * 0.9)));
 	}
 
 	return {

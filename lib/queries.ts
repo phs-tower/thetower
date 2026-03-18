@@ -678,8 +678,8 @@ export async function uploadMulti(info: { format: string; src_id: string; month:
  */
 async function compressImg(image: Buffer, options?: { targetBytes?: number; marginOfError?: number }) {
 	let check = await sharp(image).webp().toBuffer();
-	const targetBytes = options && options.targetBytes ? options.targetBytes : 400_000;
-	const marginOfError = options && options.marginOfError ? options.marginOfError : 50_000;
+	const targetBytes = options && options.targetBytes ? options.targetBytes : 500_000;
+	const marginOfError = options && options.marginOfError ? options.marginOfError : 100_000;
 	// console.log(`Tried 80% quality --> ${check.length} bytes`);
 	if (check.length <= targetBytes) return check;
 
