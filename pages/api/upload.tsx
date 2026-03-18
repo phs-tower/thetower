@@ -13,6 +13,7 @@ import {
 	uploadMulti,
 	uploadSpread,
 } from "~/lib/queries";
+import { getBucketObjectKeyFromPublicUrl, renderSpreadPdfPageToPngBuffer } from "~/lib/spread-pages";
 import { buildSpreadSource, getSpreadPageImageUrl, parseSpreadSource } from "~/lib/utils";
 
 function getSingleFile(fileField: formidable.File | formidable.File[] | undefined) {
@@ -171,7 +172,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 				});
 			}
 
-			imgURL = getSpreadPageImageUrl(spread.src, vanguardPageNumber);
+			if (pageCount > 0) {
+				imgURL = getSpreadPageImageUrl(spread.src, vanguardPageNumber);
+			} else {
+				try {
+					const { pngBuffer, totalPages, pagePublicUrl } = await renderSpreadPdfPageToPngBuffer(spread.src, vanguardPageNumber);
+					if (totalPages && vanguardPageNumber > totalPages) {
+						return res.status(400).json({
+							message: `Upload failed: the selected Vanguard spread only has ${totalPages} page${totalPages === 1 ? "" : "s"}.`,
+						});
+					}
+
+					const pagePath = getBucketObjectKeyFromPublicUrl(pagePublicUrl, "spreads");
+					const pageUpload = await uploadBuffer(pngBuffer, "spreads", pagePath, "image/png");
+					if (pageUpload.code !== 200) return res.status(pageUpload.code).json({ message: pageUpload.message });
+					imgURL = pagePublicUrl;
+				} catch (error: any) {
+					return res.status(400).json({
+						message: `Upload failed: ${error?.message || "Could not generate an image from the selected Vanguard spread page."}`,
+					});
+				}
+			}
 		} else if (isEditingArticle) {
 			// Preserve existing image when provided by client; allow clearing by passing empty string.
 			imgURL = hasExistingImgField ? existingImgFromClient : existingArticle?.img ?? "";

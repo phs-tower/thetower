@@ -1,7 +1,7 @@
 /** @format */
 
 import Head from "next/head";
-import { ChangeEvent, FormEvent, useEffect, useState, useRef, DragEvent } from "react";
+import { ChangeEvent, FormEvent, useCallback, useEffect, useState, useRef, DragEvent } from "react";
 import Link from "next/link";
 import { remark } from "remark";
 import html from "remark-html";
@@ -93,6 +93,8 @@ export default function Upload() {
 	const [editingArticleId, setEditingArticleId] = useState<number | null>(null);
 	const [issueVanguardSpread, setIssueVanguardSpread] = useState<spreads | null | undefined>(undefined);
 	const [issueVanguardSpreadLoading, setIssueVanguardSpreadLoading] = useState(false);
+	const [legacyVanguardPagePreviewUrl, setLegacyVanguardPagePreviewUrl] = useState("");
+	const [legacyVanguardPagePreviewFile, setLegacyVanguardPagePreviewFile] = useState<File | null>(null);
 
 	const selectedMonth = formData.month ?? new Date().getMonth() + 1;
 	const selectedYear = formData.year ?? new Date().getFullYear();
@@ -132,7 +134,9 @@ export default function Upload() {
 		!hasManualHeaderImage &&
 		issueVanguardSpread &&
 		(!issueVanguardSpreadPageCount || selectedVanguardPageNumber <= issueVanguardSpreadPageCount)
-			? getSpreadPageImageUrl(issueVanguardSpread.src, selectedVanguardPageNumber)
+			? issueVanguardSpreadPageCount > 0
+				? getSpreadPageImageUrl(issueVanguardSpread.src, selectedVanguardPageNumber)
+				: legacyVanguardPagePreviewUrl
 			: "";
 	const showMissingVanguardSpreadWarning =
 		isVanguardArticle &&
@@ -155,6 +159,55 @@ export default function Upload() {
 			spreadPreviewUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
 		};
 	}, []);
+
+	const buildLegacyVanguardSpreadPageAsset = useCallback(
+		async (spreadSrc: string, pageNumber: number) => {
+			const { pdfUrl } = parseSpreadSource(spreadSrc);
+			const sourceUrl = pdfUrl || spreadSrc;
+			const response = await fetch(sourceUrl);
+			if (!response.ok) throw new Error("Could not load this Vanguard spread PDF.");
+
+			const pdfjs = await getPdfJs();
+			const loadingTask = pdfjs.getDocument({ data: await response.arrayBuffer(), disableWorker: true } as any);
+			const pdf = await loadingTask.promise;
+			if (pageNumber > pdf.numPages) {
+				await loadingTask.destroy();
+				throw new Error(`Page ${pageNumber} is not available in this PDF.`);
+			}
+
+			const page = await pdf.getPage(pageNumber);
+			const viewport = page.getViewport({ scale: 1.8 });
+			const canvas = document.createElement("canvas");
+			const context = canvas.getContext("2d");
+			if (!context) {
+				await loadingTask.destroy();
+				throw new Error("Could not create a canvas context for this Vanguard page preview.");
+			}
+
+			canvas.width = Math.ceil(viewport.width);
+			canvas.height = Math.ceil(viewport.height);
+			await page.render({ canvasContext: context as any, viewport } as any).promise;
+
+			const blob = await new Promise<Blob>((resolve, reject) => {
+				canvas.toBlob(result => {
+					if (result) resolve(result);
+					else reject(new Error("Could not convert this Vanguard spread page into an image."));
+				}, "image/png");
+			});
+
+			page.cleanup();
+			await loadingTask.destroy();
+
+			return {
+				previewUrl: URL.createObjectURL(blob),
+				file: new File([blob], `vanguard-${selectedYear}-${selectedMonth}-page-${pageNumber}.png`, {
+					type: "image/png",
+					lastModified: Date.now(),
+				}),
+			};
+		},
+		[selectedMonth, selectedYear]
+	);
 
 	useEffect(() => {
 		if (!hydrated) return;
@@ -306,6 +359,48 @@ export default function Upload() {
 			cancelled = true;
 		};
 	}, [hydrated, isVanguardArticle, selectedMonth, selectedYear]);
+
+	useEffect(() => {
+		if (!isVanguardArticle || hasManualHeaderImage || !selectedVanguardPageNumber || !issueVanguardSpread || issueVanguardSpreadPageCount > 0) {
+			setLegacyVanguardPagePreviewUrl("");
+			setLegacyVanguardPagePreviewFile(null);
+			return;
+		}
+
+		let cancelled = false;
+		let previewUrlToRevoke = "";
+
+		(async () => {
+			try {
+				const { previewUrl, file } = await buildLegacyVanguardSpreadPageAsset(issueVanguardSpread.src, selectedVanguardPageNumber);
+				previewUrlToRevoke = previewUrl;
+				if (cancelled) {
+					URL.revokeObjectURL(previewUrl);
+					return;
+				}
+				setLegacyVanguardPagePreviewUrl(previewUrl);
+				setLegacyVanguardPagePreviewFile(file);
+			} catch (error) {
+				console.error(error);
+				if (!cancelled) {
+					setLegacyVanguardPagePreviewUrl("");
+					setLegacyVanguardPagePreviewFile(null);
+				}
+			}
+		})();
+
+		return () => {
+			cancelled = true;
+			if (previewUrlToRevoke) URL.revokeObjectURL(previewUrlToRevoke);
+		};
+	}, [
+		buildLegacyVanguardSpreadPageAsset,
+		isVanguardArticle,
+		hasManualHeaderImage,
+		selectedVanguardPageNumber,
+		issueVanguardSpread,
+		issueVanguardSpreadPageCount,
+	]);
 
 	// Re-trigger error animation
 	function triggerErrorAnimation() {
@@ -507,6 +602,8 @@ export default function Upload() {
 		setCategory("");
 		setIssueVanguardSpread(undefined);
 		setIssueVanguardSpreadLoading(false);
+		setLegacyVanguardPagePreviewUrl("");
+		setLegacyVanguardPagePreviewFile(null);
 		setFormData({
 			month: selectedMonth,
 			year: selectedYear,
@@ -812,6 +909,22 @@ export default function Upload() {
 
 		// Send original image to server; server handles compression
 		let preparedImg: File | null = isVanguardArticle ? null : formData.img ?? null;
+		if (isVanguardArticle && !formData.img && selectedVanguardPageNumber && issueVanguardSpread && issueVanguardSpreadPageCount === 0) {
+			if (legacyVanguardPagePreviewFile) {
+				preparedImg = legacyVanguardPagePreviewFile;
+			} else {
+				try {
+					const rendered = await buildLegacyVanguardSpreadPageAsset(issueVanguardSpread.src, selectedVanguardPageNumber);
+					preparedImg = rendered.file;
+					URL.revokeObjectURL(rendered.previewUrl);
+				} catch (error: any) {
+					setUploadResponse(`Upload failed: ${error?.message || "Could not render the selected Vanguard spread page."}`);
+					setUploadStatus("error");
+					triggerErrorAnimation();
+					return;
+				}
+			}
+		}
 
 		// Vanguard
 		if (isVanguardSpread) {
