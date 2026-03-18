@@ -13,7 +13,7 @@ import {
 	uploadMulti,
 	uploadSpread,
 } from "~/lib/queries";
-import { getBucketObjectKeyFromPublicUrl, renderSpreadPdfPageToPngBuffer } from "~/lib/spread-pages";
+import { getBucketObjectKeyFromPublicUrl, renderPdfBufferToPngBuffers, renderSpreadPdfPageToPngBuffer } from "~/lib/spread-pages";
 import { buildSpreadSource, getSpreadPageImageUrl, parseSpreadSource } from "~/lib/utils";
 
 function getSingleFile(fileField: formidable.File | formidable.File[] | undefined) {
@@ -46,14 +46,9 @@ async function uploadVanguardSpread(files: formidable.Files, fields: formidable.
 
 	const spreadFile = getSingleFile(files.spread);
 	if (!spreadFile) return { ...ret, error: "Did you upload a spread?" };
+	const spreadPdfBuffer = await readFile(spreadFile.filepath);
 	const spreadPageFiles = getSpreadPageFiles(files);
-	const pageCount = Number(getFirstFieldValue((fields as any)["spread-page-count"]));
-	if (!pageCount || spreadPageFiles.length === 0) {
-		return { ...ret, error: "The PDF preview pages could not be generated. Re-select the spread PDF and try again." };
-	}
-	if (spreadPageFiles.length !== pageCount) {
-		return { ...ret, error: "The Vanguard spread page previews were incomplete. Re-select the PDF and try again." };
-	}
+	const clientPageCount = Number(getFirstFieldValue((fields as any)["spread-page-count"]));
 
 	const upload = await uploadFile(spreadFile, "spreads");
 	if (upload.code != 200) return { ...ret, code: upload.code, error: upload.message };
@@ -62,21 +57,43 @@ async function uploadVanguardSpread(files: formidable.Files, fields: formidable.
 	}
 
 	try {
-		for (const pageEntry of spreadPageFiles) {
-			const pageBuffer = await readFile(pageEntry.file.filepath);
-			const pagePath = upload.path.replace(/\.pdf$/i, `-page-${pageEntry.pageNumber}.png`);
-			const pageUpload = await uploadBuffer(pageBuffer, "spreads", pagePath, pageEntry.file.mimetype || "image/png");
-			if (pageUpload.code !== 200) return { ...ret, code: pageUpload.code, error: pageUpload.message };
-		}
+		try {
+			const { renderedPages, totalPages } = await renderPdfBufferToPngBuffers(spreadPdfBuffer);
+			for (const pageEntry of renderedPages) {
+				const pagePath = upload.path.replace(/\.pdf$/i, `-page-${pageEntry.pageNumber}.png`);
+				const pageUpload = await uploadBuffer(pageEntry.pngBuffer, "spreads", pagePath, "image/png");
+				if (pageUpload.code !== 200) return { ...ret, code: pageUpload.code, error: pageUpload.message };
+			}
 
-		await uploadSpread({
-			title: getFirstFieldValue(fields.title) || "No title provided",
-			src: buildSpreadSource(upload.message, pageCount),
-			month: chosenMonth,
-			year: chosenYear,
-			category: "vanguard",
-		});
-		return { ...ret, code: 200, error: "" };
+			await uploadSpread({
+				title: getFirstFieldValue(fields.title) || "No title provided",
+				src: buildSpreadSource(upload.message, totalPages),
+				month: chosenMonth,
+				year: chosenYear,
+				category: "vanguard",
+			});
+			return { ...ret, code: 200, error: "" };
+		} catch (renderError) {
+			if (!clientPageCount || spreadPageFiles.length !== clientPageCount) {
+				throw renderError;
+			}
+
+			for (const pageEntry of spreadPageFiles) {
+				const pageBuffer = await readFile(pageEntry.file.filepath);
+				const pagePath = upload.path.replace(/\.pdf$/i, `-page-${pageEntry.pageNumber}.png`);
+				const pageUpload = await uploadBuffer(pageBuffer, "spreads", pagePath, pageEntry.file.mimetype || "image/png");
+				if (pageUpload.code !== 200) return { ...ret, code: pageUpload.code, error: pageUpload.message };
+			}
+
+			await uploadSpread({
+				title: getFirstFieldValue(fields.title) || "No title provided",
+				src: buildSpreadSource(upload.message, clientPageCount),
+				month: chosenMonth,
+				year: chosenYear,
+				category: "vanguard",
+			});
+			return { ...ret, code: 200, error: "" };
+		}
 	} catch (e) {
 		return { ...ret, error: `Unexpected problem in the server! Message: ${e}` };
 	}

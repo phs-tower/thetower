@@ -1,9 +1,11 @@
 /** @format */
+/* eslint-disable @next/next/no-img-element */
 
 import Head from "next/head";
 import Image from "next/image";
-import { getArticle } from "~/lib/queries";
-import { displayDate } from "~/lib/utils";
+import { article, spreads } from "@prisma/client";
+import { getArticle, getSpreadByIssue } from "~/lib/queries";
+import { displayDate, getSpreadPageImageUrl, inferVanguardPageFromImageUrl, parseSpreadSource } from "~/lib/utils";
 import CreditLink from "~/components/credit.client";
 import { remark } from "remark";
 import html from "remark-html";
@@ -11,15 +13,16 @@ import SubBanner from "~/components/subbanner.client";
 import PhotoCredit from "~/components/photocredit";
 import Link from "next/link";
 import { useEffect } from "react";
-import { article } from "@prisma/client";
 
 import articleStyles from "./article.module.scss";
 
 interface Props {
 	article: article;
+	mainSpread: spreads | null;
 }
 
-interface ArticleContentProps extends Props {
+interface ArticleContentProps {
+	article: article;
 	showColumnAd?: boolean;
 }
 
@@ -57,7 +60,12 @@ export async function getServerSideProps({ params }: Params) {
 		processedArticle.content = marked.toString();
 	}
 
-	return { props: { article: processedArticle } };
+	const mainSpread =
+		processedArticle.category === "vanguard" && ["articles", "random-musings"].includes(processedArticle.subcategory)
+			? await getSpreadByIssue("vanguard", processedArticle.month, processedArticle.year)
+			: null;
+
+	return { props: { article: processedArticle, mainSpread } };
 }
 
 export function ReturnToCategoryButton({ category }: { category: string }) {
@@ -146,13 +154,54 @@ export function ArticleContent({ article, showColumnAd = true }: ArticleContentP
 		</section>
 	);
 }
+
+function getSpreadHref(spread: spreads) {
+	return `/spreads/${spread.year}/${spread.month}/vanguard/${encodeURI(spread.title)}`;
+}
+
+function getSpreadPreviewSrc(spread: spreads) {
+	const { pageCount } = parseSpreadSource(spread.src);
+	if (pageCount > 0) return getSpreadPageImageUrl(spread.src, 1);
+	return `/api/load/spread-page-preview?src=${encodeURIComponent(spread.src)}&page=1`;
+}
+
+function VanguardSpreadCard({ article, spread }: { article: article; spread: spreads | null }) {
+	if (!spread) return null;
+
+	const pageNumber = inferVanguardPageFromImageUrl(article.img);
+	const spreadHref = getSpreadHref(spread);
+	const previewSrc = getSpreadPreviewSrc(spread);
+
+	return (
+		<section className={articleStyles["related-spread-section"]}>
+			<div className={articleStyles["related-spread-header"]}>
+				<span className={articleStyles["related-spread-eyebrow"]}>Main Spread</span>
+				<h2>Open the full Vanguard spread</h2>
+				<p>{`Read the rest of ${displayDate(spread.year, spread.month)}'s Vanguard issue.`}</p>
+			</div>
+
+			<Link href={spreadHref} className={articleStyles["related-spread-card"]}>
+				<div className={articleStyles["related-spread-thumb"]}>
+					<img src={previewSrc} alt={`${spread.title} preview`} />
+				</div>
+
+				<div className={articleStyles["related-spread-copy"]}>
+					{pageNumber ? <span className={articleStyles["related-spread-page"]}>{`This article appears on page ${pageNumber}`}</span> : null}
+					<h3>{spread.title}</h3>
+					<p className={articleStyles["related-spread-meta"]}>{displayDate(spread.year, spread.month)}</p>
+					<span className={articleStyles["related-spread-cta"]}>Open main spread</span>
+				</div>
+			</Link>
+		</section>
+	);
+}
 /**
  * Generate HTML for the old (pre-md) article format
  *
  * The old format is quite literally just paragraphs separated by new lines with `@img=[url]` for images
  * At some point we should probs migrate all the old articles but 🤷‍♂️
  */
-function LegacyArticleContent({ article }: Props) {
+function LegacyArticleContent({ article }: { article: article }) {
 	return (
 		<>
 			{article.content.split("\n").map((paragraph, index) => {
@@ -168,7 +217,7 @@ function LegacyArticleContent({ article }: Props) {
 	);
 }
 
-export default function Article({ article }: Props) {
+export default function Article({ article, mainSpread }: Props) {
 	const category = article.category;
 
 	// Per-article view tracking (one bump per article per tab session)
@@ -199,6 +248,7 @@ export default function Article({ article }: Props) {
 			<ReturnToCategoryButton category={category} />
 
 			<ArticleContent article={article} />
+			<VanguardSpreadCard article={article} spread={mainSpread} />
 
 			<SubBanner title="Subscribing helps us make more articles like this." />
 		</>

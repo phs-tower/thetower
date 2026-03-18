@@ -95,6 +95,7 @@ export default function Upload() {
 	const [issueVanguardSpreadLoading, setIssueVanguardSpreadLoading] = useState(false);
 	const [legacyVanguardPagePreviewUrl, setLegacyVanguardPagePreviewUrl] = useState("");
 	const [legacyVanguardPagePreviewFile, setLegacyVanguardPagePreviewFile] = useState<File | null>(null);
+	const [completedUploadMessage, setCompletedUploadMessage] = useState("");
 
 	const selectedMonth = formData.month ?? new Date().getMonth() + 1;
 	const selectedYear = formData.year ?? new Date().getFullYear();
@@ -411,6 +412,10 @@ export default function Upload() {
 		}
 	}
 
+	function dismissCompletedUploadMessage() {
+		setCompletedUploadMessage("");
+	}
+
 	function formatBytes(bytes: number | null | undefined) {
 		if (bytes === null || bytes === undefined) return "";
 		const units = ["B", "KB", "MB", "GB"] as const;
@@ -521,6 +526,7 @@ export default function Upload() {
 	}
 
 	async function loadArticleForEditing(id: number) {
+		dismissCompletedUploadMessage();
 		setLoadingArticleId(id);
 		try {
 			const response = await fetch("/api/load/article-by-id", {
@@ -616,6 +622,7 @@ export default function Upload() {
 	}
 
 	function changeCategory(e: ChangeEvent<HTMLSelectElement>) {
+		dismissCompletedUploadMessage();
 		const nextCategory = e.target.value;
 		const nextSubcategory =
 			nextCategory === "vanguard"
@@ -642,6 +649,7 @@ export default function Upload() {
 	}
 
 	function changeSubcategory(e: ChangeEvent<HTMLSelectElement>) {
+		dismissCompletedUploadMessage();
 		const nextSubcategory = e.target.value;
 		setFormData({
 			...formData,
@@ -656,29 +664,35 @@ export default function Upload() {
 	}
 
 	function updateTitle(e: ChangeEvent<HTMLInputElement>) {
+		dismissCompletedUploadMessage();
 		setFormData({ ...formData, title: e.target.value });
 	}
 
 	function updateAuthors(e: ChangeEvent<HTMLInputElement>) {
+		dismissCompletedUploadMessage();
 		setFormData({ ...formData, authors: e.target.value });
 	}
 
 	function changeMonth(e: ChangeEvent<HTMLSelectElement>) {
+		dismissCompletedUploadMessage();
 		const m = parseInt(e.target.value, 10);
 		if (!isNaN(m)) setFormData({ ...formData, month: m });
 	}
 
 	function changeYear(e: ChangeEvent<HTMLInputElement>) {
+		dismissCompletedUploadMessage();
 		const y = parseInt(e.target.value, 10);
 		setFormData({ ...formData, year: !isNaN(y) ? y : null });
 	}
 
 	function updateVanguardPageNumber(e: ChangeEvent<HTMLInputElement>) {
+		dismissCompletedUploadMessage();
 		const value = parseInt(e.target.value, 10);
 		setFormData({ ...formData, vanguardPageNumber: !isNaN(value) ? value : null });
 	}
 
 	async function updateContent(e: ChangeEvent<HTMLTextAreaElement>) {
+		dismissCompletedUploadMessage();
 		setFormData({ ...formData, content: e.target.value });
 		const processed = await remark().use(html).process(e.target.value);
 		setPreviewContent(processed.toString());
@@ -686,10 +700,12 @@ export default function Upload() {
 
 	// New: Update Header Info from a resizable textarea
 	function updateHeaderInfo(e: ChangeEvent<HTMLTextAreaElement>) {
+		dismissCompletedUploadMessage();
 		setFormData({ ...formData, contentInfo: e.target.value });
 	}
 
 	async function updateImage(inp: HTMLInputElement) {
+		dismissCompletedUploadMessage();
 		if (!inp.files || !inp.files[0]) return;
 		let image = inp.files[0];
 
@@ -733,6 +749,7 @@ export default function Upload() {
 	}
 
 	function clearImage() {
+		dismissCompletedUploadMessage();
 		setFormData({ ...formData, img: null, imgData: null, imgName: null });
 		setImgOrigBytes(null);
 		setServerImgBytes(null);
@@ -745,6 +762,7 @@ export default function Upload() {
 
 	// Update PDF spread (for Vanguard)
 	async function updateSpread(inp: HTMLInputElement) {
+		dismissCompletedUploadMessage();
 		if (!inp.files || !inp.files[0]) return;
 		const file = inp.files[0];
 		if (file.type !== "application/pdf") {
@@ -793,6 +811,7 @@ export default function Upload() {
 	}
 
 	function updateMulti(e: ChangeEvent<HTMLInputElement>) {
+		dismissCompletedUploadMessage();
 		setFormData({ ...formData, multi: e.target.value });
 	}
 
@@ -1002,10 +1021,12 @@ export default function Upload() {
 				} else {
 					setUploadResponse(data.message || "Upload successful!");
 				}
+				setCompletedUploadMessage(data.message || "Uploaded!");
 				setUploadStatus("success");
 				if (errorRef.current) errorRef.current.classList.remove("error-message");
 				confetti();
 				clearEditingState();
+				setUploadResponse("");
 				localStorage.removeItem("uploadFormData");
 				localStorage.removeItem("uploadFormTimestamp");
 				void refreshIssueArticles(Number(chosenMonth), Number(chosenYear));
@@ -1168,6 +1189,7 @@ export default function Upload() {
 					</div>
 					<hr />
 					<br />
+					{completedUploadMessage && <p className={styles["completed-upload-message"]}>{completedUploadMessage}</p>}
 
 					<div className={styles["section-info"]} ref={containerRef}>
 						<section className={styles["section-input"]}>
@@ -1382,6 +1404,9 @@ export default function Upload() {
 											? "Submit Multimedia"
 											: "Submit Article"}
 									</button>
+									<p id="bruh" ref={errorRef} className={styles["submit-response"]}>
+										{uploadResponse}
+									</p>
 								</div>
 							)}
 
@@ -1391,7 +1416,13 @@ export default function Upload() {
 										<strong>{`Uploaded Articles (${MONTH_NAMES[selectedMonth]} ${selectedYear})`}</strong>
 										{editingArticleId !== null && (
 											<div className={styles["existing-articles-actions"]}>
-												<button type="button" onClick={clearEditingState}>
+												<button
+													type="button"
+													onClick={() => {
+														dismissCompletedUploadMessage();
+														clearEditingState();
+													}}
+												>
 													New article
 												</button>
 												<button
@@ -1515,9 +1546,6 @@ export default function Upload() {
 					</div>
 
 					<br />
-					<p id="bruh" ref={errorRef}>
-						{uploadResponse}
-					</p>
 				</form>
 			</div>
 
