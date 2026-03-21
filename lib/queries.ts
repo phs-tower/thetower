@@ -108,7 +108,12 @@ async function ensurePrismaConnected(db: PrismaClient) {
 	return prismaConnectPromise;
 }
 
-async function withQueryFallback<T>(queryName: string, fallback: T, run: (db: PrismaClient) => Promise<T>): Promise<T> {
+async function withQueryFallback<T>(
+	queryName: string,
+	fallback: T,
+	run: (db: PrismaClient) => Promise<T>,
+	options?: { throwOnFailure?: boolean }
+): Promise<T> {
 	const db = prisma;
 	if (!db) return fallback;
 
@@ -139,6 +144,9 @@ async function withQueryFallback<T>(queryName: string, fallback: T, run: (db: Pr
 	}
 
 	logQueryFailure(queryName, lastError);
+	if (options?.throwOnFailure && lastError) {
+		throw lastError;
+	}
 	return fallback;
 }
 
@@ -353,26 +361,30 @@ export async function getArticle(year: string, month: string, cat: string, id: s
 	const isIdValid = !isNaN(parsedId) && id !== "null";
 	const titleFromSlug = decodeURIComponent(slug.split("-").slice(0, -1).join(" "));
 
-	return withQueryFallback("getArticle", null, async db =>
-		isIdValid
-			? await db.article.findFirst({
-					where: {
-						id: parsedId,
-						published: true,
-					},
-			  })
-			: await db.article.findFirst({
-					where: {
-						year: parseInt(year),
-						month: parseInt(month),
-						category: cat,
-						title: {
-							equals: titleFromSlug,
-							mode: "insensitive",
+	return withQueryFallback(
+		"getArticle",
+		null,
+		async db =>
+			isIdValid
+				? await db.article.findFirst({
+						where: {
+							id: parsedId,
+							published: true,
 						},
-						published: true,
-					},
-			  })
+				  })
+				: await db.article.findFirst({
+						where: {
+							year: parseInt(year),
+							month: parseInt(month),
+							category: cat,
+							title: {
+								equals: titleFromSlug,
+								mode: "insensitive",
+							},
+							published: true,
+						},
+				  }),
+		{ throwOnFailure: true }
 	);
 }
 
@@ -778,7 +790,8 @@ export async function getSpread(slug: string) {
 				where: {
 					title: decodeURI(slug),
 				},
-			})
+			}),
+		{ throwOnFailure: true }
 	);
 }
 
