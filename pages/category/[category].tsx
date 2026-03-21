@@ -23,9 +23,8 @@ interface Props {
 }
 
 export const getStaticPaths: GetStaticPaths<Params> = async () => {
-	const categories = ["news-features", "opinions", "arts-entertainment", "sports"];
 	return {
-		paths: categories.map(cat => ({ params: { category: cat } })),
+		paths: [],
 		fallback: "blocking",
 	};
 };

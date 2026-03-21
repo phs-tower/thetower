@@ -70,22 +70,8 @@ function toSubcategoryPreviewArticle(item: article, includePreviewText: boolean)
 }
 
 export const getStaticPaths: GetStaticPaths = async () => {
-	const categoryToSubcats = {
-		"news-features": ["phs-profiles"],
-		opinions: ["editorials", "cheers-jeers"],
-		vanguard: ["articles"],
-		"arts-entertainment": ["student-artists"],
-		sports: ["student-athletes"],
-	};
-
-	const paths = Object.entries(categoryToSubcats).flatMap(([category, subcats]) =>
-		subcats.map(subcategory => ({
-			params: { category, subcategory },
-		}))
-	);
-
 	return {
-		paths,
+		paths: [],
 		fallback: "blocking",
 	};
 };

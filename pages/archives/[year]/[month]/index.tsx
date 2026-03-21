@@ -17,12 +17,8 @@ interface Params extends ParsedUrlQuery {
 }
 
 export const getStaticPaths: GetStaticPaths<Params> = async () => {
-	const issues = await getPublishedArchiveIssues();
-
 	return {
-		paths: issues.map(issue => ({
-			params: { year: `${issue.year}`, month: `${issue.month}` },
-		})),
+		paths: [],
 		fallback: "blocking",
 	};
 };

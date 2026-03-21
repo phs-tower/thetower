@@ -14,7 +14,7 @@ type Props = { puzzleInput: PuzzleInput };
 export default function CrosswordGame({ puzzleInput }: Props) {
 	const initialState = useMemo(() => {
 		return initialStateFromInput(puzzleInput);
-	}, []);
+	}, [puzzleInput]);
 
 	const [state, dispatch] = useMutativeReducer(crosswordStateReducer, initialState);
 	const inputRef = useRef<HTMLInputElement>(null);
@@ -24,7 +24,7 @@ export default function CrosswordGame({ puzzleInput }: Props) {
 
 	const date = useMemo(() => {
 		return new Date(puzzleInput.date);
-	}, []);
+	}, [puzzleInput.date]);
 
 	const won = useMemo(() => {
 		return state.grid.every(c => c.every(cell => (cell.used ? cell.answer == cell.guess : true)));
@@ -34,7 +34,7 @@ export default function CrosswordGame({ puzzleInput }: Props) {
 		if (won == true) {
 			dispatch({ type: "setWon", to: true });
 		}
-	}, [won]);
+	}, [dispatch, won]);
 
 	// Function to find the clue associated with the selected cell
 	const selectedClue = useMemo(() => {
@@ -49,7 +49,7 @@ export default function CrosswordGame({ puzzleInput }: Props) {
 				: state.clues.down.find(clue => col === clue.col && row >= clue.row && row < clue.row + clue.answer.length) ?? null;
 
 		return clue;
-	}, [state.position, state.direction, state.clues]);
+	}, [focused, state.position, state.direction, state.clues]);
 
 	useEffect(() => {
 		if (hasMutatedRef.current) {
@@ -57,7 +57,7 @@ export default function CrosswordGame({ puzzleInput }: Props) {
 			const serializedState = JSON.stringify(state);
 			localStorage.setItem("crosswordGameState", serializedState);
 		}
-	}, [state.grid, state.seconds]);
+	}, [state]);
 
 	useEffect(() => {
 		console.log("loading");
@@ -66,7 +66,7 @@ export default function CrosswordGame({ puzzleInput }: Props) {
 			const parsedState = JSON.parse(savedState);
 			dispatch({ type: "loadState", state: parsedState });
 		}
-	}, []);
+	}, [dispatch]);
 
 	const dispatchWithTracking = useCallback(
 		(action: Action) => {
@@ -84,7 +84,7 @@ export default function CrosswordGame({ puzzleInput }: Props) {
 		}, 1000);
 
 		return () => clearInterval(intervalId);
-	}, [won]);
+	}, [dispatchWithTracking, won]);
 
 	return (
 		<CrosswordDispatchContext.Provider value={dispatchWithTracking}>
