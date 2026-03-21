@@ -26,12 +26,18 @@ export const getStaticProps: GetStaticProps<Props> = async () => {
 
 export default function Archive(props: Props) {
 	const [crosswords, setCrosswords] = useState<crossword[]>(props.crosswords);
-	const [cursor, setCursor] = useState(crosswords[crosswords.length - 1].id);
+	const [cursor, setCursor] = useState<number | null>(crosswords.length > 0 ? crosswords[crosswords.length - 1].id : null);
 
 	const [loadingDisplay, setLoadingDisplay] = useState("none");
 	const [loadingContent, setLoadingContent] = useState("Loading crosswords, please wait...");
 
 	async function newCrosswords() {
+		if (cursor == null) {
+			setLoadingContent("No more crosswords to load.");
+			setLoadingDisplay("block");
+			return;
+		}
+
 		setLoadingContent("Loading crosswords, please wait...");
 		setLoadingDisplay("block");
 

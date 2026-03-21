@@ -9,9 +9,17 @@ import { PuzzleInput } from "~/lib/crossword/types";
 type Props = { puzzleInput: PuzzleInput };
 
 export const getStaticProps: GetStaticProps<Props> = async () => {
+	const puzzleInput = await getCurrentCrossword();
+	if (!puzzleInput) {
+		return {
+			notFound: true,
+			revalidate: 60,
+		};
+	}
+
 	return {
 		props: {
-			puzzleInput: await getCurrentCrossword(),
+			puzzleInput,
 		},
 		revalidate: 60,
 	};

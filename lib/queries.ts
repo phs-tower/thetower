@@ -40,48 +40,65 @@ function getArticleSubcategoryFilter(subcat: string) {
 	return subcat === "articles" ? { in: ["articles", "random-musings"] } : subcat;
 }
 
+function logQueryFailure(queryName: string, error: unknown) {
+	console.error(`[queries] ${queryName} failed`, error);
+}
+
+async function withQueryFallback<T>(queryName: string, fallback: T, run: (db: PrismaClient) => Promise<T>): Promise<T> {
+	const db = prisma;
+	if (!db) return fallback;
+
+	try {
+		return await run(db);
+	} catch (error) {
+		logQueryFailure(queryName, error);
+		return fallback;
+	}
+}
+
 export async function getFrontpageArticles() {
 	let articles: Record<string, article[]> = { "news-features": [], opinions: [], "arts-entertainment": [], sports: [], featured: [] };
 	if (!prisma) return articles;
 
-	const categories = Object.keys(articles);
+	return withQueryFallback("getFrontpageArticles", articles, async db => {
+		const categories = Object.keys(articles);
 
-	for (let i = 0; i < categories.length - 1; i++) {
-		const curr = new Date();
-		let month = curr.getMonth() + 3;
-		let year = curr.getFullYear();
+		for (let i = 0; i < categories.length - 1; i++) {
+			const curr = new Date();
+			let month = curr.getMonth() + 3;
+			let year = curr.getFullYear();
+			let attempts = 0;
 
-		while (!articles[categories[i]].length) {
-			month--;
+			while (!articles[categories[i]].length && attempts < 24) {
+				month--;
+				attempts++;
 
-			let temp = await prisma.article.findMany({
-				orderBy: [
-					{
-						id: "asc",
+				let temp = await db.article.findMany({
+					orderBy: [
+						{
+							id: "asc",
+						},
+					],
+					where: {
+						year: year,
+						month: month,
+						category: categories[i],
+						published: true,
 					},
-				],
-				where: {
-					year: year,
-					month: month,
-					category: categories[i],
-					published: true,
-				},
-			});
-			articles[categories[i]] = temp;
-			if (month === 0) {
-				month = 13;
-				year--;
+				});
+				articles[categories[i]] = temp;
+				if (month === 0) {
+					month = 13;
+					year--;
+				}
 			}
 		}
-	}
 
-	let a = await prisma.article.findFirst({ where: { featured: true } });
-	if (a != null) articles["featured"].push(a);
+		let a = await db.article.findFirst({ where: { featured: true } });
+		if (a != null) articles["featured"].push(a);
 
-	// a = await prisma.spreads.findFirst({orderBy: {year: "desc", month: "desc"}, where: {title: {startsWith: "VANGUARD"}}})
-	// if (a != null) articles.vanguard.push(a)
-
-	return articles;
+		return articles;
+	});
 }
 
 export async function getPublishedArticles() {
@@ -96,72 +113,91 @@ export async function getPublishedArticles() {
 }
 
 export async function getPublishedArchiveIssues() {
-	if (!prisma) return [];
-
-	return await prisma.article.findMany({
-		where: {
-			published: true,
-		},
-		select: {
-			year: true,
-			month: true,
-		},
-		distinct: ["year", "month"],
-		orderBy: [{ year: "desc" }, { month: "desc" }],
-	});
+	return withQueryFallback(
+		"getPublishedArchiveIssues",
+		[] as { year: number; month: number }[],
+		async db =>
+			await db.article.findMany({
+				where: {
+					published: true,
+				},
+				select: {
+					year: true,
+					month: true,
+				},
+				distinct: ["year", "month"],
+				orderBy: [{ year: "desc" }, { month: "desc" }],
+			})
+	);
 }
 
 export async function getRecommendedCategoryArticle(category: string) {
-	if (!prisma) return null;
-	return await prisma.article.findFirst({
-		where: {
-			category,
-			published: true,
-		},
-		orderBy: [{ year: "desc" }, { month: "desc" }, { id: "asc" }],
-	});
+	return withQueryFallback(
+		"getRecommendedCategoryArticle",
+		null,
+		async db =>
+			await db.article.findFirst({
+				where: {
+					category,
+					published: true,
+				},
+				orderBy: [{ year: "desc" }, { month: "desc" }, { id: "asc" }],
+			})
+	);
 }
 
 export async function getRecommendedSubcategoryArticle(category: string, subcat: string) {
-	if (!prisma) return null;
-	return await prisma.article.findFirst({
-		where: {
-			category,
-			subcategory: getArticleSubcategoryFilter(subcat),
-			published: true,
-		},
-		orderBy: [{ year: "desc" }, { month: "desc" }, { id: "asc" }],
-	});
+	return withQueryFallback(
+		"getRecommendedSubcategoryArticle",
+		null,
+		async db =>
+			await db.article.findFirst({
+				where: {
+					category,
+					subcategory: getArticleSubcategoryFilter(subcat),
+					published: true,
+				},
+				orderBy: [{ year: "desc" }, { month: "desc" }, { id: "asc" }],
+			})
+	);
 }
 
 export async function getRecommendedSubcategoryArticles(category: string, subcat: string) {
-	if (!prisma) return [];
-
-	const latest = await prisma.article.findFirst({
-		where: {
-			category,
-			subcategory: getArticleSubcategoryFilter(subcat),
-			published: true,
-		},
-		orderBy: [{ year: "desc" }, { month: "desc" }, { id: "desc" }],
-		select: {
-			year: true,
-			month: true,
-		},
-	});
+	const latest = await withQueryFallback(
+		"getRecommendedSubcategoryArticles.latest",
+		null as { year: number; month: number } | null,
+		async db =>
+			await db.article.findFirst({
+				where: {
+					category,
+					subcategory: getArticleSubcategoryFilter(subcat),
+					published: true,
+				},
+				orderBy: [{ year: "desc" }, { month: "desc" }, { id: "desc" }],
+				select: {
+					year: true,
+					month: true,
+				},
+			})
+	);
 
 	if (!latest) return [];
 
-	return await prisma.article.findMany({
-		where: {
-			category,
-			subcategory: getArticleSubcategoryFilter(subcat),
-			published: true,
-			year: latest.year,
-			month: latest.month,
-		},
-		orderBy: [{ id: "asc" }],
-	});
+	return withQueryFallback(
+		"getRecommendedSubcategoryArticles.list",
+		[] as article[],
+		async db =>
+			await db.article.findMany({
+				where: {
+					category,
+					subcategory: getArticleSubcategoryFilter(subcat),
+					published: true,
+					year: latest.year,
+					month: latest.month,
+				},
+				orderBy: [{ id: "asc" }],
+			})
+	);
 }
 
 export async function getArticlesByIssue(month: number, year: number) {
@@ -185,17 +221,21 @@ export async function getArticlesByIssue(month: number, year: number) {
 }
 
 export async function getPublishedVanguardArticlesByIssue(month: number, year: number) {
-	if (!prisma) return [];
-	return await prisma.article.findMany({
-		where: {
-			category: "vanguard",
-			subcategory: getArticleSubcategoryFilter("articles"),
-			published: true,
-			month,
-			year,
-		},
-		orderBy: [{ id: "asc" }],
-	});
+	return withQueryFallback(
+		"getPublishedVanguardArticlesByIssue",
+		[] as article[],
+		async db =>
+			await db.article.findMany({
+				where: {
+					category: "vanguard",
+					subcategory: getArticleSubcategoryFilter("articles"),
+					published: true,
+					month,
+					year,
+				},
+				orderBy: [{ id: "asc" }],
+			})
+	);
 }
 
 export async function getArticleByIdAny(id: number) {
@@ -227,27 +267,27 @@ export async function getArticle(year: string, month: string, cat: string, id: s
 	const isIdValid = !isNaN(parsedId) && id !== "null";
 	const titleFromSlug = decodeURIComponent(slug.split("-").slice(0, -1).join(" "));
 
-	const art = isIdValid
-		? await prisma.article.findFirst({
-				where: {
-					id: parsedId,
-					published: true,
-				},
-		  })
-		: await prisma.article.findFirst({
-				where: {
-					year: parseInt(year),
-					month: parseInt(month),
-					category: cat,
-					title: {
-						equals: titleFromSlug,
-						mode: "insensitive",
+	return withQueryFallback("getArticle", null, async db =>
+		isIdValid
+			? await db.article.findFirst({
+					where: {
+						id: parsedId,
+						published: true,
 					},
-					published: true,
-				},
-		  });
-
-	return art;
+			  })
+			: await db.article.findFirst({
+					where: {
+						year: parseInt(year),
+						month: parseInt(month),
+						category: cat,
+						title: {
+							equals: titleFromSlug,
+							mode: "insensitive",
+						},
+						published: true,
+					},
+			  })
+	);
 }
 
 export async function getCurrArticles() {
@@ -257,7 +297,9 @@ export async function getCurrArticles() {
 	let year = curr.getFullYear();
 
 	let articles = await getArticlesByDateOld(year.toString(), month.toString());
-	while (articles.length === 0) {
+	let attempts = 0;
+	while (articles.length === 0 && attempts < 24) {
+		attempts++;
 		month--;
 		if (month === 0) {
 			month = 12;
@@ -270,23 +312,23 @@ export async function getCurrArticles() {
 }
 
 export async function getArticlesByDateOld(year: string, month: string) {
-	if (!prisma) return [];
-	let articles: article[] = [];
-
-	articles = await prisma.article.findMany({
-		orderBy: [
-			{
-				id: "desc",
-			},
-		],
-		where: {
-			year: parseInt(year),
-			month: parseInt(month),
-			published: true,
-		},
-	});
-
-	return articles;
+	return withQueryFallback(
+		"getArticlesByDateOld",
+		[] as article[],
+		async db =>
+			await db.article.findMany({
+				orderBy: [
+					{
+						id: "desc",
+					},
+				],
+				where: {
+					year: parseInt(year),
+					month: parseInt(month),
+					published: true,
+				},
+			})
+	);
 }
 
 export async function getArticlesByDate(year: string, month: string) {
@@ -295,103 +337,106 @@ export async function getArticlesByDate(year: string, month: string) {
 
 	if (!prisma) return articles;
 
-	for (let category of categories) {
-		articles[category] = await prisma.article.findMany({
-			orderBy: [
-				{
-					id: "asc",
+	return withQueryFallback("getArticlesByDate", articles, async db => {
+		for (let category of categories) {
+			articles[category] = await db.article.findMany({
+				orderBy: [
+					{
+						id: "asc",
+					},
+				],
+				where: {
+					year: parseInt(year),
+					month: parseInt(month),
+					published: true,
+					category: category,
 				},
-			],
-			where: {
-				year: parseInt(year),
-				month: parseInt(month),
-				published: true,
-				category: category,
-			},
-		});
-	}
+			});
+		}
 
-	return articles;
+		return articles;
+	});
 }
 
 export async function getIdOfNewest(cat: string, subcat: string | null) {
-	if (!prisma) return 0;
-
-	let res;
-	if (cat == "spreads") {
-		res = await prisma.spreads.findFirst({
-			orderBy: [{ year: "desc" }, { month: "desc" }, { id: "desc" }],
-			where: {
-				category: subcat != null ? subcat : "",
-			},
-			select: {
-				id: true,
-			},
-		});
-	} else if (cat == "multimedia") {
-		subcat = subcat == null ? "youtube" : subcat;
-		res = await prisma.multimedia.findFirst({
-			orderBy: [{ year: "desc" }, { month: "desc" }, { id: "desc" }],
-			where: {
-				format: subcat,
-			},
-			select: {
-				id: true,
-			},
-		});
-	} else {
-		const where =
-			subcat == null
-				? { category: cat, published: true }
-				: { category: cat, subcategory: getArticleSubcategoryFilter(subcat), published: true };
-
-		res = await prisma.article.findFirst({
-			orderBy: [
-				{
-					year: "desc",
+	return withQueryFallback("getIdOfNewest", 0, async db => {
+		let res;
+		if (cat == "spreads") {
+			res = await db.spreads.findFirst({
+				orderBy: [{ year: "desc" }, { month: "desc" }, { id: "desc" }],
+				where: {
+					category: subcat != null ? subcat : "",
 				},
-				{
-					month: "desc",
+				select: {
+					id: true,
 				},
-				{
-					id: "desc",
+			});
+		} else if (cat == "multimedia") {
+			subcat = subcat == null ? "youtube" : subcat;
+			res = await db.multimedia.findFirst({
+				orderBy: [{ year: "desc" }, { month: "desc" }, { id: "desc" }],
+				where: {
+					format: subcat,
 				},
-			],
-			where,
-			select: {
-				id: true,
-			},
-		});
-	}
+				select: {
+					id: true,
+				},
+			});
+		} else {
+			const where =
+				subcat == null
+					? { category: cat, published: true }
+					: { category: cat, subcategory: getArticleSubcategoryFilter(subcat), published: true };
 
-	return res === null ? 0 : res.id;
+			res = await db.article.findFirst({
+				orderBy: [
+					{
+						year: "desc",
+					},
+					{
+						month: "desc",
+					},
+					{
+						id: "desc",
+					},
+				],
+				where,
+				select: {
+					id: true,
+				},
+			});
+		}
+
+		return res === null ? 0 : res.id;
+	});
 }
 
 export async function getArticlesByCategory(cat: string, take: number, offsetCursor: number, skip: number) {
-	if (!prisma) return [];
-
-	const articles = await prisma.article.findMany({
-		orderBy: [
-			{
-				year: "desc",
-			},
-			{
-				month: "desc",
-			},
-			{
-				id: "desc",
-			},
-		],
-		where: {
-			category: cat,
-			published: true,
-		},
-		take,
-		cursor: offsetCursor ? { id: offsetCursor } : undefined,
-		skip,
-	});
-
-	return articles;
+	return withQueryFallback(
+		"getArticlesByCategory",
+		[] as article[],
+		async db =>
+			await db.article.findMany({
+				orderBy: [
+					{
+						year: "desc",
+					},
+					{
+						month: "desc",
+					},
+					{
+						id: "desc",
+					},
+				],
+				where: {
+					category: cat,
+					published: true,
+				},
+				take,
+				cursor: offsetCursor ? { id: offsetCursor } : undefined,
+				skip,
+			})
+	);
 }
 
 export async function getArticlesExceptCategory(cat: string) {
@@ -399,16 +444,17 @@ export async function getArticlesExceptCategory(cat: string) {
 	if (!prisma) return articles;
 	let cats = ["news-features", "arts-entertainment", "opinions", "sports", "multimedia"];
 
-	for (let i = 0; i < cats.length; i++) {
-		// TODO: use foreach but make it actually work
-		let c = cats[i];
-		if (c == cat) continue;
-		let id = await getIdOfNewest(c, c);
-		let cArticles = await getArticlesByCategory(c, 2, Number(id), 0);
-		articles.push(...cArticles);
-	}
+	return withQueryFallback("getArticlesExceptCategory", articles, async () => {
+		for (let i = 0; i < cats.length; i++) {
+			let c = cats[i];
+			if (c == cat) continue;
+			let id = await getIdOfNewest(c, c);
+			let cArticles = await getArticlesByCategory(c, 2, Number(id), 0);
+			articles.push(...cArticles);
+		}
 
-	return articles;
+		return articles;
+	});
 }
 
 export async function getArticlesBySearch(query: string | string[]) {
@@ -523,30 +569,32 @@ export async function getSearchIndexArticles() {
 }
 
 export async function getArticlesBySubcategory(category: string, subcat: string, take: number, offsetCursor: number, skip: number) {
-	if (!prisma) return [];
-	const articles = await prisma.article.findMany({
-		orderBy: [
-			{
-				year: "desc",
-			},
-			{
-				month: "desc",
-			},
-			{
-				id: "desc",
-			},
-		],
-		where: {
-			category,
-			subcategory: getArticleSubcategoryFilter(subcat),
-			published: true,
-		},
-		take: take,
-		cursor: offsetCursor ? { id: offsetCursor } : undefined,
-		skip: skip,
-	});
-
-	return articles;
+	return withQueryFallback(
+		"getArticlesBySubcategory",
+		[] as article[],
+		async db =>
+			await db.article.findMany({
+				orderBy: [
+					{
+						year: "desc",
+					},
+					{
+						month: "desc",
+					},
+					{
+						id: "desc",
+					},
+				],
+				where: {
+					category,
+					subcategory: getArticleSubcategoryFilter(subcat),
+					published: true,
+				},
+				take: take,
+				cursor: offsetCursor ? { id: offsetCursor } : undefined,
+				skip: skip,
+			})
+	);
 }
 
 export async function getArticlesByAuthor(author: string) {
@@ -554,102 +602,104 @@ export async function getArticlesByAuthor(author: string) {
 	const decoded = decodeURI(author).trim();
 	if (!decoded) return [];
 
-	// Use Prisma query builder instead of raw SQL to avoid dev-time template issues
-	// Exact match in authors[] (case-sensitive match is fine because links are generated from stored names)
-	const exactAuthorRows = await prisma.article.findMany({
-		where: {
-			published: true,
-			authors: {
-				has: decoded,
+	return withQueryFallback("getArticlesByAuthor", [] as article[], async db => {
+		const exactAuthorRows = await db.article.findMany({
+			where: {
+				published: true,
+				authors: {
+					has: decoded,
+				},
 			},
-		},
-		select: { id: true },
-	});
+			select: { id: true },
+		});
 
-	// Photo credit match: contentInfo contains the name and includes a photo/image/graphic label
-	const photoCreditRows = await prisma.article.findMany({
-		where: {
-			published: true,
-			contentInfo: {
-				not: null,
-				contains: decoded,
-				mode: "insensitive",
+		const photoCreditRows = await db.article.findMany({
+			where: {
+				published: true,
+				contentInfo: {
+					not: null,
+					contains: decoded,
+					mode: "insensitive",
+				},
+				OR: [
+					{ contentInfo: { contains: "Photo:", mode: "insensitive" } },
+					{ contentInfo: { contains: "Image:", mode: "insensitive" } },
+					{ contentInfo: { contains: "Graphic:", mode: "insensitive" } },
+				],
 			},
-			OR: [
-				{ contentInfo: { contains: "Photo:", mode: "insensitive" } },
-				{ contentInfo: { contains: "Image:", mode: "insensitive" } },
-				{ contentInfo: { contains: "Graphic:", mode: "insensitive" } },
-			],
-		},
-		select: { id: true },
-	});
+			select: { id: true },
+		});
 
-	const ids = Array.from(new Set([...exactAuthorRows.map(r => r.id), ...photoCreditRows.map(r => r.id)]));
+		const ids = Array.from(new Set([...exactAuthorRows.map(r => r.id), ...photoCreditRows.map(r => r.id)]));
 
-	if (!ids.length) return [];
+		if (!ids.length) return [];
 
-	return await prisma.article.findMany({
-		where: { id: { in: ids } },
-		orderBy: [{ year: "desc" }, { month: "desc" }, { id: "desc" }],
+		return await db.article.findMany({
+			where: { id: { in: ids } },
+			orderBy: [{ year: "desc" }, { month: "desc" }, { id: "desc" }],
+		});
 	});
 }
 
 export async function getSpreadsByCategory(category: string, take: number, offsetCursor: number, skip: number) {
-	if (!prisma) return [];
-
 	if (!take) take = 1;
 
-	const spreads = await prisma.spreads.findMany({
-		orderBy: [
-			{
-				year: "desc",
-			},
-			{
-				month: "desc",
-			},
-		],
-		where: {
-			category,
-		},
-		take,
-		cursor: {
-			id: offsetCursor,
-		},
-		skip,
-	});
-
-	return spreads;
+	return withQueryFallback(
+		"getSpreadsByCategory",
+		[] as spreads[],
+		async db =>
+			await db.spreads.findMany({
+				orderBy: [
+					{
+						year: "desc",
+					},
+					{
+						month: "desc",
+					},
+				],
+				where: {
+					category,
+				},
+				take,
+				cursor: offsetCursor ? { id: offsetCursor } : undefined,
+				skip,
+			})
+	);
 }
 
 export async function getSpreadByIssue(category: string, month: number, year: number) {
-	if (!prisma) return null;
-
-	return await prisma.spreads.findFirst({
-		where: {
-			category,
-			month,
-			year,
-		},
-		orderBy: [{ id: "desc" }],
-	});
+	return withQueryFallback(
+		"getSpreadByIssue",
+		null,
+		async db =>
+			await db.spreads.findFirst({
+				where: {
+					category,
+					month,
+					year,
+				},
+				orderBy: [{ id: "desc" }],
+			})
+	);
 }
 
 export async function getSpread(slug: string) {
-	if (!prisma) return null;
-
-	const spreads = await prisma.spreads.findFirst({
-		where: {
-			title: decodeURI(slug),
-		},
-	});
-
-	return spreads;
+	return withQueryFallback(
+		"getSpread",
+		null,
+		async db =>
+			await db.spreads.findFirst({
+				where: {
+					title: decodeURI(slug),
+				},
+			})
+	);
 }
 
-export async function getCurrentCrossword(): Promise<PuzzleInput> {
-	if (!prisma) throw new Error("lol no");
+export async function getCurrentCrossword(): Promise<PuzzleInput | null> {
+	const crossword = await withQueryFallback("getCurrentCrossword", null, async db => await db.crossword.findFirst({ orderBy: { date: "desc" } }));
+	if (!crossword) return null;
 
-	const crossword = (await prisma.crossword.findFirst({ orderBy: { date: "desc" } }))!;
 	return {
 		author: crossword.author,
 		clues: JSON.parse(crossword.clues),
@@ -658,32 +708,36 @@ export async function getCurrentCrossword(): Promise<PuzzleInput> {
 }
 
 export async function getCrosswords(take: number, offsetCursor: number, skip: number) {
-	if (!prisma) throw new Error("lol no");
-	const crosswords = await prisma.crossword.findMany({
-		orderBy: [{ date: "desc" }],
-		cursor: {
-			id: offsetCursor,
-		},
-		take,
-		skip,
-		select: {
-			author: true,
-			date: true,
-			id: true,
-		},
-	});
+	const crosswords = await withQueryFallback(
+		"getCrosswords",
+		[] as { author: string; date: Date; id: number }[],
+		async db =>
+			await db.crossword.findMany({
+				orderBy: [{ date: "desc" }],
+				cursor: offsetCursor ? { id: offsetCursor } : undefined,
+				take,
+				skip,
+				select: {
+					author: true,
+					date: true,
+					id: true,
+				},
+			})
+	);
 
 	return crosswords.map(c => ({ author: c.author, id: c.id, date: c.date.toLocaleDateString() }));
 }
 
 export async function getIdOfNewestCrossword() {
-	if (!prisma) throw new Error("lol no");
-	return (await prisma.crossword.findFirst({ orderBy: { date: "desc" }, select: { id: true } }))?.id || 1;
+	return withQueryFallback(
+		"getIdOfNewestCrossword",
+		0,
+		async db => (await db.crossword.findFirst({ orderBy: { date: "desc" }, select: { id: true } }))?.id || 0
+	);
 }
 
 export async function getCrosswordById(id: number) {
-	if (!prisma) throw new Error("lol no");
-	const crossword = await prisma.crossword.findFirst({ where: { id } });
+	const crossword = await withQueryFallback("getCrosswordById", null, async db => await db.crossword.findFirst({ where: { id } }));
 	if (!crossword) return null;
 	return {
 		author: crossword.author,
@@ -693,20 +747,20 @@ export async function getCrosswordById(id: number) {
 }
 
 export async function getMultiItems(format: string, take: number, offsetCursor: number, skip: number) {
-	if (!prisma) return [];
-	const items = await prisma.multimedia.findMany({
-		orderBy: [{ year: "desc" }, { month: "desc" }, { id: "desc" }],
-		where: {
-			format: format,
-		},
-		take: take,
-		cursor: {
-			id: offsetCursor,
-		},
-		skip: skip,
-	});
-
-	return items;
+	return withQueryFallback(
+		"getMultiItems",
+		[] as multimedia[],
+		async db =>
+			await db.multimedia.findMany({
+				orderBy: [{ year: "desc" }, { month: "desc" }, { id: "desc" }],
+				where: {
+					format: format,
+				},
+				take: take,
+				cursor: offsetCursor ? { id: offsetCursor } : undefined,
+				skip: skip,
+			})
+	);
 }
 
 export async function uploadArticle(info: {
