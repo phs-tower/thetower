@@ -40,20 +40,65 @@ function getArticleSubcategoryFilter(subcat: string) {
 	return subcat === "articles" ? { in: ["articles", "random-musings"] } : subcat;
 }
 
+const recentQueryFailures = new Map<string, number>();
+
+function sleep(ms: number) {
+	return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function isRetryableConnectionError(error: unknown) {
+	if (!(error instanceof Error)) return false;
+
+	const message = error.message.toLowerCase();
+	return (
+		message.includes("can't reach database server") ||
+		message.includes("prismaclientinitializationerror") ||
+		message.includes("connection") ||
+		message.includes("econnreset") ||
+		message.includes("timed out")
+	);
+}
+
 function logQueryFailure(queryName: string, error: unknown) {
-	console.error(`[queries] ${queryName} failed`, error);
+	const now = Date.now();
+	const last = recentQueryFailures.get(queryName) ?? 0;
+	if (now - last < 15000) return;
+	recentQueryFailures.set(queryName, now);
+
+	if (error instanceof Error) {
+		const message = error.message.replace(/\s+/g, " ").trim();
+		console.warn(`[queries] ${queryName} failed: ${message}`);
+		return;
+	}
+
+	console.warn(`[queries] ${queryName} failed`);
 }
 
 async function withQueryFallback<T>(queryName: string, fallback: T, run: (db: PrismaClient) => Promise<T>): Promise<T> {
 	const db = prisma;
 	if (!db) return fallback;
 
-	try {
-		return await run(db);
-	} catch (error) {
-		logQueryFailure(queryName, error);
-		return fallback;
+	let attempt = 0;
+	let lastError: unknown;
+	const retryDelays = [400, 1000];
+
+	while (attempt <= retryDelays.length) {
+		try {
+			return await run(db);
+		} catch (error) {
+			lastError = error;
+			if (!isRetryableConnectionError(error) || attempt === retryDelays.length) {
+				break;
+			}
+
+			await sleep(retryDelays[attempt]);
+		}
+
+		attempt++;
 	}
+
+	logQueryFailure(queryName, lastError);
+	return fallback;
 }
 
 export async function getFrontpageArticles() {
