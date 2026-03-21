@@ -41,6 +41,8 @@ function getArticleSubcategoryFilter(subcat: string) {
 }
 
 const recentQueryFailures = new Map<string, number>();
+let prismaConnectPromise: Promise<void> | null = null;
+let prismaConnected = false;
 
 function sleep(ms: number) {
 	return new Promise(resolve => setTimeout(resolve, ms));
@@ -74,6 +76,38 @@ function logQueryFailure(queryName: string, error: unknown) {
 	console.warn(`[queries] ${queryName} failed`);
 }
 
+async function ensurePrismaConnected(db: PrismaClient) {
+	if (prismaConnected) return;
+	if (prismaConnectPromise) return prismaConnectPromise;
+
+	prismaConnectPromise = (async () => {
+		let lastError: unknown;
+		const retryDelays = [0, 500, 1500];
+
+		for (let i = 0; i < retryDelays.length; i++) {
+			if (retryDelays[i] > 0) {
+				await sleep(retryDelays[i]);
+			}
+
+			try {
+				await db.$connect();
+				prismaConnected = true;
+				return;
+			} catch (error) {
+				lastError = error;
+				prismaConnected = false;
+				if (!isRetryableConnectionError(error)) break;
+			}
+		}
+
+		throw lastError;
+	})().finally(() => {
+		prismaConnectPromise = null;
+	});
+
+	return prismaConnectPromise;
+}
+
 async function withQueryFallback<T>(queryName: string, fallback: T, run: (db: PrismaClient) => Promise<T>): Promise<T> {
 	const db = prisma;
 	if (!db) return fallback;
@@ -84,6 +118,7 @@ async function withQueryFallback<T>(queryName: string, fallback: T, run: (db: Pr
 
 	while (attempt <= retryDelays.length) {
 		try {
+			await ensurePrismaConnected(db);
 			return await run(db);
 		} catch (error) {
 			lastError = error;
@@ -91,6 +126,12 @@ async function withQueryFallback<T>(queryName: string, fallback: T, run: (db: Pr
 				break;
 			}
 
+			prismaConnected = false;
+			try {
+				await db.$disconnect();
+			} catch {
+				// ignore disconnect cleanup failures
+			}
 			await sleep(retryDelays[attempt]);
 		}
 

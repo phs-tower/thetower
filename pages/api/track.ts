@@ -28,7 +28,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 			const { error: siteErr } = await supabase.rpc("increment_site_visit", { p_year, p_month });
 			if (siteErr) throw siteErr;
 
-			return res.status(204).end();
+			res.status(204).end();
+			return;
 		}
 
 		if (req.method === "GET") {
@@ -40,13 +41,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 				.order("month", { ascending: true });
 			if (siteErr) throw siteErr;
 
-			return res.status(200).json({ site: site ?? [] });
+			res.status(200).json({ site: site ?? [] });
+			return;
 		}
 
 		res.setHeader("Allow", ["GET", "POST"]);
 		res.status(405).end(`Method ${req.method} Not Allowed`);
+		return;
 	} catch (e: any) {
 		console.error("TRACK/ANALYTICS_API_ERROR", e?.message || e);
 		res.status(500).json({ error: String(e?.message || e) });
+		return;
 	}
 }

@@ -14,7 +14,7 @@ import {
 	getRecommendedSubcategoryArticles,
 } from "~/lib/queries";
 import styles from "~/lib/styles";
-import { expandCategorySlug } from "~/lib/utils";
+import { expandCategorySlug, shortenText } from "~/lib/utils";
 import { GetStaticPaths, GetStaticProps } from "next";
 import { ParsedUrlQuery } from "querystring";
 
@@ -51,6 +51,24 @@ async function getRecommendedArticlesForSubcategory(category: string, subcategor
 
 	return [];
 }
+
+function buildPreviewContent(content: string | null | undefined, maxLength: number) {
+	if (!content) return "";
+	const cleaned = content
+		.replace(/<[^>]*>/g, " ")
+		.replace(/\s+/g, " ")
+		.trim();
+	if (!cleaned) return "";
+	return cleaned.length <= maxLength ? cleaned : shortenText(cleaned, maxLength);
+}
+
+function toSubcategoryPreviewArticle(item: article, includePreviewText: boolean) {
+	return {
+		...item,
+		content: includePreviewText ? buildPreviewContent(item.content, 320) : "",
+	};
+}
+
 export const getStaticPaths: GetStaticPaths = async () => {
 	const categoryToSubcats = {
 		"news-features": ["phs-profiles"],
@@ -93,9 +111,9 @@ export const getStaticProps: GetStaticProps<Props, Params> = async ({ params }) 
 		props: {
 			category,
 			subcategory,
-			articles,
-			sidebar,
-			recommended,
+			articles: articles.map(article => toSubcategoryPreviewArticle(article, true)),
+			sidebar: sidebar.map(article => toSubcategoryPreviewArticle(article, false)),
+			recommended: recommended.map(article => toSubcategoryPreviewArticle(article, true)),
 		},
 		revalidate: 60,
 	};
