@@ -141,5 +141,7 @@ export function toSearchResultArticle(item: SearchIndexArticle): article {
 		featured: false,
 		markdown: false,
 		contentInfo: item.contentInfo,
+		spotifyUrl: null,
+		Index: false,
 	};
 }

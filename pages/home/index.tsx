@@ -53,25 +53,27 @@ export default function FrontPage({ articles, vang, featuredVanguardArticle, vol
 				:global(.mosaic .triple.home-hero) {
 					display: grid;
 					grid-template-columns: 0.7fr 1.6fr 0.7fr;
-					grid-template-areas:
-						"left-top center right-top"
-						"left-bottom center right-bottom";
 					column-gap: 0.2rem;
-					row-gap: 1.1rem;
 					align-items: start;
+				}
+				.hero-side {
+					display: grid;
+					grid-auto-rows: max-content;
+					row-gap: 1.1rem;
+					align-content: start;
+				}
+				.hero-left-column {
+					grid-column: 1;
+				}
+				.hero-center {
+					grid-column: 2;
+				}
+				.hero-right-column {
+					grid-column: 3;
 				}
 				.hero-card hr {
 					width: 100%;
 					margin: 0 0 0.35rem 0;
-				}
-				.hero-left-top {
-					grid-area: left-top;
-				}
-				.hero-left-bottom {
-					grid-area: left-bottom;
-				}
-				.hero-center {
-					grid-area: center;
 				}
 				.hero-issue {
 					color: #7b7f87;
@@ -86,12 +88,6 @@ export default function FrontPage({ articles, vang, featuredVanguardArticle, vol
 				}
 				.hero-featured {
 					margin-bottom: 3rem;
-				}
-				.hero-right-top {
-					grid-area: right-top;
-				}
-				.hero-right-bottom {
-					grid-area: right-bottom;
 				}
 				:global(.mosaic .triple.home-hero .hero-card .article-preview > .large-preview) {
 					margin-bottom: 0 !important;
@@ -133,12 +129,14 @@ export default function FrontPage({ articles, vang, featuredVanguardArticle, vol
 			`}</style>
 			<div className="mosaic">
 				<div className="triple home-hero">
-					<div className="hero-card hero-left-top">
-						<hr />
-						{articles["opinions"][0] && <ArticlePreview article={articles["opinions"][0]} style="box" size="large" fit="cover" />}
-					</div>
-					<div className="hero-card hero-left-bottom">
-						{leftBottomArticle && <ArticlePreview article={leftBottomArticle} style="box" size="large" fit="cover" />}
+					<div className="hero-side hero-left-column">
+						<div className="hero-card">
+							<hr />
+							{articles["opinions"][0] && <ArticlePreview article={articles["opinions"][0]} style="box" size="large" fit="cover" />}
+						</div>
+						<div className="hero-card">
+							{leftBottomArticle && <ArticlePreview article={leftBottomArticle} style="box" size="large" fit="cover" />}
+						</div>
 					</div>
 					<div className="hero-center">
 						{volumeLabel ? <div className="hero-issue">{volumeLabel}</div> : null}
@@ -146,14 +144,16 @@ export default function FrontPage({ articles, vang, featuredVanguardArticle, vol
 							{articles["featured"][0] && <ArticlePreview article={articles["featured"][0]} style="box" size="featured" />}
 						</div>
 					</div>
-					<div className="hero-card hero-right-top">
-						<hr />
-						{articles["sports"][0] && <ArticlePreview article={articles["sports"][0]} style="box" size="large" fit="cover" />}
-					</div>
-					<div className="hero-card hero-right-bottom">
-						{articles["arts-entertainment"][0] && (
-							<ArticlePreview article={articles["arts-entertainment"][0]} style="box" size="large" fit="cover" />
-						)}
+					<div className="hero-side hero-right-column">
+						<div className="hero-card">
+							<hr />
+							{articles["sports"][0] && <ArticlePreview article={articles["sports"][0]} style="box" size="large" fit="cover" />}
+						</div>
+						<div className="hero-card">
+							{articles["arts-entertainment"][0] && (
+								<ArticlePreview article={articles["arts-entertainment"][0]} style="box" size="large" fit="cover" />
+							)}
+						</div>
 					</div>
 				</div>
 

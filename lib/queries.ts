@@ -10,6 +10,8 @@ import path from "path";
 import { randomUUID } from "crypto";
 import sharp from "sharp";
 
+export type MultimediaItem = Omit<multimedia, "id"> & { id: number };
+
 declare global {
 	// eslint-disable-next-line no-var
 	var __towerPrisma: PrismaClient | undefined;
@@ -489,7 +491,7 @@ export async function getIdOfNewest(cat: string, subcat: string | null) {
 			});
 		}
 
-		return res === null ? 0 : res.id;
+		return res === null ? 0 : Number(res.id);
 	});
 }
 
@@ -793,11 +795,11 @@ export async function getCurrentCrossword(): Promise<PuzzleInput | null> {
 export async function getCrosswords(take: number, offsetCursor: number, skip: number) {
 	const crosswords = await withQueryFallback(
 		"getCrosswords",
-		[] as { author: string; date: Date; id: number }[],
+		[] as { author: string; date: Date; id: number | bigint }[],
 		async db =>
 			await db.crossword.findMany({
 				orderBy: [{ date: "desc" }],
-				cursor: offsetCursor ? { id: offsetCursor } : undefined,
+				cursor: offsetCursor ? ({ id: BigInt(offsetCursor) } as any) : undefined,
 				take,
 				skip,
 				select: {
@@ -808,19 +810,22 @@ export async function getCrosswords(take: number, offsetCursor: number, skip: nu
 			})
 	);
 
-	return crosswords.map(c => ({ author: c.author, id: c.id, date: c.date.toLocaleDateString() }));
+	return crosswords.map(c => ({ author: c.author, id: Number(c.id), date: c.date.toLocaleDateString() }));
 }
 
 export async function getIdOfNewestCrossword() {
-	return withQueryFallback(
-		"getIdOfNewestCrossword",
-		0,
-		async db => (await db.crossword.findFirst({ orderBy: { date: "desc" }, select: { id: true } }))?.id || 0
-	);
+	return withQueryFallback("getIdOfNewestCrossword", 0, async db => {
+		const latest = await db.crossword.findFirst({ orderBy: { date: "desc" }, select: { id: true } });
+		return latest ? Number(latest.id) : 0;
+	});
 }
 
 export async function getCrosswordById(id: number) {
-	const crossword = await withQueryFallback("getCrosswordById", null, async db => await db.crossword.findFirst({ where: { id } }));
+	const crossword = await withQueryFallback(
+		"getCrosswordById",
+		null,
+		async db => await db.crossword.findFirst({ where: { id: BigInt(id) as any } })
+	);
 	if (!crossword) return null;
 	return {
 		author: crossword.author,
@@ -829,21 +834,20 @@ export async function getCrosswordById(id: number) {
 	};
 }
 
-export async function getMultiItems(format: string, take: number, offsetCursor: number, skip: number) {
-	return withQueryFallback(
-		"getMultiItems",
-		[] as multimedia[],
-		async db =>
-			await db.multimedia.findMany({
-				orderBy: [{ year: "desc" }, { month: "desc" }, { id: "desc" }],
-				where: {
-					format: format,
-				},
-				take: take,
-				cursor: offsetCursor ? { id: offsetCursor } : undefined,
-				skip: skip,
-			})
-	);
+export async function getMultiItems(format: string, take: number, offsetCursor: number, skip: number): Promise<MultimediaItem[]> {
+	return withQueryFallback("getMultiItems", [] as MultimediaItem[], async db => {
+		const items = await db.multimedia.findMany({
+			orderBy: [{ year: "desc" }, { month: "desc" }, { id: "desc" }],
+			where: {
+				format: format,
+			},
+			take: take,
+			cursor: offsetCursor ? ({ id: BigInt(offsetCursor) } as any) : undefined,
+			skip: skip,
+		});
+
+		return items.map(item => ({ ...item, id: Number(item.id) }));
+	});
 }
 
 export async function uploadArticle(info: {

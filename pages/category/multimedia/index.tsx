@@ -5,9 +5,8 @@ import type { GetStaticProps } from "next";
 import dynamic from "next/dynamic";
 import Head from "next/head";
 import NoSSR from "~/components/nossr.client";
-import { getIdOfNewest, getMultiItems } from "~/lib/queries";
+import { getIdOfNewest, getMultiItems, type MultimediaItem } from "~/lib/queries";
 import styles from "~/lib/styles";
-import { multimedia } from "@prisma/client";
 
 import { socialLinks } from "~/lib/constants";
 
@@ -16,8 +15,8 @@ const Video = dynamic(() => import("~/components/video.client"), { ssr: false })
 const Podcast = dynamic(() => import("~/components/podcast.client"), { ssr: false });
 
 interface Props {
-	videos: multimedia[];
-	pods: multimedia[];
+	videos: MultimediaItem[];
+	pods: MultimediaItem[];
 }
 
 export const getStaticProps: GetStaticProps<Props> = async () => {
@@ -51,7 +50,7 @@ export default function Multimedia({ videos: initialVideos, pods: initialPods }:
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({ subcategory: "youtube", cursor: vCursor }),
 		});
-		const more: multimedia[] = await res.json();
+		const more: MultimediaItem[] = await res.json();
 		if (more.length) {
 			setVideos(prev => [...prev, ...more]);
 			setVCursor(more[more.length - 1].id);
@@ -69,7 +68,7 @@ export default function Multimedia({ videos: initialVideos, pods: initialPods }:
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({ subcategory: "podcast", cursor: pCursor }),
 		});
-		const more: multimedia[] = await res.json();
+		const more: MultimediaItem[] = await res.json();
 		if (more.length) {
 			setPods(prev => [...prev, ...more]);
 			setPCursor(more[more.length - 1].id);

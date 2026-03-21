@@ -1551,6 +1551,8 @@ export default function Upload() {
 											markdown: true,
 											contentInfo: formData.contentInfo ?? null,
 											featured: null,
+											spotifyUrl: null,
+											Index: false,
 										}}
 									/>
 								)}
