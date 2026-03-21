@@ -10,6 +10,11 @@ import path from "path";
 import { randomUUID } from "crypto";
 import sharp from "sharp";
 
+declare global {
+	// eslint-disable-next-line no-var
+	var __towerPrisma: PrismaClient | undefined;
+}
+
 let yolo = false;
 
 if (process.env.SERVICE_ROLE == undefined) {
@@ -18,7 +23,17 @@ if (process.env.SERVICE_ROLE == undefined) {
 	yolo = true;
 }
 
-const prisma = yolo ? undefined : new PrismaClient();
+const prisma = yolo
+	? undefined
+	: global.__towerPrisma ??
+	  new PrismaClient({
+			log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
+	  });
+
+if (!yolo && process.env.NODE_ENV !== "production") {
+	global.__towerPrisma = prisma;
+}
+
 const supabase = !process.env.SERVICE_ROLE ? undefined : createClient("https://yusjougmsdnhcsksadaw.supabase.co/", process.env.SERVICE_ROLE);
 
 function getArticleSubcategoryFilter(subcat: string) {
