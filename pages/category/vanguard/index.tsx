@@ -3,6 +3,7 @@
 import { article, spreads } from "@prisma/client";
 import shuffle from "lodash/shuffle";
 import Head from "next/head";
+import { GetStaticProps } from "next";
 import { useState } from "react";
 import ArticlePreview from "~/components/preview.client";
 import Spread from "~/components/spread.client";
@@ -14,14 +15,20 @@ interface Props {
 	sidebar: article[];
 }
 
-export async function getServerSideProps() {
+export const getStaticProps: GetStaticProps<Props> = async () => {
+	const [spreads, sidebar] = await Promise.all([
+		getSpreadsByCategory("vanguard", 5, await getIdOfNewest("spreads", "vanguard"), 0),
+		getCurrArticles(),
+	]);
+
 	return {
 		props: {
-			spreads: await getSpreadsByCategory("vanguard", 5, await getIdOfNewest("spreads", "vanguard"), 0),
-			sidebar: await getCurrArticles(),
+			spreads,
+			sidebar,
 		},
+		revalidate: 60,
 	};
-}
+};
 
 export default function Category(props: Props) {
 	const [spreads, setSpreads] = useState(props.spreads);
@@ -128,8 +135,8 @@ export default function Category(props: Props) {
 			<div className="grid">
 				<div>
 					<section className="spreads">
-						{spreads.map(spread => (
-							<Spread key={spread.id} spread={spread} variant="category-list" />
+						{spreads.map((spread, index) => (
+							<Spread key={spread.id} spread={spread} variant="category-list" recommended={index === 0} />
 						))}
 					</section>
 					<p id="loading" style={{ display: loadingDisplay }}>

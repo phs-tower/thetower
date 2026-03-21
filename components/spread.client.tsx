@@ -11,16 +11,17 @@ import { PdfPageThumbnail } from "./pdfspreadfallback.client";
 interface Props {
 	spread: spreads;
 	variant?: "card" | "category-list";
+	recommended?: boolean;
 }
 
-export default function Spread({ spread, variant = "card" }: Props) {
+export default function Spread({ spread, variant = "card", recommended = false }: Props) {
 	const { pageCount, pdfUrl } = parseSpreadSource(spread.src);
 	const coverImage = pageCount > 0 ? getSpreadPageImageUrl(spread.src, 1) : "/assets/white-tower.png";
 	const spreadHref = "/spreads/" + spread.year + "/" + spread.month + "/vanguard/" + encodeURI(spread.title);
 	const isCategoryList = variant === "category-list";
 
 	return (
-		<div className={`spread ${isCategoryList ? "category-list" : "card"}`}>
+		<div className={`spread ${isCategoryList ? "category-list" : "card"} ${recommended ? "recommended" : ""}`}>
 			<style jsx>{`
 				.spread {
 					position: relative;
@@ -42,6 +43,14 @@ export default function Spread({ spread, variant = "card" }: Props) {
 					border-bottom: 1px solid gainsboro;
 				}
 
+				.spread.category-list.recommended {
+					background: linear-gradient(135deg, #f1f5fc 0%, #e8eef9 100%);
+					border: 1px solid #b8c6df;
+					border-left: 5px solid #102e63;
+					padding: 1rem;
+					padding-bottom: 2rem;
+				}
+
 				.layout {
 					display: grid;
 					gap: 1.8rem;
@@ -59,6 +68,11 @@ export default function Spread({ spread, variant = "card" }: Props) {
 				.cover {
 					display: block;
 					margin-bottom: ${isCategoryList ? "0" : "1rem"};
+				}
+
+				.cover-link {
+					position: relative;
+					display: inline-block;
 				}
 
 				.cover-frame {
@@ -145,6 +159,23 @@ export default function Spread({ spread, variant = "card" }: Props) {
 					max-width: 52rem;
 				}
 
+				.recommended-label {
+					position: absolute;
+					top: 0.85rem;
+					left: 0.85rem;
+					z-index: 1;
+					display: inline-block;
+					background: #102e63;
+					color: #fff;
+					font-family: ${styles.font.sans};
+					font-size: 0.78rem;
+					font-weight: 700;
+					letter-spacing: 0.08em;
+					text-transform: uppercase;
+					padding: 0.22rem 0.55rem;
+					box-shadow: 0 6px 14px rgba(0, 0, 0, 0.16);
+				}
+
 				span {
 					font-family: ${styles.font.sans};
 				}
@@ -166,17 +197,20 @@ export default function Spread({ spread, variant = "card" }: Props) {
 				}
 			`}</style>
 			<div className="layout">
-				<Link className="cover" href={spreadHref}>
-					<div className="cover-frame">
-						{pageCount > 0 ? (
-							<img src={coverImage} alt={`${spread.title} cover`} />
-						) : pdfUrl ? (
-							<PdfPageThumbnail pdfUrl={pdfUrl} alt={`${spread.title} cover`} />
-						) : (
-							<img src={coverImage} alt={`${spread.title} cover`} />
-						)}
-					</div>
-				</Link>
+				<div className="cover-link">
+					{recommended && <span className="recommended-label">Recommended</span>}
+					<Link className="cover" href={spreadHref}>
+						<div className="cover-frame">
+							{pageCount > 0 ? (
+								<img src={coverImage} alt={`${spread.title} cover`} />
+							) : pdfUrl ? (
+								<PdfPageThumbnail pdfUrl={pdfUrl} alt={`${spread.title} cover`} />
+							) : (
+								<img src={coverImage} alt={`${spread.title} cover`} />
+							)}
+						</div>
+					</Link>
+				</div>
 				<div className="details">
 					{isCategoryList && <span className="eyebrow">Vanguard Spread</span>}
 					<section className="title">

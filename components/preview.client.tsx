@@ -56,6 +56,24 @@ function buildPreviewText(content: string, length: number) {
 	return shortenText(cleaned, length);
 }
 
+function getPreviewImageSizes(style: Props["style"], size: Props["size"], shrinkThumb: boolean) {
+	if (shrinkThumb) return "(max-width: 900px) 45vw, 180px";
+
+	if (style === "box") {
+		if (size === "featured") return "(max-width: 1000px) 100vw, 58vw";
+		if (size === "large") return "(max-width: 1000px) 100vw, 24vw";
+		if (size === "small") return "(max-width: 1000px) 100vw, 18vw";
+	}
+
+	if (style === "row") {
+		if (size === "category-list") return "(max-width: 900px) 100vw, 34vw";
+		if (size === "small") return "(max-width: 900px) 42vw, 16vw";
+		if (size === "large" || size === "featured") return "(max-width: 900px) 100vw, 40vw";
+	}
+
+	return "(max-width: 900px) 100vw, 33vw";
+}
+
 export default function ArticlePreview({
 	article,
 	category,
@@ -115,6 +133,8 @@ export default function ArticlePreview({
 	let showimg = "";
 	if (!article.img?.includes(".")) showimg = "noimg"; // article.img = "/assets/default.png";
 	const previewText = showPreviewText && charlen > 0 && article.content ? buildPreviewText(article.content, charlen) : "";
+	const imageSizes = getPreviewImageSizes(style, size, shrinkThumb);
+	const priority = style === "box" && size === "featured";
 
 	return (
 		<div className={"article-preview " + style + " " + size + " " + showimg}>
@@ -404,6 +424,8 @@ export default function ArticlePreview({
 							width={1000}
 							height={1000}
 							alt="Image"
+							sizes={imageSizes}
+							priority={priority}
 							style={
 								shrinkThumb
 									? {
@@ -431,6 +453,8 @@ export default function ArticlePreview({
 							width={309}
 							height={721}
 							alt="Image"
+							sizes={imageSizes}
+							priority={priority}
 							style={
 								shrinkThumb
 									? {

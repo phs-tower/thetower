@@ -1,6 +1,7 @@
 /** @format */
 
 import Head from "next/head";
+import { GetStaticProps } from "next";
 import { useState } from "react";
 import { CrosswordPreview } from "~/components/crosswordpreview.client";
 import { getCrosswords, getIdOfNewestCrossword } from "~/lib/queries";
@@ -16,11 +17,12 @@ interface Props {
 	crosswords: crossword[];
 }
 
-export async function getServerSideProps() {
+export const getStaticProps: GetStaticProps<Props> = async () => {
 	return {
 		props: { crosswords: await getCrosswords(5, await getIdOfNewestCrossword(), 0) },
+		revalidate: 60,
 	};
-}
+};
 
 export default function Archive(props: Props) {
 	const [crosswords, setCrosswords] = useState<crossword[]>(props.crosswords);

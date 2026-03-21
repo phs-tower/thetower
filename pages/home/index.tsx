@@ -7,20 +7,27 @@ import Image from "next/image";
 import ArticlePreview from "~/components/preview.client";
 import Video from "~/components/video.client";
 import Podcast from "~/components/podcast.client";
-import { getFrontpageArticles, getIdOfNewest, getSpreadsByCategory } from "~/lib/queries";
+import { getFrontpageArticles, getIdOfNewest, getRecommendedSubcategoryArticle, getSpreadsByCategory } from "~/lib/queries";
 import SubBanner from "~/components/subbanner.client";
 import { SectionContainer, VanguardContainer } from "~/components/sectioncontainer.client";
+import { getLatestArchiveIssueInfo, getTowerVolumeNumber } from "~/lib/utils";
 
 import sponsorStyles from "./sponsor.module.scss";
 
 export async function getStaticProps() {
-	const articles = await getFrontpageArticles();
-	const vang = await getSpreadsByCategory("vanguard", 1, await getIdOfNewest("spreads", "vanguard"), 0);
+	const latestIssue = getLatestArchiveIssueInfo();
+	const [articles, vang, featuredVanguardArticle] = await Promise.all([
+		getFrontpageArticles(),
+		getSpreadsByCategory("vanguard", 1, await getIdOfNewest("spreads", "vanguard"), 0),
+		getRecommendedSubcategoryArticle("vanguard", "articles"),
+	]);
 
 	return {
 		props: {
 			articles,
 			vang,
+			featuredVanguardArticle,
+			volumeLabel: latestIssue ? `Vol. ${getTowerVolumeNumber(latestIssue.year)}` : null,
 		},
 		revalidate: 60, // Regenerate once every minute
 	};
@@ -29,9 +36,13 @@ export async function getStaticProps() {
 interface Props {
 	articles: { [name: string]: article[] };
 	vang: spreads[];
+	featuredVanguardArticle: article | null;
+	volumeLabel: string | null;
 }
 
-export default function FrontPage({ articles, vang }: Props) {
+export default function FrontPage({ articles, vang, featuredVanguardArticle, volumeLabel }: Props) {
+	const leftBottomArticle = featuredVanguardArticle ?? articles["opinions"][1];
+
 	return (
 		<div>
 			<Head>
@@ -39,38 +50,109 @@ export default function FrontPage({ articles, vang }: Props) {
 				<meta property="og:description" content="The Tower is Princeton High School's newspaper club." />
 			</Head>
 			<style jsx>{`
-				/* Tighten spacing only for side columns (exclude featured) */
-				:global(.mosaic .triple .article-preview.box:not(.featured) .img-wrapper) {
-					margin-bottom: -1rem !important;
+				:global(.mosaic .triple.home-hero) {
+					display: grid;
+					grid-template-columns: 0.7fr 1.6fr 0.7fr;
+					grid-template-areas:
+						"left-top center right-top"
+						"left-bottom center right-bottom";
+					column-gap: 0.2rem;
+					row-gap: 1.1rem;
+					align-items: start;
 				}
-				:global(.mosaic .triple .article-preview.box:not(.featured) .title) {
+				.hero-card hr {
+					width: 100%;
+					margin: 0 0 0.35rem 0;
+				}
+				.hero-left-top {
+					grid-area: left-top;
+				}
+				.hero-left-bottom {
+					grid-area: left-bottom;
+				}
+				.hero-center {
+					grid-area: center;
+				}
+				.hero-issue {
+					color: #7b7f87;
+					font-family: var(--font-sans);
+					font-size: 0.76rem;
+					font-weight: 600;
+					letter-spacing: 0.08em;
+					text-transform: uppercase;
+					margin-bottom: 0.75rem;
+					padding-left: 1%;
+					text-align: left;
+				}
+				.hero-featured {
+					margin-bottom: 3rem;
+				}
+				.hero-right-top {
+					grid-area: right-top;
+				}
+				.hero-right-bottom {
+					grid-area: right-bottom;
+				}
+				:global(.mosaic .triple.home-hero .hero-card .article-preview > .large-preview) {
+					margin-bottom: 0 !important;
+				}
+				/* Keep a small consistent gap between the image and text in the home hero */
+				:global(.mosaic .triple.home-hero .article-preview.box .img-wrapper) {
+					margin-bottom: 0.35rem !important;
+				}
+				:global(.mosaic .triple.home-hero .article-preview.box:not(.featured) .title) {
 					margin-top: 0 !important;
 					margin-bottom: 0.25rem !important;
 				}
-				:global(.mosaic .triple .article-preview.box:not(.featured) .authors) {
+				:global(.mosaic .triple.home-hero .article-preview.box:not(.featured) .authors) {
 					margin-top: 0 !important;
+				}
+				:global(.mosaic .triple.home-hero .hero-card .article-preview.box .preview-image) {
+					width: 100% !important;
+					height: 16rem !important;
+					max-width: 100% !important;
+					max-height: 16rem !important;
+					object-fit: cover !important;
+					border-radius: 0;
+					box-shadow: 0px 5px 12px #00000022;
+				}
+				:global(.mosaic .triple.home-hero .hero-card .article-preview.box.noimg .preview-image) {
+					object-fit: contain !important;
+					background: black !important;
+				}
+				@media (max-width: 900px) {
+					:global(.mosaic .triple.home-hero .hero-card .article-preview.box .preview-image) {
+						max-width: 100% !important;
+						max-height: 12rem !important;
+						height: 12rem !important;
+					}
+					:global(.mosaic .triple.home-hero .hero-card .article-preview.box.noimg .preview-image) {
+						object-fit: contain !important;
+					}
 				}
 			`}</style>
 			<div className="mosaic">
-				<div className="triple">
-					{/* Left column: Opinions (2) */}
-					<div>
+				<div className="triple home-hero">
+					<div className="hero-card hero-left-top">
 						<hr />
-						{articles["opinions"][0] && <ArticlePreview article={articles["opinions"][0]} style="box" size="large" fit="contain" />}
-						{articles["opinions"][1] && <ArticlePreview article={articles["opinions"][1]} style="box" size="large" fit="contain" />}
+						{articles["opinions"][0] && <ArticlePreview article={articles["opinions"][0]} style="box" size="large" fit="cover" />}
 					</div>
-					{/* Center column: Featured */}
-					<div>
-						<div style={{ marginBottom: "3rem" }}>
+					<div className="hero-card hero-left-bottom">
+						{leftBottomArticle && <ArticlePreview article={leftBottomArticle} style="box" size="large" fit="cover" />}
+					</div>
+					<div className="hero-center">
+						{volumeLabel ? <div className="hero-issue">{volumeLabel}</div> : null}
+						<div className="hero-featured">
 							{articles["featured"][0] && <ArticlePreview article={articles["featured"][0]} style="box" size="featured" />}
 						</div>
 					</div>
-					{/* Right column: Sports + Arts & Entertainment */}
-					<div>
+					<div className="hero-card hero-right-top">
 						<hr />
-						{articles["sports"][0] && <ArticlePreview article={articles["sports"][0]} style="box" size="large" fit="contain" />}
+						{articles["sports"][0] && <ArticlePreview article={articles["sports"][0]} style="box" size="large" fit="cover" />}
+					</div>
+					<div className="hero-card hero-right-bottom">
 						{articles["arts-entertainment"][0] && (
-							<ArticlePreview article={articles["arts-entertainment"][0]} style="box" size="large" fit="contain" />
+							<ArticlePreview article={articles["arts-entertainment"][0]} style="box" size="large" fit="cover" />
 						)}
 					</div>
 				</div>

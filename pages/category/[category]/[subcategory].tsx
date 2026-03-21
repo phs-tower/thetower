@@ -6,7 +6,13 @@ import Head from "next/head";
 import { useRouter } from "next/router";
 import { useEffect, useState, useRef } from "react";
 import ArticlePreview from "~/components/preview.client";
-import { getArticlesBySubcategory, getCurrArticles, getIdOfNewest } from "~/lib/queries";
+import {
+	getArticlesBySubcategory,
+	getCurrArticles,
+	getIdOfNewest,
+	getRecommendedSubcategoryArticle,
+	getRecommendedSubcategoryArticles,
+} from "~/lib/queries";
 import styles from "~/lib/styles";
 import { expandCategorySlug } from "~/lib/utils";
 import { GetStaticPaths, GetStaticProps } from "next";
@@ -22,6 +28,28 @@ interface Props {
 	subcategory: string;
 	articles: article[];
 	sidebar: article[];
+	recommended: article[];
+}
+
+function usesRecommendedList(category: string, subcategory: string) {
+	return (
+		(category === "opinions" && subcategory === "editorials") ||
+		(category === "arts-entertainment" && subcategory === "student-artists") ||
+		(category === "sports" && subcategory === "student-athletes")
+	);
+}
+
+async function getRecommendedArticlesForSubcategory(category: string, subcategory: string) {
+	if (category === "vanguard" && subcategory === "articles") {
+		const recommended = await getRecommendedSubcategoryArticle(category, subcategory);
+		return recommended ? [recommended] : [];
+	}
+
+	if (usesRecommendedList(category, subcategory)) {
+		return await getRecommendedSubcategoryArticles(category, subcategory);
+	}
+
+	return [];
 }
 export const getStaticPaths: GetStaticPaths = async () => {
 	const categoryToSubcats = {
@@ -55,8 +83,11 @@ export const getStaticProps: GetStaticProps<Props, Params> = async ({ params }) 
 		};
 	}
 
-	const articles = await getArticlesBySubcategory(category, subcategory, 10, await getIdOfNewest(category, subcategory), 0);
-	const sidebar = await getCurrArticles();
+	const [articles, sidebar, recommended] = await Promise.all([
+		getArticlesBySubcategory(category, subcategory, 10, await getIdOfNewest(category, subcategory), 0),
+		getCurrArticles(),
+		getRecommendedArticlesForSubcategory(category, subcategory),
+	]);
 
 	return {
 		props: {
@@ -64,6 +95,7 @@ export const getStaticProps: GetStaticProps<Props, Params> = async ({ params }) 
 			subcategory,
 			articles,
 			sidebar,
+			recommended,
 		},
 		revalidate: 60,
 	};
@@ -80,8 +112,11 @@ export default function Subcategory(props: Props) {
 
 	const subcategory = props.subcategory;
 	const sidebar = props.sidebar;
+	const recommended = props.recommended;
 	const route = useRouter().asPath;
 	const pageTitle = category === "vanguard" && subcategory === "articles" ? "Vanguard Articles" : expandCategorySlug(subcategory);
+	const recommendedIds = new Set(recommended.map(art => art.id));
+	const visibleArticles = recommended.length ? articles.filter(art => !recommendedIds.has(art.id)) : articles;
 
 	useEffect(() => {
 		setArticles(props.articles);
@@ -206,6 +241,29 @@ export default function Subcategory(props: Props) {
 				#loading {
 					display: none;
 				}
+				.recommended-card {
+					background: linear-gradient(135deg, #f1f5fc 0%, #e8eef9 100%);
+					border: 1px solid #b8c6df;
+					border-left: 5px solid #102e63;
+					padding: 0.8rem;
+				}
+				.recommended-stack {
+					display: grid;
+					row-gap: 1rem;
+					margin-bottom: 1.2rem;
+				}
+				.recommended-label {
+					display: inline-block;
+					background: #102e63;
+					color: #fff;
+					font-family: ${styles.font.sans};
+					font-size: 0.78rem;
+					font-weight: 700;
+					letter-spacing: 0.08em;
+					text-transform: uppercase;
+					padding: 0.22rem 0.55rem;
+					margin-bottom: 0.5rem;
+				}
 
 				@media (max-width: 1000px) {
 					.grid {
@@ -224,7 +282,25 @@ export default function Subcategory(props: Props) {
 			<div className="grid">
 				<div>
 					<section>
-						{articles.map(art => (
+						{recommended.length > 0 && (
+							<div className="recommended-stack">
+								{recommended.map(recommendedArticle => (
+									<div className="recommended-card" key={recommendedArticle.id}>
+										<span className="recommended-label">Recommended</span>
+										<ArticlePreview
+											article={recommendedArticle}
+											style="row"
+											size="category-list"
+											showPreviewText
+											showIssueDate
+											fit={category === "vanguard" && subcategory === "articles" ? "contain" : "cover"}
+											thumbHeight={category === "vanguard" && subcategory === "articles" ? "18rem" : undefined}
+										/>
+									</div>
+								))}
+							</div>
+						)}
+						{visibleArticles.map(art => (
 							<ArticlePreview
 								key={art.id}
 								article={art}

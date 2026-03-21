@@ -2,18 +2,37 @@
 
 import Head from "next/head";
 import VirtualArchive from "~/components/archive.client";
+import { getPublishedArchiveIssues } from "~/lib/queries";
 
 import styles from "./archives.module.scss";
 
-function ArchiveList() {
+interface IssueDate {
+	year: number;
+	month: number;
+}
+
+interface Props {
+	availableIssues: IssueDate[];
+}
+
+export async function getStaticProps() {
+	return {
+		props: {
+			availableIssues: await getPublishedArchiveIssues(),
+		},
+		revalidate: 60,
+	};
+}
+
+function ArchiveList({ availableIssues }: Props) {
 	let outer = [];
-	const currYear = new Date().getFullYear();
-	const currMonth = new Date().getMonth() + 1;
-	for (let year: number = currYear; year >= 2022; year--) {
+	const issueSet = new Set(availableIssues.map(issue => `${issue.year}-${issue.month}`));
+	const years = [...new Set(availableIssues.map(issue => issue.year))].sort((a, b) => b - a);
+
+	for (const year of years) {
 		const container = [];
 		for (let month of [12, 11, 10, 9, 6, 4, 3, 2]) {
-			if (year == currYear) console.log(month, currMonth);
-			if (year == currYear && month > currMonth) continue;
+			if (!issueSet.has(`${year}-${month}`)) continue;
 
 			container.push(<VirtualArchive key={month} month={month} year={year} />);
 		}
@@ -30,7 +49,7 @@ function ArchiveList() {
 	return <>{outer}</>;
 }
 
-export default function Archives() {
+export default function Archives({ availableIssues }: Props) {
 	return (
 		<div className={styles.archives}>
 			<Head>
@@ -40,7 +59,7 @@ export default function Archives() {
 			</Head>
 			<h1>Archives</h1>
 			<br></br>
-			<ArchiveList></ArchiveList>
+			<ArchiveList availableIssues={availableIssues}></ArchiveList>
 		</div>
 	);
 }

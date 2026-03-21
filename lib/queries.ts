@@ -80,6 +80,22 @@ export async function getPublishedArticles() {
 	return articles;
 }
 
+export async function getPublishedArchiveIssues() {
+	if (!prisma) return [];
+
+	return await prisma.article.findMany({
+		where: {
+			published: true,
+		},
+		select: {
+			year: true,
+			month: true,
+		},
+		distinct: ["year", "month"],
+		orderBy: [{ year: "desc" }, { month: "desc" }],
+	});
+}
+
 export async function getRecommendedCategoryArticle(category: string) {
 	if (!prisma) return null;
 	return await prisma.article.findFirst({
@@ -88,6 +104,48 @@ export async function getRecommendedCategoryArticle(category: string) {
 			published: true,
 		},
 		orderBy: [{ year: "desc" }, { month: "desc" }, { id: "asc" }],
+	});
+}
+
+export async function getRecommendedSubcategoryArticle(category: string, subcat: string) {
+	if (!prisma) return null;
+	return await prisma.article.findFirst({
+		where: {
+			category,
+			subcategory: getArticleSubcategoryFilter(subcat),
+			published: true,
+		},
+		orderBy: [{ year: "desc" }, { month: "desc" }, { id: "asc" }],
+	});
+}
+
+export async function getRecommendedSubcategoryArticles(category: string, subcat: string) {
+	if (!prisma) return [];
+
+	const latest = await prisma.article.findFirst({
+		where: {
+			category,
+			subcategory: getArticleSubcategoryFilter(subcat),
+			published: true,
+		},
+		orderBy: [{ year: "desc" }, { month: "desc" }, { id: "desc" }],
+		select: {
+			year: true,
+			month: true,
+		},
+	});
+
+	if (!latest) return [];
+
+	return await prisma.article.findMany({
+		where: {
+			category,
+			subcategory: getArticleSubcategoryFilter(subcat),
+			published: true,
+			year: latest.year,
+			month: latest.month,
+		},
+		orderBy: [{ id: "asc" }],
 	});
 }
 
@@ -423,6 +481,28 @@ export async function getArticlesBySearch(query: string | string[]) {
 		},
 		orderBy: {
 			id: "desc",
+		},
+	});
+}
+
+export async function getSearchIndexArticles() {
+	if (!prisma) return [];
+
+	return await prisma.article.findMany({
+		where: {
+			published: true,
+		},
+		orderBy: [{ id: "desc" }],
+		select: {
+			id: true,
+			title: true,
+			category: true,
+			subcategory: true,
+			authors: true,
+			month: true,
+			year: true,
+			img: true,
+			contentInfo: true,
 		},
 	});
 }

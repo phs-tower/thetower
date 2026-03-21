@@ -1,44 +1,68 @@
 /** @format */
 
-import { article } from "@prisma/client";
+import { article, spreads } from "@prisma/client";
 import Head from "next/head";
+import { GetStaticPaths, GetStaticProps } from "next";
 import ArticlePreview from "~/components/preview.client";
-import { getArticlesByDate } from "~/lib/queries";
+import { getArticlesByDate, getPublishedArchiveIssues, getSpreadByIssue } from "~/lib/queries";
 import Link from "next/link";
-import { displayDate } from "~/lib/utils";
-import { SectionContainer } from "~/components/sectioncontainer.client";
+import { displayDate, getTowerVolumeNumber } from "~/lib/utils";
+import { SectionContainer, VanguardContainer } from "~/components/sectioncontainer.client";
 import SubBanner from "~/components/subbanner.client";
+import { ParsedUrlQuery } from "querystring";
 
-interface Params {
-	params: {
-		year: string;
-		month: string;
-	};
+interface Params extends ParsedUrlQuery {
+	year: string;
+	month: string;
 }
 
-export async function getServerSideProps({ params }: Params) {
-	const articles: Record<string, article[]> = await getArticlesByDate(params.year, params.month);
+export const getStaticPaths: GetStaticPaths<Params> = async () => {
+	const issues = await getPublishedArchiveIssues();
+
+	return {
+		paths: issues.map(issue => ({
+			params: { year: `${issue.year}`, month: `${issue.month}` },
+		})),
+		fallback: "blocking",
+	};
+};
+
+export const getStaticProps: GetStaticProps<Props, Params> = async ({ params }) => {
+	if (!params) return { notFound: true };
+
+	const month = parseInt(params.month);
+	const year = parseInt(params.year);
+	if (!Number.isInteger(month) || !Number.isInteger(year)) return { notFound: true };
+
+	const [articles, vanguardSpread] = await Promise.all([getArticlesByDate(params.year, params.month), getSpreadByIssue("vanguard", month, year)]);
+	const hasArticles = Object.values(articles).some(categoryArticles => categoryArticles.length > 0);
+	if (!hasArticles && !vanguardSpread) return { notFound: true, revalidate: 60 };
 
 	return {
 		props: {
 			articles,
-			year: parseInt(params.year),
-			month: parseInt(params.month),
+			year,
+			month,
+			vanguardSpread,
 		},
+		revalidate: 60,
 	};
-}
+};
 
 interface Props {
 	articles: { [name: string]: article[] };
 	year: number;
 	month: number;
+	vanguardSpread: spreads | null;
 }
 
-export default function Index({ articles, year, month }: Props) {
+export default function Index({ articles, year, month, vanguardSpread }: Props) {
 	// Determine a featured article for this issue: prefer explicit featured, else first News & Features
 	const cats = ["news-features", "opinions", "arts-entertainment", "sports"] as const;
 	const featuredFromFlag = cats.map(c => (articles[c] || []).find(a => (a as any).featured)).find(Boolean) as article | undefined;
 	const featured = featuredFromFlag || (articles["news-features"]?.[0] as article | undefined);
+	const volumeNumber = getTowerVolumeNumber(year);
+	const volumeLabel = volumeNumber ? `Vol. ${volumeNumber}` : null;
 
 	return (
 		<div>
@@ -48,22 +72,85 @@ export default function Index({ articles, year, month }: Props) {
 			</Head>
 
 			<style jsx>{`
-				/* Match Home spacing for side columns */
-				:global(.mosaic .triple .article-preview.box:not(.featured) .img-wrapper) {
-					margin-bottom: -1rem !important;
+				:global(.mosaic .triple.archive-hero) {
+					display: grid;
+					grid-template-columns: 0.7fr 1.6fr 0.7fr;
+					grid-template-areas:
+						"left-top center right-top"
+						"left-bottom center right-bottom";
+					column-gap: 0.2rem;
+					row-gap: 1.1rem;
+					align-items: start;
 				}
-				:global(.mosaic .triple .article-preview.box:not(.featured) .title) {
+				.archive-card hr {
+					width: 100%;
+					margin: 0 0 0.35rem 0;
+				}
+				.archive-left-top {
+					grid-area: left-top;
+				}
+				.archive-left-bottom {
+					grid-area: left-bottom;
+				}
+				.archive-center {
+					grid-area: center;
+				}
+				.archive-right-top {
+					grid-area: right-top;
+				}
+				.archive-right-bottom {
+					grid-area: right-bottom;
+				}
+				.archive-volume {
+					color: #7b7f87;
+					font-family: var(--font-sans);
+					font-size: 0.76rem;
+					font-weight: 600;
+					letter-spacing: 0.08em;
+					text-transform: uppercase;
+					margin-bottom: 0.75rem;
+					padding-left: 1%;
+					text-align: left;
+				}
+				.archive-featured {
+					margin-bottom: 0.5rem;
+				}
+				:global(.mosaic .triple.archive-hero .archive-card .article-preview > .large-preview) {
+					margin-bottom: 0 !important;
+				}
+				:global(.mosaic .triple.archive-hero .article-preview.box .img-wrapper) {
+					margin-bottom: 0.35rem !important;
+				}
+				:global(.mosaic .triple.archive-hero .article-preview.box:not(.featured) .title) {
 					margin-top: 0 !important;
 					margin-bottom: 0.25rem !important;
 				}
-				:global(.mosaic .triple .article-preview.box:not(.featured) .authors) {
+				:global(.mosaic .triple.archive-hero .article-preview.box:not(.featured) .authors) {
 					margin-top: 0 !important;
 				}
-				.featured-note {
-					color: #777;
-					font-size: 0.9rem;
-					margin-top: 0.25rem;
-					text-align: left;
+				:global(.mosaic .triple.archive-hero .archive-card .article-preview.box .preview-image) {
+					width: 100% !important;
+					height: 16rem !important;
+					max-width: 100% !important;
+					max-height: 16rem !important;
+					object-fit: cover !important;
+					border-radius: 0;
+					box-shadow: 0px 5px 12px #00000022;
+				}
+				:global(.mosaic .triple.archive-hero .archive-card .article-preview.box.noimg .preview-image) {
+					object-fit: contain !important;
+					background: black !important;
+				}
+
+				@media (max-width: 900px) {
+					:global(.mosaic .triple.archive-hero .archive-card .article-preview.box .preview-image) {
+						max-width: 100% !important;
+						max-height: 12rem !important;
+						height: 12rem !important;
+					}
+					:global(.mosaic .triple.archive-hero .archive-card .article-preview.box.noimg .preview-image) {
+						object-fit: contain !important;
+					}
 				}
 			`}</style>
 
@@ -73,23 +160,25 @@ export default function Index({ articles, year, month }: Props) {
 			</Link>
 			<br />
 			<div className="mosaic">
-				<div className="triple">
-					{/* Left column: Opinions (2) */}
-					<div>
+				<div className="triple archive-hero">
+					<div className="archive-card archive-left-top">
 						<hr />
-						{articles["opinions"][0] && <ArticlePreview article={articles["opinions"][0]} style="box" size="large" fit="contain" />}
-						{articles["opinions"][1] && <ArticlePreview article={articles["opinions"][1]} style="box" size="large" fit="contain" />}
+						{articles["opinions"][0] && <ArticlePreview article={articles["opinions"][0]} style="box" size="large" fit="cover" />}
 					</div>
-					{/* Center column: Featured */}
-					<div>
-						<div style={{ marginBottom: "0.5rem" }}>{featured && <ArticlePreview article={featured} style="box" size="featured" />}</div>
+					<div className="archive-card archive-left-bottom">
+						{articles["opinions"][1] && <ArticlePreview article={articles["opinions"][1]} style="box" size="large" fit="cover" />}
 					</div>
-					{/* Right column: Sports + Arts & Entertainment */}
-					<div>
+					<div className="archive-center">
+						{volumeLabel ? <div className="archive-volume">{volumeLabel}</div> : null}
+						<div className="archive-featured">{featured && <ArticlePreview article={featured} style="box" size="featured" />}</div>
+					</div>
+					<div className="archive-card archive-right-top">
 						<hr />
-						{articles["sports"][0] && <ArticlePreview article={articles["sports"][0]} style="box" size="large" fit="contain" />}
+						{articles["sports"][0] && <ArticlePreview article={articles["sports"][0]} style="box" size="large" fit="cover" />}
+					</div>
+					<div className="archive-card archive-right-bottom">
 						{articles["arts-entertainment"][0] && (
-							<ArticlePreview article={articles["arts-entertainment"][0]} style="box" size="large" fit="contain" />
+							<ArticlePreview article={articles["arts-entertainment"][0]} style="box" size="large" fit="cover" />
 						)}
 					</div>
 				</div>
@@ -127,6 +216,13 @@ export default function Index({ articles, year, month }: Props) {
 			<hr />
 			<br />
 			<SectionContainer category="SPORTS" desc="Updates on PHS games, tales of sports history, and more." articles={articles["sports"] || []} />
+			{vanguardSpread ? (
+				<>
+					<hr />
+					<br />
+					<VanguardContainer desc="The most creative section, with the format changing each issue." spreads={[vanguardSpread]} />
+				</>
+			) : null}
 
 			<SubBanner title="Consider subscribing to The Tower." />
 		</div>

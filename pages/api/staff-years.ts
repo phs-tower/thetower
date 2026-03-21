@@ -8,5 +8,6 @@ export type StaffYearsResponse = {
 };
 
 export default function handler(_req: NextApiRequest, res: NextApiResponse<StaffYearsResponse>) {
+	res.setHeader("Cache-Control", "public, s-maxage=86400, stale-while-revalidate=604800");
 	res.status(200).json({ years: getStaffYearsFromContent() });
 }

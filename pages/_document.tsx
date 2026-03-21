@@ -1,6 +1,7 @@
 /** @format */
 
 import Document, { DocumentContext, DocumentInitialProps, Head, Html, Main, NextScript } from "next/document";
+import Script from "next/script";
 
 export default class TowerDocument extends Document {
 	static async getInitialProps(ctx: DocumentContext): Promise<DocumentInitialProps> {
@@ -24,9 +25,8 @@ export default class TowerDocument extends Document {
 					<meta property="og:type" content="website" />
 					<meta name="robots" content="index, follow" />
 					<meta name="keywords" content="Newspaper, PHS, Princeton, The Tower, Tower" />
-
 					<link rel="icon" href="/favicon.ico" sizes="32x32" />
-					<script src="https://kit.fontawesome.com/[PUTKITHERE].js" crossOrigin="anonymous" defer />
+					<Script src="https://kit.fontawesome.com/a985b3a526.js" crossOrigin="anonymous" strategy="beforeInteractive" />
 				</Head>
 				<body>
 					<Main />

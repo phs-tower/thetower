@@ -3,34 +3,45 @@
 import { article, spreads } from "@prisma/client";
 import Head from "next/head";
 import Link from "next/link";
+import { GetStaticPaths, GetStaticProps } from "next";
 import { getPublishedVanguardArticlesByIssue, getSpread } from "~/lib/queries";
 import styles from "./spread.module.scss";
 import { ReturnToCategoryButton } from "~/pages/articles/[year]/[month]/[cat]/[slug]";
 import SpreadGallery from "~/components/spreadgallery.client";
 import { displayDate, inferVanguardPageFromImageUrl } from "~/lib/utils";
+import { ParsedUrlQuery } from "querystring";
 
 interface Props {
 	spread: spreads;
 	relatedArticles: article[];
 }
 
-interface Params {
-	params: {
-		slug: string;
-	};
+interface Params extends ParsedUrlQuery {
+	year: string;
+	month: string;
+	cat: string;
+	slug: string;
 }
 
-export async function getServerSideProps({ params }: Params) {
+export const getStaticPaths: GetStaticPaths<Params> = async () => ({
+	paths: [],
+	fallback: "blocking",
+});
+
+export const getStaticProps: GetStaticProps<Props, Params> = async ({ params }) => {
+	if (!params) return { notFound: true };
+
 	const spread = await getSpread(params.slug);
-	if (!spread) return { notFound: true };
+	if (!spread) return { notFound: true, revalidate: 60 };
 
 	return {
 		props: {
 			spread,
 			relatedArticles: await getPublishedVanguardArticlesByIssue(spread.month, spread.year),
 		},
+		revalidate: 60,
 	};
-}
+};
 
 function getArticleHref(article: article) {
 	return `/articles/${article.year}/${article.month}/${article.category}/${article.title.replaceAll(" ", "-").replaceAll(/[^0-9a-z\-]/gi, "")}-${

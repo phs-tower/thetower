@@ -3,13 +3,14 @@
 import { article } from "@prisma/client";
 import Head from "next/head";
 import ArticlePreview from "~/components/preview.client";
-import { getArticlesBySearch, getCurrArticles } from "~/lib/queries";
 import { expandCategorySlug } from "~/lib/utils";
 import shuffle from "lodash/shuffle";
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import styles from "~/lib/styles";
+import { SearchIndexArticle, buildSearchSuggestions, getLatestIssueArticles, toSearchResultArticle } from "~/lib/search";
+import { loadSearchIndex, warmSearchIndex } from "~/lib/search-client";
 
 const PHOTO_KEYWORDS = ["photo", "image", "graphic"];
 
@@ -31,7 +32,6 @@ const getPhotoLabelForSearch = (article: article, searchTerm: string): "IMAGE" |
 	return isPhotoCredit ? "IMAGE" : undefined;
 };
 
-// Instead of using a string array for sections, we now define an array of objects with actual category keys
 const sections = [
 	{ value: "Any", label: "Any" },
 	{ value: "news-features", label: "NEWS & FEATURES" },
@@ -39,140 +39,168 @@ const sections = [
 	{ value: "vanguard", label: "VANGUARD" },
 	{ value: "arts-entertainment", label: "ARTS & ENTERTAINMENT" },
 	{ value: "sports", label: "SPORTS" },
-];
+] as const;
 
-interface Params {
-	params: { search: string };
-	query: { sort?: string; section?: string };
+type SortOrder = "newest" | "oldest";
+const SEARCH_RESULTS_CACHE_KEY = "tower:search-results:v2";
+const SEARCH_RESULTS_TTL_MS = 5 * 60 * 1000;
+
+type SearchResultsCacheEntry = {
+	expiry: number;
+	data: article[];
+};
+
+const searchResultsCache = new Map<string, SearchResultsCacheEntry>();
+
+function getSearchResultsCacheKey(search: string, sort: SortOrder, section: string) {
+	return `${search.trim().toLowerCase()}|${sort}|${section}`;
 }
 
-interface Props {
-	search: string;
-	articles: article[];
-	sidebar: article[];
-	sort: "newest" | "oldest";
-	section: string;
-}
+function readCachedSearchResults(key: string) {
+	const memoryCached = searchResultsCache.get(key);
+	if (memoryCached && memoryCached.expiry > Date.now()) return memoryCached.data;
 
-export async function getServerSideProps({ params, query }: Params) {
-	const rawSearch = params.search?.[0] || "";
-	const sort = query.sort === "oldest" ? "oldest" : "newest";
-	const section = query.section ?? "Any";
+	if (typeof window === "undefined") return null;
 
-	const sidebarArticles = shuffle(await getCurrArticles());
-
-	if (!rawSearch.trim()) {
-		return {
-			props: {
-				search: "",
-				articles: [],
-				sidebar: sidebarArticles,
-				sort,
-				section,
-			},
-		};
+	try {
+		const raw = sessionStorage.getItem(`${SEARCH_RESULTS_CACHE_KEY}:${key}`);
+		if (!raw) return null;
+		const parsed = JSON.parse(raw) as SearchResultsCacheEntry;
+		if (!parsed?.expiry || parsed.expiry <= Date.now() || !Array.isArray(parsed.data)) return null;
+		searchResultsCache.set(key, parsed);
+		return parsed.data;
+	} catch {
+		return null;
 	}
-
-	const all = await getArticlesBySearch(rawSearch);
-	const filtered = section === "Any" ? all : all.filter(a => a.category === section);
-	const sorted = [...filtered].sort((a, b) =>
-		sort === "newest" ? (b.year !== a.year ? b.year - a.year : b.month - a.month) : a.year !== b.year ? a.year - b.year : a.month - b.month
-	);
-
-	return {
-		props: {
-			search: rawSearch,
-			articles: sorted,
-			sidebar: sidebarArticles,
-			sort,
-			section,
-		},
-	};
 }
 
-export default function Category({ search, articles, sidebar, sort, section }: Props) {
+function writeCachedSearchResults(key: string, data: article[]) {
+	const payload: SearchResultsCacheEntry = {
+		expiry: Date.now() + SEARCH_RESULTS_TTL_MS,
+		data,
+	};
+	searchResultsCache.set(key, payload);
+
+	if (typeof window === "undefined") return;
+	try {
+		sessionStorage.setItem(`${SEARCH_RESULTS_CACHE_KEY}:${key}`, JSON.stringify(payload));
+	} catch {
+		// non-fatal
+	}
+}
+
+function getRouterSearch(searchParam: string[] | string | undefined) {
+	if (Array.isArray(searchParam)) return searchParam[0] || "";
+	return searchParam || "";
+}
+
+export default function SearchPage() {
 	const router = useRouter();
-
-	// query and manualQuery: manualQuery holds the latest text input
-	const [query, setQuery] = useState(search);
-	const [manualQuery, setManualQuery] = useState(search);
-	const [suggestions, setSuggestions] = useState<any[]>([]);
-	const [activeIndex, setActiveIndex] = useState(-1);
-	const [sortBy, setSortBy] = useState<Props["sort"]>(sort);
-
-	const [selectedSection, setSelectedSection] = useState(section);
-	const [showSuggestions, setShowSuggestions] = useState(false);
-
 	const inputRef = useRef<HTMLInputElement>(null);
-	const suggestionsCache = useRef<Map<string, any[]>>(new Map());
 
-	const [cachedSidebar, setCachedSidebar] = useState<article[]>(sidebar);
-	useEffect(() => {
-		try {
-			const stored = sessionStorage.getItem("tower_sidebar_cache");
-			if (stored) {
-				const parsed = JSON.parse(stored);
+	const [index, setIndex] = useState<SearchIndexArticle[]>([]);
+	const [indexStatus, setIndexStatus] = useState<"loading" | "ready" | "error">("loading");
+	const [manualQuery, setManualQuery] = useState("");
+	const [sortBy, setSortBy] = useState<SortOrder>("newest");
+	const [selectedSection, setSelectedSection] = useState("Any");
+	const [showSuggestions, setShowSuggestions] = useState(false);
+	const [activeIndex, setActiveIndex] = useState(-1);
+	const [articles, setArticles] = useState<article[]>([]);
+	const [resultsStatus, setResultsStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
 
-				if (!parsed?.expiry || Date.now() < parsed.expiry) {
-					if (Array.isArray(parsed?.data)) {
-						setCachedSidebar(parsed.data);
-						return;
-					}
-				}
-			}
-		} catch {}
-
-		sessionStorage.setItem("tower_sidebar_cache", JSON.stringify({ data: sidebar, expiry: Date.now() + 15 * 60 * 1000 }));
-		setCachedSidebar(sidebar);
-	}, [sidebar]);
+	const search = getRouterSearch(router.query.search);
 
 	useEffect(() => {
-		if (!showSuggestions) return;
-		const trimmed = manualQuery.trim();
-		if (trimmed.length < 1) {
-			setSuggestions([]);
+		let cancelled = false;
+
+		loadSearchIndex()
+			.then(data => {
+				if (cancelled) return;
+				setIndex(data);
+				setIndexStatus("ready");
+			})
+			.catch(error => {
+				console.error(error);
+				if (cancelled) return;
+				setIndexStatus("error");
+			});
+
+		return () => {
+			cancelled = true;
+		};
+	}, []);
+
+	useEffect(() => {
+		if (!router.isReady) return;
+
+		setManualQuery(search);
+		setSortBy(router.query.sort === "oldest" ? "oldest" : "newest");
+		setSelectedSection(typeof router.query.section === "string" ? router.query.section : "Any");
+		setActiveIndex(-1);
+	}, [router.isReady, router.query.section, router.query.sort, search]);
+
+	const suggestions = useMemo(() => {
+		if (!showSuggestions) return [];
+		if (manualQuery.trim().length < 2) return [];
+		return buildSearchSuggestions(index, manualQuery);
+	}, [index, manualQuery, showSuggestions]);
+
+	const sidebarArticles = useMemo(() => shuffle(getLatestIssueArticles(index).map(toSearchResultArticle)).slice(0, 8), [index]);
+
+	useEffect(() => {
+		if (!router.isReady) return;
+		if (!search.trim()) {
+			setArticles([]);
+			setResultsStatus("idle");
 			return;
 		}
 
-		const key = `${trimmed}|${sortBy}`;
-		const cached = suggestionsCache.current.get(key);
+		const cacheKey = getSearchResultsCacheKey(search, sortBy, selectedSection);
+		const cached = readCachedSearchResults(cacheKey);
 		if (cached) {
-			setSuggestions(cached);
-			setActiveIndex(-1);
+			setArticles(cached);
+			setResultsStatus("ready");
 			return;
 		}
 
 		const controller = new AbortController();
-		const id = setTimeout(() => {
-			fetch(`/api/search/suggestions?q=${encodeURIComponent(trimmed)}&sort=${sortBy}`, { signal: controller.signal })
-				.then(res => res.json())
-				.then(data => {
-					suggestionsCache.current.set(key, data);
-					setSuggestions(data);
-					setActiveIndex(-1);
-				})
-				.catch(err => {
-					if (err?.name !== "AbortError") console.error(err);
-				});
-		}, 150); // small debounce to feel instant but avoid spamming
+		setResultsStatus("loading");
+
+		fetch(`/api/search/suggestions?mode=query&q=${encodeURIComponent(search)}&sort=${sortBy}&section=${encodeURIComponent(selectedSection)}`, {
+			signal: controller.signal,
+		})
+			.then(async res => {
+				if (!res.ok) throw new Error(`Search request failed: ${res.status}`);
+				return (await res.json()) as article[];
+			})
+			.then(data => {
+				writeCachedSearchResults(cacheKey, data);
+				setArticles(data);
+				setResultsStatus("ready");
+			})
+			.catch(error => {
+				if (error?.name === "AbortError") return;
+				console.error(error);
+				setResultsStatus("error");
+			});
 
 		return () => {
 			controller.abort();
-			clearTimeout(id);
 		};
-	}, [manualQuery, sortBy, showSuggestions]);
+	}, [router.isReady, search, selectedSection, sortBy]);
 
-	const updateFilter = (newSort?: Props["sort"], newSection?: string) => {
-		const finalSort = newSort ?? sortBy ?? "newest";
-		const finalSection = newSection ?? selectedSection;
+	const updateRoute = (nextSearch: string, nextSort = sortBy, nextSection = selectedSection) => {
+		const trimmed = nextSearch.trim();
+		const destination = trimmed
+			? `/search/${encodeURIComponent(trimmed)}?sort=${nextSort}&section=${nextSection}`
+			: `/search?sort=${nextSort}&section=${nextSection}`;
 
-		router.replace(`/search/${encodeURIComponent(search)}?sort=${finalSort}&section=${finalSection}`);
+		router.replace(destination, undefined, { shallow: true });
 	};
 
 	const handleSearchRedirect = (searchText: string) => {
-		const encoded = encodeURIComponent(searchText);
-		const finalSort = sortBy ?? "newest";
-		router.replace(`/search/${encoded}?sort=${finalSort}&section=${selectedSection}`);
+		updateRoute(searchText);
+		setShowSuggestions(false);
 	};
 
 	const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -186,10 +214,8 @@ export default function Category({ search, articles, sidebar, sort, section }: P
 			setActiveIndex(prev => (prev - 1 + suggestions.length) % suggestions.length);
 		} else if (e.key === "Enter") {
 			if (activeIndex >= 0 && suggestions[activeIndex]) {
-				const s = suggestions[activeIndex];
-
-				handleSearchRedirect(s.type === "article" ? s.title : s.name);
-				setShowSuggestions(false);
+				const suggestion = suggestions[activeIndex];
+				handleSearchRedirect(suggestion.type === "article" ? suggestion.title : suggestion.name);
 			} else {
 				handleSearchRedirect(manualQuery);
 			}
@@ -255,6 +281,12 @@ export default function Category({ search, articles, sidebar, sort, section }: P
 					border-right: none;
 					max-width: 400px;
 				}
+				.status {
+					margin: 0.35rem 0 0;
+					font-size: 0.92rem;
+					color: #6b7280;
+					text-align: left;
+				}
 
 				@media screen and (max-width: 1000px) {
 					.grid .sidebar {
@@ -311,7 +343,7 @@ export default function Category({ search, articles, sidebar, sort, section }: P
 				}
 				.meta {
 					font-size: 0.95rem;
-					color: #6b7280; /* grayish */
+					color: #6b7280;
 					margin-top: 0.15rem;
 					font-weight: 600;
 				}
@@ -327,11 +359,12 @@ export default function Category({ search, articles, sidebar, sort, section }: P
 					height: 35px;
 					font-size: 1.25rem;
 					border-radius: 5px 0px 0px 5px;
-					transform: scaleX(-1);
 					color: ${styles.color.primary};
-					cursor: pointer;
+					cursor: text;
 					box-sizing: border-box;
 					padding: 5px;
+					display: grid;
+					place-items: center;
 				}
 				select {
 					height: 2.5rem;
@@ -344,6 +377,11 @@ export default function Category({ search, articles, sidebar, sort, section }: P
 					flex-wrap: wrap;
 					gap: 0.5rem;
 					align-items: center;
+				}
+				.empty-state {
+					color: #666;
+					font-size: 1rem;
+					margin-top: 1rem;
 				}
 				@media (max-width: 600px) {
 					.filter-container {
@@ -369,17 +407,19 @@ export default function Category({ search, articles, sidebar, sort, section }: P
 			>
 				<div className="search-wrap">
 					<div className="search-row">
-						<span className="icon">🔎︎</span>
+						<span className="icon">🔎</span>
 						<input
 							ref={inputRef}
 							type="text"
 							value={manualQuery}
 							onChange={e => {
 								setManualQuery(e.target.value);
-								setQuery(e.target.value);
 								setActiveIndex(-1);
 							}}
-							onFocus={() => setShowSuggestions(true)}
+							onFocus={() => {
+								warmSearchIndex();
+								setShowSuggestions(true);
+							}}
 							onBlur={() => setTimeout(() => setShowSuggestions(false), 100)}
 							onKeyDown={handleKeyDown}
 							placeholder="Search articles, authors, or photo credits..."
@@ -394,21 +434,22 @@ export default function Category({ search, articles, sidebar, sort, section }: P
 							}}
 						/>
 					</div>
+					{indexStatus === "loading" ? <p className="status">Loading search suggestions...</p> : null}
+					{indexStatus === "error" ? <p className="status">Search suggestions are temporarily unavailable.</p> : null}
 					{suggestions.length > 0 && showSuggestions && (
 						<ul className="suggestions">
-							{suggestions.map((s, i) => (
+							{suggestions.map((suggestion, i) => (
 								<li
-									key={s.type === "article" ? s.id : `${s.type}-${s.name}`}
+									key={suggestion.type === "article" ? suggestion.id : `${suggestion.type}-${suggestion.name}`}
 									className={i === activeIndex ? "active" : ""}
 									onClick={() => {
-										const text = s.type === "article" ? s.title : s.name;
+										const text = suggestion.type === "article" ? suggestion.title : suggestion.name;
 										setManualQuery(text);
 										handleSearchRedirect(text);
-										setShowSuggestions(false);
 									}}
 								>
-									<strong>{s.type === "article" ? s.title : s.name}</strong>{" "}
-									{s.type !== "article" && <span style={{ fontSize: "0.6rem", color: "#777" }}>(Contributor)</span>}
+									<strong>{suggestion.type === "article" ? suggestion.title : suggestion.name}</strong>{" "}
+									{suggestion.type !== "article" && <span style={{ fontSize: "0.6rem", color: "#777" }}>(Contributor)</span>}
 								</li>
 							))}
 						</ul>
@@ -419,9 +460,9 @@ export default function Category({ search, articles, sidebar, sort, section }: P
 					<select
 						value={sortBy}
 						onChange={e => {
-							const value = e.target.value as "newest" | "oldest";
+							const value = e.target.value as SortOrder;
 							setSortBy(value);
-							updateFilter(value, selectedSection);
+							updateRoute(search, value, selectedSection);
 						}}
 						style={{
 							height: "2.5rem",
@@ -436,9 +477,9 @@ export default function Category({ search, articles, sidebar, sort, section }: P
 					<select
 						value={selectedSection}
 						onChange={e => {
-							const val = e.target.value;
-							setSelectedSection(val);
-							updateFilter(undefined, val);
+							const value = e.target.value;
+							setSelectedSection(value);
+							updateRoute(search, sortBy, value);
 						}}
 						style={{
 							height: "2.5rem",
@@ -457,13 +498,19 @@ export default function Category({ search, articles, sidebar, sort, section }: P
 
 			<div className="grid">
 				<section>
+					{!search.trim() ? <p className="empty-state">Enter a search term to explore articles, authors, and photo credits.</p> : null}
+					{search.trim() && resultsStatus === "loading" ? <p className="empty-state">Loading results...</p> : null}
+					{search.trim() && resultsStatus === "error" ? <p className="empty-state">Search is temporarily unavailable.</p> : null}
+					{search.trim() && resultsStatus === "ready" && articles.length === 0 ? (
+						<p className="empty-state">No articles matched that search.</p>
+					) : null}
 					{articles.map(article => {
 						const sectionLabel = sections.find(sec => sec.value === article.category)?.label || article.category;
 
 						return (
 							<div key={article.id} style={{ marginBottom: "1.25rem" }}>
 								<div className="meta">
-									<Link href={`/category/${encodeURIComponent(article.category)}`}>{sectionLabel}</Link> –{" "}
+									<Link href={`/category/${encodeURIComponent(article.category)}`}>{sectionLabel}</Link> -{" "}
 									{new Date(article.year, article.month - 1).toLocaleString("default", {
 										month: "long",
 										year: "numeric",
@@ -482,7 +529,7 @@ export default function Category({ search, articles, sidebar, sort, section }: P
 				</section>
 
 				<section className="sidebar">
-					<SidebarArticles sidebar={cachedSidebar} />
+					<SidebarArticles sidebar={sidebarArticles} />
 				</section>
 			</div>
 		</div>

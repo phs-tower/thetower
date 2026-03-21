@@ -4,6 +4,7 @@ import { article, spreads } from "@prisma/client";
 import shuffle from "lodash/shuffle";
 import Head from "next/head";
 import ArticlePreview from "~/components/preview.client";
+import { GetStaticProps } from "next";
 import Spread from "~/components/spread.client";
 import { getCurrArticles, getFrontpageArticles, getIdOfNewest, getSpreadsByCategory } from "~/lib/queries";
 
@@ -12,14 +13,15 @@ interface Props {
 	sidebar: article[];
 }
 
-export async function getServerSideProps() {
+export const getStaticProps: GetStaticProps<Props> = async () => {
 	return {
 		props: {
 			spreads: await getSpreadsByCategory("nsi", 10, await getIdOfNewest("spreads", "nsi"), 0),
 			sidebar: await getCurrArticles(),
 		},
+		revalidate: 60,
 	};
-}
+};
 
 export default function Category({ spreads, sidebar }: Props) {
 	return (

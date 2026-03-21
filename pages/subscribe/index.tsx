@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Head from "next/head";
 import Link from "next/link";
+import { GetStaticProps } from "next";
 import { getCurrArticles } from "~/lib/queries";
 import { article } from "@prisma/client";
 import ArticlePreview from "~/components/preview.client";
@@ -15,12 +16,13 @@ interface Props {
 	articles: article[];
 }
 
-export async function getServerSideProps() {
+export const getStaticProps: GetStaticProps<Props> = async () => {
 	const articles = shuffle(await getCurrArticles());
 	return {
 		props: { articles },
+		revalidate: 60,
 	};
-}
+};
 
 export default function Subscribe({ articles }: Props) {
 	const [showSidebar, setShowSidebar] = useState(false);

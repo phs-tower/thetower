@@ -4,6 +4,7 @@
 import Head from "next/head";
 import Image from "next/image";
 import { article, spreads } from "@prisma/client";
+import { GetStaticPaths, GetStaticProps } from "next";
 import { getArticle, getSpreadByIssue } from "~/lib/queries";
 import { displayDate, getSpreadPageImageUrl, inferVanguardPageFromImageUrl, parseSpreadSource } from "~/lib/utils";
 import CreditLink from "~/components/credit.client";
@@ -12,8 +13,8 @@ import html from "remark-html";
 import SubBanner from "~/components/subbanner.client";
 import PhotoCredit from "~/components/photocredit";
 import Link from "next/link";
-import { useEffect } from "react";
 import { PdfPageThumbnail } from "~/components/pdfspreadfallback.client";
+import { ParsedUrlQuery } from "querystring";
 
 import articleStyles from "./article.module.scss";
 
@@ -35,16 +36,21 @@ const ARTICLE_COLUMN_AD = {
 	height: 2000,
 };
 
-interface Params {
-	params: {
-		year: string;
-		month: string;
-		cat: string;
-		slug: string;
-	};
+interface Params extends ParsedUrlQuery {
+	year: string;
+	month: string;
+	cat: string;
+	slug: string;
 }
 
-export async function getServerSideProps({ params }: Params) {
+export const getStaticPaths: GetStaticPaths<Params> = async () => ({
+	paths: [],
+	fallback: "blocking",
+});
+
+export const getStaticProps: GetStaticProps<Props, Params> = async ({ params }) => {
+	if (!params) return { notFound: true };
+
 	const article_id = params.slug.split("-").slice(-1)[0];
 
 	let raw: article | null = null; // equivalent to prior but explicit
@@ -52,7 +58,7 @@ export async function getServerSideProps({ params }: Params) {
 	if (isNaN(Number(article_id))) raw = await getArticle(params.year, params.month, params.cat, "null", params.slug);
 	else raw = await getArticle(params.year, params.month, params.cat, article_id, params.slug);
 
-	if (!raw) return { redirect: { permanent: false, destination: "/404" } };
+	if (!raw) return { notFound: true, revalidate: 60 };
 
 	const processedArticle: article = raw;
 
@@ -66,8 +72,8 @@ export async function getServerSideProps({ params }: Params) {
 			? await getSpreadByIssue("vanguard", processedArticle.month, processedArticle.year)
 			: null;
 
-	return { props: { article: processedArticle, mainSpread } };
-}
+	return { props: { article: processedArticle, mainSpread }, revalidate: 60 };
+};
 
 export function ReturnToCategoryButton({ category }: { category: string }) {
 	const categoryLabels: { [key: string]: string } = {
@@ -113,7 +119,14 @@ export function ArticleContent({ article, showColumnAd = true }: ArticleContentP
 			<div>
 				{article.img && (
 					<>
-						<Image src={article.img} width={1000} height={1000} alt={article.contentInfo ?? ""} />
+						<Image
+							src={article.img}
+							width={1000}
+							height={1000}
+							alt={article.contentInfo ?? ""}
+							priority
+							sizes="(max-width: 900px) 100vw, 72rem"
+						/>
 						{article.contentInfo && <PhotoCredit contentInfo={article.contentInfo} />}
 					</>
 				)}
@@ -137,6 +150,7 @@ export function ArticleContent({ article, showColumnAd = true }: ArticleContentP
 								alt={ARTICLE_COLUMN_AD.alt}
 								width={ARTICLE_COLUMN_AD.width}
 								height={ARTICLE_COLUMN_AD.height}
+								sizes="(max-width: 900px) 100vw, (max-width: 1279px) 22rem, 30rem"
 							/>
 						</a>
 						<div className={articleStyles["article-column-ad-caption"]}>
@@ -210,7 +224,7 @@ function LegacyArticleContent({ article }: { article: article }) {
 					const src = paragraph.substring(5).trim();
 					if (!src) return null;
 
-					return <Image key={index} src={src} width={1000} height={1000} alt="" />;
+					return <Image key={index} src={src} width={1000} height={1000} alt="" sizes="(max-width: 900px) 100vw, 72rem" />;
 				}
 				return paragraph.charCodeAt(0) !== 13 ? <p key={index}>{paragraph.replace("&lt;", "<").replace("&gt;", ">")}</p> : null;
 			})}
@@ -220,22 +234,6 @@ function LegacyArticleContent({ article }: { article: article }) {
 
 export default function Article({ article, mainSpread }: Props) {
 	const category = article.category;
-
-	// Per-article view tracking (one bump per article per tab session)
-	useEffect(() => {
-		if (typeof window === "undefined") return;
-		if (!article.id) return;
-
-		// Avoid double-counting in the same tab/session
-		const key = `article-tracked:${article.id}`;
-		if (sessionStorage.getItem(key)) return;
-		sessionStorage.setItem(key, "1");
-
-		// Increment site analytics once per article per tab/session
-		fetch("/api/track", {
-			method: "POST",
-		}).catch(() => {});
-	}, [article.id]);
 
 	return (
 		<>

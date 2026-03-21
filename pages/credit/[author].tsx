@@ -2,8 +2,10 @@
 
 import { article } from "@prisma/client";
 import Head from "next/head";
+import { GetStaticPaths, GetStaticProps } from "next";
 import ArticlePreview from "~/components/preview.client";
 import { getArticlesByAuthor } from "~/lib/queries";
+import { ParsedUrlQuery } from "querystring";
 
 const PHOTO_KEYWORDS = ["photo", "image", "graphic"];
 
@@ -20,10 +22,8 @@ function getPhotoLabel(article: article, normalizedAuthor: string): "IMAGE" | un
 	return isPhotoCredit ? "IMAGE" : undefined;
 }
 
-interface Params {
-	params: {
-		author: string;
-	};
+interface Params extends ParsedUrlQuery {
+	author: string;
 }
 
 interface Props {
@@ -31,7 +31,14 @@ interface Props {
 	articles: article[];
 }
 
-export async function getServerSideProps({ params }: Params) {
+export const getStaticPaths: GetStaticPaths<Params> = async () => ({
+	paths: [],
+	fallback: "blocking",
+});
+
+export const getStaticProps: GetStaticProps<Props, Params> = async ({ params }) => {
+	if (!params) return { notFound: true };
+
 	const author = decodeURI(params.author);
 
 	const articles = await getArticlesByAuthor(author); // Already checks authors + contentInfo
@@ -40,8 +47,9 @@ export async function getServerSideProps({ params }: Params) {
 			author,
 			articles,
 		},
+		revalidate: 60,
 	};
-}
+};
 
 export default function Credit({ author, articles }: Props) {
 	const title = `${author}'s Work | The Tower`;

@@ -38,9 +38,13 @@ export function SectionContainer({ category, desc, articles }: SectionProps) {
 				:global(.row-container .article-preview.box .preview-image) {
 					width: 100% !important;
 					height: 13rem !important; /* fixed so all cards equal height */
-					object-fit: contain !important; /* show full image */
+					object-fit: cover !important;
 					margin-left: 0 !important;
 					margin-right: 0 !important;
+				}
+				:global(.row-container .article-preview.box.noimg .preview-image) {
+					object-fit: contain !important;
+					background: black !important;
 				}
 				/* Pull title tight to image by shrinking image wrapper gap */
 				:global(.row-container .article-preview.box .img-wrapper) {
@@ -89,7 +93,7 @@ export function SectionContainer({ category, desc, articles }: SectionProps) {
 			<ul className="row-container">
 				{Object.values(articles).map(article => (
 					<li key={article.id} className="item">
-						<ArticlePreview key={article.id} style="box" size="large" fit="contain" article={article} />
+						<ArticlePreview key={article.id} style="box" size="large" fit="cover" article={article} />
 					</li>
 				))}
 			</ul>

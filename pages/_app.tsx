@@ -2,6 +2,7 @@
 
 import type { AppProps, NextWebVitalsMetric } from "next/app";
 import Head from "next/head";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { MouseEvent } from "react";
@@ -11,17 +12,26 @@ import { useRouter } from "next/router";
 import { socialLinks } from "~/lib/constants";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/react";
+import { warmSearchIndex } from "~/lib/search-client";
 import { displayFullDate } from "~/lib/utils";
 import { staffMenuItems } from "~/lib/staff";
-import PromoPopup from "~/components/promo-popup.client";
 
 import "./global.scss";
 import "./nav.scss";
+
+const STAFF_YEARS_CACHE_KEY = "tower:staff-years";
+const PRINT_ISSUE_CACHE_KEY = "tower:latest-print-issue";
+const SITE_VISIT_TRACKED_KEY = "tower:site-visit-tracked";
+const PromoPopup = dynamic(() => import("~/components/promo-popup.client"), { ssr: false, loading: () => null });
 
 type Subsection = {
 	name: string;
 	href: string;
 };
+
+function buildStaffMenuItems(years: number[]) {
+	return years.map(year => ({ name: `${year} Staff`, href: `/about/${year}` }));
+}
 
 function SectionLink({ href, name: section, subsections }: { href: string; name: string; subsections?: Subsection[] }) {
 	const [open, setOpen] = useState(false);
@@ -58,14 +68,25 @@ export function Nav() {
 	const [aboutSubsections, setAboutSubsections] = useState(staffMenuItems);
 
 	useEffect(() => {
+		if (staffMenuItems.length > 0) return;
 		let cancelled = false;
 		const refreshStaffYears = async () => {
 			try {
+				const cached = sessionStorage.getItem(STAFF_YEARS_CACHE_KEY);
+				if (cached) {
+					const years = JSON.parse(cached) as number[];
+					if (!cancelled && Array.isArray(years) && years.length > 0) {
+						setAboutSubsections(buildStaffMenuItems(years));
+						return;
+					}
+				}
+
 				const res = await fetch("/api/staff-years");
 				if (!res.ok) return;
 				const payload = (await res.json()) as { years?: number[] };
 				if (!cancelled && Array.isArray(payload.years)) {
-					setAboutSubsections(payload.years.map(year => ({ name: `${year} Staff`, href: `/about/${year}` })));
+					sessionStorage.setItem(STAFF_YEARS_CACHE_KEY, JSON.stringify(payload.years));
+					setAboutSubsections(buildStaffMenuItems(payload.years));
 				}
 			} catch {
 				/* noop */
@@ -143,11 +164,27 @@ function Masthead() {
 	useEffect(() => {
 		let cancelled = false;
 		const getIssue = async () => {
+			try {
+				const cached = sessionStorage.getItem(PRINT_ISSUE_CACHE_KEY);
+				if (cached) {
+					const parsed = JSON.parse(cached) as { month?: number; year?: number; expiry?: number };
+					if (parsed?.month && parsed?.year && parsed?.expiry && parsed.expiry > Date.now()) {
+						if (!cancelled) setIssue({ month: parsed.month, year: parsed.year });
+						return;
+					}
+				}
+			} catch {
+				/* noop */
+			}
+
 			let month = new Date().getMonth() + 1;
 			let year = new Date().getFullYear();
 
 			if (await pdfExists(month, year)) {
-				if (!cancelled) setIssue({ month, year });
+				if (!cancelled) {
+					sessionStorage.setItem(PRINT_ISSUE_CACHE_KEY, JSON.stringify({ month, year, expiry: Date.now() + 6 * 60 * 60 * 1000 }));
+					setIssue({ month, year });
+				}
 				return;
 			}
 
@@ -158,7 +195,10 @@ function Masthead() {
 					year--;
 				}
 				if (!(await pdfExists(month, year))) continue;
-				if (!cancelled) setIssue({ month, year });
+				if (!cancelled) {
+					sessionStorage.setItem(PRINT_ISSUE_CACHE_KEY, JSON.stringify({ month, year, expiry: Date.now() + 6 * 60 * 60 * 1000 }));
+					setIssue({ month, year });
+				}
 				return;
 			}
 		};
@@ -229,6 +269,7 @@ function Masthead() {
 							ref={searchInputRef}
 							type="text"
 							placeholder="Search"
+							onFocus={() => warmSearchIndex()}
 							onKeyDown={e => {
 								if (e.key === "Enter") {
 									const q = encodeURIComponent(searchInputRef.current?.value || "");
@@ -237,6 +278,7 @@ function Masthead() {
 							}}
 						/>
 						<button
+							onMouseEnter={() => warmSearchIndex()}
 							onClick={() => {
 								const q = encodeURIComponent(searchInputRef.current?.value || "");
 								router.push(`/search/${q}`);
@@ -255,17 +297,13 @@ function Masthead() {
 }
 
 export default function App({ Component, pageProps }: AppProps) {
-	const router = useRouter();
-
 	useEffect(() => {
 		if (typeof window === "undefined") return;
-
-		const key = `site-tracked:${router.asPath}`;
-		if (sessionStorage.getItem(key)) return;
-		sessionStorage.setItem(key, "1");
+		if (sessionStorage.getItem(SITE_VISIT_TRACKED_KEY)) return;
+		sessionStorage.setItem(SITE_VISIT_TRACKED_KEY, "1");
 
 		fetch("/api/track", { method: "POST" }).catch(() => {});
-	}, [router.asPath]);
+	}, []);
 
 	return (
 		<>

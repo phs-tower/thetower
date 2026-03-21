@@ -77,3 +77,81 @@ export function inferVanguardPageFromImageUrl(img: string | null | undefined) {
 	const parsed = Number(match[1]);
 	return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
 }
+
+const archiveIssueMonths = [2, 3, 4, 6, 9, 10, 11, 12];
+const archiveIssueStartYear = 1928;
+
+export function getArchiveIssueNumber(year: number, month: number) {
+	if (year < archiveIssueStartYear) return null;
+	if (!archiveIssueMonths.includes(month)) return null;
+
+	let issueNumber = 0;
+	for (let currYear = archiveIssueStartYear; currYear <= year; currYear++) {
+		for (const currMonth of archiveIssueMonths) {
+			if (currYear === year && currMonth > month) break;
+			issueNumber++;
+		}
+	}
+
+	return issueNumber;
+}
+
+export function toRomanNumeral(value: number) {
+	if (!Number.isInteger(value) || value <= 0) return "";
+
+	const numerals: Array<[number, string]> = [
+		[1000, "M"],
+		[900, "CM"],
+		[500, "D"],
+		[400, "CD"],
+		[100, "C"],
+		[90, "XC"],
+		[50, "L"],
+		[40, "XL"],
+		[10, "X"],
+		[9, "IX"],
+		[5, "V"],
+		[4, "IV"],
+		[1, "I"],
+	];
+
+	let remaining = value;
+	let output = "";
+
+	for (const [arabic, roman] of numerals) {
+		while (remaining >= arabic) {
+			output += roman;
+			remaining -= arabic;
+		}
+	}
+
+	return output;
+}
+
+export function getLatestArchiveIssueInfo(date?: Date) {
+	const current = date ?? new Date();
+	let year = current.getFullYear();
+	let month = current.getMonth() + 1;
+
+	while (year >= archiveIssueStartYear) {
+		const candidateMonth = [...archiveIssueMonths].reverse().find(candidate => candidate <= month);
+		if (candidateMonth) {
+			const issueNumber = getArchiveIssueNumber(year, candidateMonth);
+			if (issueNumber) {
+				return { year, month: candidateMonth, issueNumber };
+			}
+		}
+
+		year--;
+		month = 12;
+	}
+
+	return null;
+}
+
+export function getTowerVolumeNumber(year: number) {
+	if (!Number.isInteger(year)) return null;
+
+	const volumeNumber = year - archiveIssueStartYear;
+	return volumeNumber >= 0 ? volumeNumber : null;
+}
