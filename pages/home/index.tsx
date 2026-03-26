@@ -42,6 +42,15 @@ interface Props {
 
 export default function FrontPage({ articles, vang, featuredVanguardArticle, volumeLabel }: Props) {
 	const leftBottomArticle = featuredVanguardArticle ?? articles["opinions"][1];
+	const mobileHeroArticles = [
+		articles["featured"][0],
+		articles["opinions"][0],
+		leftBottomArticle,
+		articles["sports"][0],
+		articles["arts-entertainment"][0],
+	]
+		.filter((item): item is article => Boolean(item))
+		.filter((item, index, list) => list.findIndex(candidate => candidate.id === item.id) === index);
 
 	return (
 		<div>
@@ -116,14 +125,61 @@ export default function FrontPage({ articles, vang, featuredVanguardArticle, vol
 					object-fit: contain !important;
 					background: black !important;
 				}
-				@media (max-width: 900px) {
-					:global(.mosaic .triple.home-hero .hero-card .article-preview.box .preview-image) {
+				.mobile-issue {
+					display: none;
+				}
+				@media (max-width: 1000px) {
+					:global(.mosaic .triple.home-hero) {
+						display: none !important;
+					}
+
+					:global(.mosaic .one.home-mobile-list) {
+						display: grid;
+						gap: 1.15rem;
+					}
+
+					.mobile-issue {
+						display: block;
+						color: #7b7f87;
+						font-family: var(--font-sans);
+						font-size: 0.76rem;
+						font-weight: 600;
+						letter-spacing: 0.08em;
+						text-transform: uppercase;
+						margin: 0 0 0.25rem;
+						text-align: left;
+					}
+
+					:global(.home-mobile-list .mobile-featured .article-eyebrow) {
+						display: inline-block;
+						background: #102e63;
+						color: #fff;
+						font-family: var(--font-sans);
+						font-size: 0.78rem;
+						font-weight: 700;
+						letter-spacing: 0.08em;
+						text-transform: uppercase;
+						padding: 0.22rem 0.55rem;
+						margin: 0 0 0.55rem;
+					}
+
+					:global(.home-mobile-list .article-preview.box.large .preview-image) {
+						width: 100% !important;
+						height: 12rem !important;
 						max-width: 100% !important;
 						max-height: 12rem !important;
-						height: 12rem !important;
+						object-fit: cover !important;
+						margin: 0 !important;
 					}
-					:global(.mosaic .triple.home-hero .hero-card .article-preview.box.noimg .preview-image) {
+
+					:global(.home-mobile-list .article-preview.box.large.noimg .preview-image) {
 						object-fit: contain !important;
+						background: black !important;
+					}
+
+					:global(.home-mobile-list .article-preview.box) {
+						padding: 0 !important;
+						margin: 0 !important;
 					}
 				}
 			`}</style>
@@ -157,14 +213,19 @@ export default function FrontPage({ articles, vang, featuredVanguardArticle, vol
 					</div>
 				</div>
 
-				<div className="one">
-					{articles["opinions"][0] && <ArticlePreview article={articles["opinions"][0]} style="box" size="large" />}
-					{articles["opinions"][1] && <ArticlePreview article={articles["opinions"][1]} style="box" size="large" />}
-					{articles["opinions"][2] && <ArticlePreview article={articles["opinions"][2]} style="box" size="large" />}
-
-					{articles["sports"][0] && <ArticlePreview article={articles["sports"][0]} style="box" size="large" />}
-					{articles["sports"][1] && <ArticlePreview article={articles["sports"][1]} style="box" size="large" />}
-					{articles["sports"][2] && <ArticlePreview article={articles["sports"][2]} style="box" size="large" />}
+				<div className="one home-mobile-list">
+					{volumeLabel ? <div className="mobile-issue">{volumeLabel}</div> : null}
+					{mobileHeroArticles.map((article, index) => (
+						<div key={article.id} className={index === 0 ? "mobile-featured" : undefined}>
+							<ArticlePreview
+								article={article}
+								style="box"
+								size="large"
+								fit="cover"
+								eyebrow={index === 0 ? "Recommended" : undefined}
+							/>
+						</div>
+					))}
 				</div>
 			</div>
 			<br />

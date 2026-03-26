@@ -177,22 +177,28 @@ export default function Subcategory(props: Props) {
 					grid-template-columns: 1fr clamp(300px, 26vw, 400px);
 					grid-column-gap: 2vw;
 				}
-				:global(.subcategory .article-preview > .category-list-preview) {
+				.desktop-card {
+					display: block;
+				}
+				.mobile-card {
+					display: none;
+				}
+				:global(.subcategory .desktop-card .article-preview > .category-list-preview) {
 					display: grid;
 					grid-template-columns: minmax(21rem, 3.5fr) minmax(0, 4fr);
 					column-gap: 1.75rem;
 					align-items: start;
 				}
-				:global(.subcategory .article-preview.row.category-list .img-wrapper) {
+				:global(.subcategory .desktop-card .article-preview.row.category-list .img-wrapper) {
 					display: flex;
 					justify-content: flex-start;
 					margin-right: 0 !important;
 				}
-				:global(.subcategory .article-preview.row.category-list .img-wrapper span) {
+				:global(.subcategory .desktop-card .article-preview.row.category-list .img-wrapper span) {
 					display: block !important;
 					width: 100% !important;
 				}
-				:global(.subcategory .article-preview.row.category-list .preview-image) {
+				:global(.subcategory .desktop-card .article-preview.row.category-list .preview-image) {
 					width: 100% !important;
 					height: auto !important;
 					max-width: 24.5rem !important;
@@ -201,21 +207,45 @@ export default function Subcategory(props: Props) {
 					border-radius: 0;
 					box-shadow: 0px 5px 12px #00000022;
 				}
-				:global(.subcategory .article-preview.row.category-list.noimg .preview-image) {
+				:global(.subcategory .desktop-card .article-preview.row.category-list.noimg .preview-image) {
 					object-fit: contain !important;
 					background: black;
 				}
-				:global(.subcategory .article-preview.row.category-list .title) {
+				:global(.subcategory .desktop-card .article-preview.row.category-list .title) {
 					margin-top: 0;
 				}
+				:global(.subcategory .mobile-card .article-preview.box) {
+					padding: 0 !important;
+					margin: 0 !important;
+				}
+				:global(.subcategory .mobile-card .article-preview > .large-preview) {
+					padding: 0 0 0.9rem;
+					margin-bottom: 0;
+				}
+				:global(.subcategory .mobile-card .article-preview.box .img-wrapper) {
+					margin-right: 0 !important;
+					margin-bottom: 0.55rem !important;
+				}
+				:global(.subcategory .mobile-card .article-preview.box.large .preview-image) {
+					width: 100% !important;
+					height: 10.75rem !important;
+					max-width: 100% !important;
+					max-height: 10.75rem !important;
+					object-fit: cover !important;
+					border-radius: 0.75rem;
+					margin: 0 !important;
+					box-shadow: 0px 5px 12px #00000022;
+				}
+				:global(.subcategory .mobile-card .article-preview.box.large.noimg .preview-image) {
+					object-fit: contain !important;
+					background: black;
+				}
 				@media (max-width: 900px) {
-					:global(.subcategory .article-preview > .category-list-preview) {
-						grid-template-columns: 1fr;
-						row-gap: 1.5rem;
+					.desktop-card {
+						display: none;
 					}
-					:global(.subcategory .article-preview.row.category-list .preview-image) {
-						max-width: 100% !important;
-						max-height: 12rem !important;
+					.mobile-card {
+						display: block;
 					}
 				}
 				.grid .sidebar {
@@ -291,30 +321,53 @@ export default function Subcategory(props: Props) {
 								{recommended.map(recommendedArticle => (
 									<div className="recommended-card" key={recommendedArticle.id}>
 										<span className="recommended-label">Recommended</span>
-										<ArticlePreview
-											article={recommendedArticle}
-											style="row"
-											size="category-list"
-											showPreviewText
-											showIssueDate
-											fit={category === "vanguard" && subcategory === "articles" ? "contain" : "cover"}
-											thumbHeight={category === "vanguard" && subcategory === "articles" ? "18rem" : undefined}
-										/>
+										<div className="desktop-card">
+											<ArticlePreview
+												article={recommendedArticle}
+												style="row"
+												size="category-list"
+												showPreviewText
+												showIssueDate
+												fit={category === "vanguard" && subcategory === "articles" ? "contain" : "cover"}
+												thumbHeight={category === "vanguard" && subcategory === "articles" ? "18rem" : undefined}
+											/>
+										</div>
+										<div className="mobile-card">
+											<ArticlePreview
+												article={recommendedArticle}
+												style="box"
+												size="large"
+												fit={category === "vanguard" && subcategory === "articles" ? "contain" : "cover"}
+												thumbHeight={category === "vanguard" && subcategory === "articles" ? "18rem" : undefined}
+											/>
+										</div>
 									</div>
 								))}
 							</div>
 						)}
 						{visibleArticles.map(art => (
-							<ArticlePreview
-								key={art.id}
-								article={art}
-								style="row"
-								size="category-list"
-								showPreviewText
-								showIssueDate
-								fit={category === "vanguard" && subcategory === "articles" ? "contain" : "cover"}
-								thumbHeight={category === "vanguard" && subcategory === "articles" ? "18rem" : undefined}
-							/>
+							<div key={art.id}>
+								<div className="desktop-card">
+									<ArticlePreview
+										article={art}
+										style="row"
+										size="category-list"
+										showPreviewText
+										showIssueDate
+										fit={category === "vanguard" && subcategory === "articles" ? "contain" : "cover"}
+										thumbHeight={category === "vanguard" && subcategory === "articles" ? "18rem" : undefined}
+									/>
+								</div>
+								<div className="mobile-card">
+									<ArticlePreview
+										article={art}
+										style="box"
+										size="large"
+										fit={category === "vanguard" && subcategory === "articles" ? "contain" : "cover"}
+										thumbHeight={category === "vanguard" && subcategory === "articles" ? "18rem" : undefined}
+									/>
+								</div>
+							</div>
 						))}
 					</section>
 					<p id="loading" style={{ display: loadingDisplay }}>

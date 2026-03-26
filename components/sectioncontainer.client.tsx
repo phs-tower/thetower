@@ -87,6 +87,28 @@ export function SectionContainer({ category, desc, articles }: SectionProps) {
 				h3 {
 					font-family: ${styles.font.sans};
 				}
+				@media (max-width: 900px) {
+					.row-container {
+						gap: 0.9rem;
+						padding-bottom: 0.3rem;
+						scroll-padding-left: 0;
+					}
+
+					.item {
+						width: clamp(15.5rem, 72vw, 19rem);
+					}
+
+					:global(.row-container .article-preview.box) {
+						padding: 0 !important;
+						margin: 0 !important;
+					}
+
+					:global(.row-container .article-preview.box .preview-image) {
+						height: 11rem !important;
+						max-height: 11rem !important;
+						border-radius: 0.75rem;
+					}
+				}
 			`}</style>
 			<h3>{category}</h3>
 			<p>{desc}</p>

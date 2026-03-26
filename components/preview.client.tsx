@@ -5,7 +5,7 @@ import Link from "next/link";
 import { displayDate, expandCategorySlug, shortenText } from "~/lib/utils";
 import CreditLink from "./credit.client";
 import styles from "~/lib/styles";
-import React, { Fragment } from "react";
+import React, { Fragment, useEffect, useState } from "react";
 import Image from "next/image";
 
 export type PreviewArticle = article & { href?: string };
@@ -89,6 +89,13 @@ export default function ArticlePreview({
 	showPreviewText = false,
 	showIssueDate = false,
 }: Props) {
+	const [imageLoaded, setImageLoaded] = useState(false);
+	const imageKey = article?.img || "__tower-fallback__";
+
+	useEffect(() => {
+		setImageLoaded(false);
+	}, [imageKey]);
+
 	if (!article) return <></>;
 
 	let charlen = 0;
@@ -133,7 +140,7 @@ export default function ArticlePreview({
 	}
 
 	let showimg = "";
-	if (!article.img?.includes(".")) showimg = "noimg"; // article.img = "/assets/default.png";
+	if (!article.img?.includes(".")) showimg = "noimg"; // article.img = "/assets/white-tower.png";
 	const previewText = showPreviewText && charlen > 0 && article.content ? buildPreviewText(article.content, charlen) : "";
 	const imageSizes = getPreviewImageSizes(style, size, shrinkThumb);
 	const priority = style === "box" && size === "featured";
@@ -281,6 +288,23 @@ export default function ArticlePreview({
 					background-color: #f7f7f7;
 					border-radius: 0px;
 					box-shadow: 0px 5px 12px #00000022;
+				}
+				.preview-image {
+					opacity: 0;
+					transform: translate3d(0, 6px, 0);
+					transition: opacity 240ms ease, transform 280ms cubic-bezier(0.16, 1, 0.3, 1);
+				}
+				.preview-image.is-loaded {
+					opacity: 1;
+					transform: translate3d(0, 0, 0);
+				}
+				@media (prefers-reduced-motion: reduce) {
+					.preview-image,
+					.preview-image.is-loaded {
+						opacity: 1;
+						transform: none;
+						transition: none;
+					}
 				}
 				.authors {
 					font-size: 1.1rem; /* slightly smaller */
@@ -439,13 +463,14 @@ export default function ArticlePreview({
 					{" "}
 					{article.img?.includes(".") ? (
 						<Image
-							className="preview-image"
+							className={`preview-image${imageLoaded ? " is-loaded" : ""}`}
 							src={article.img}
 							width={1000}
 							height={1000}
 							alt="Image"
 							sizes={imageSizes}
 							priority={priority}
+							onLoad={() => setImageLoaded(true)}
 							style={
 								shrinkThumb
 									? {
@@ -468,13 +493,14 @@ export default function ArticlePreview({
 						/>
 					) : (
 						<Image
-							className="preview-image"
+							className={`preview-image${imageLoaded ? " is-loaded" : ""}`}
 							src="/assets/white-tower.png"
 							width={309}
 							height={721}
 							alt="Image"
 							sizes={imageSizes}
 							priority={priority}
+							onLoad={() => setImageLoaded(true)}
 							style={
 								shrinkThumb
 									? {

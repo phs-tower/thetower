@@ -56,42 +56,56 @@ main {
 
 main.content {
 	position: relative;
+	isolation: isolate;
+
+	&::after {
+		content: "";
+		position: absolute;
+		inset: 0;
+		pointer-events: none;
+		background: var(--background);
+		opacity: 0;
+		transition: opacity 180ms ease;
+		z-index: 1;
+	}
 
 	.page-shell {
-		opacity: 1;
-		transition: opacity 140ms ease;
-		will-change: opacity;
+		position: relative;
+		z-index: 0;
+		will-change: opacity, transform;
+		animation: page-enter 280ms cubic-bezier(0.16, 1, 0.3, 1);
 	}
 
-	&[data-transition="leaving"] .page-shell {
-		opacity: 0.55;
-	}
-
-	&[data-transition="entering"] .page-shell {
-		animation: page-enter 150ms ease;
+	&[data-route-pending="true"]::after {
+		opacity: 0.035;
 	}
 }
 
 @keyframes page-enter {
 	from {
-		opacity: 0.55;
+		opacity: 0;
+		transform: translate3d(0, 8px, 0);
 	}
 
 	to {
 		opacity: 1;
+		transform: translate3d(0, 0, 0);
 	}
 }
 
 @media (prefers-reduced-motion: reduce) {
 	main.content {
 		.page-shell {
-			transition: none;
 			animation: none;
 		}
 
-		&[data-transition="leaving"] .page-shell,
-		&[data-transition="entering"] .page-shell {
-			opacity: 1;
+		&::after {
+			transition: none;
+			opacity: 0;
+		}
+
+		&[data-route-pending="true"]::after {
+			opacity: 0;
 		}
 	}
 }

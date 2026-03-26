@@ -123,22 +123,28 @@ export default function Credit({ author, articles, crosswords }: Props) {
 				.meta a:hover {
 					color: #0055cc;
 				}
-				:global(.credit .article-preview > .category-list-preview) {
+				.desktop-card {
+					display: block;
+				}
+				.mobile-card {
+					display: none;
+				}
+				:global(.credit .desktop-card .article-preview > .category-list-preview) {
 					display: grid;
 					grid-template-columns: minmax(27.5rem, 1.08fr) minmax(0, 1fr);
 					column-gap: 1.9rem;
 					align-items: start;
 				}
-				:global(.credit .article-preview.row.category-list .img-wrapper) {
+				:global(.credit .desktop-card .article-preview.row.category-list .img-wrapper) {
 					display: flex;
 					justify-content: flex-start;
 					margin-right: 0 !important;
 				}
-				:global(.credit .article-preview.row.category-list .img-wrapper span) {
+				:global(.credit .desktop-card .article-preview.row.category-list .img-wrapper span) {
 					display: block !important;
 					width: 100% !important;
 				}
-				:global(.credit .article-preview.row.category-list .preview-image) {
+				:global(.credit .desktop-card .article-preview.row.category-list .preview-image) {
 					width: 100% !important;
 					height: auto !important;
 					max-width: 100% !important;
@@ -147,24 +153,48 @@ export default function Credit({ author, articles, crosswords }: Props) {
 					border-radius: 0;
 					box-shadow: 0px 5px 12px #00000022;
 				}
-				:global(.credit .article-preview.row.category-list.noimg .preview-image) {
+				:global(.credit .desktop-card .article-preview.row.category-list.noimg .preview-image) {
 					object-fit: contain !important;
 					background: black;
 				}
-				:global(.credit .article-preview.row.category-list .title) {
+				:global(.credit .desktop-card .article-preview.row.category-list .title) {
 					margin-top: 0;
+				}
+				:global(.credit .mobile-card .article-preview.box) {
+					padding: 0 !important;
+					margin: 0 !important;
+				}
+				:global(.credit .mobile-card .article-preview > .large-preview) {
+					padding: 0 0 0.9rem;
+					margin-bottom: 0;
+				}
+				:global(.credit .mobile-card .article-preview.box .img-wrapper) {
+					margin-right: 0 !important;
+					margin-bottom: 0.55rem !important;
+				}
+				:global(.credit .mobile-card .article-preview.box.large .preview-image) {
+					width: 100% !important;
+					height: 10.75rem !important;
+					max-width: 100% !important;
+					max-height: 10.75rem !important;
+					object-fit: cover !important;
+					border-radius: 0.75rem;
+					margin: 0 !important;
+					box-shadow: 0px 5px 12px #00000022;
+				}
+				:global(.credit .mobile-card .article-preview.box.large.noimg .preview-image) {
+					object-fit: contain !important;
+					background: black;
 				}
 				@media (max-width: 900px) {
 					:global(.credit .page-grid) {
 						grid-template-columns: 1fr;
 					}
-					:global(.credit .article-preview > .category-list-preview) {
-						grid-template-columns: 1fr;
-						row-gap: 1.5rem;
+					.desktop-card {
+						display: none;
 					}
-					:global(.credit .article-preview.row.category-list .preview-image) {
-						max-width: 100% !important;
-						max-height: 12rem !important;
+					.mobile-card {
+						display: block;
 					}
 				}
 			`}</style>
@@ -185,13 +215,24 @@ export default function Credit({ author, articles, crosswords }: Props) {
 									{!isCrossword ? " - " : ""}
 									{displayDate(article.year, article.month)}
 								</div>
-								<ArticlePreview
-									article={article}
-									style="row"
-									size="category-list"
-									eyebrow={article.category === "crossword" ? undefined : getPhotoLabel(article as article, normalizedAuthor)}
-									showPreviewText
-								/>
+								<div className="desktop-card">
+									<ArticlePreview
+										article={article}
+										style="row"
+										size="category-list"
+										eyebrow={article.category === "crossword" ? undefined : getPhotoLabel(article as article, normalizedAuthor)}
+										showPreviewText
+									/>
+								</div>
+								<div className="mobile-card">
+									<ArticlePreview
+										article={article}
+										style="box"
+										size="large"
+										eyebrow={article.category === "crossword" ? undefined : getPhotoLabel(article as article, normalizedAuthor)}
+										fit="cover"
+									/>
+								</div>
 							</div>
 						);
 					})}

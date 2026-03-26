@@ -7,9 +7,9 @@ import { StorageApiError } from "@supabase/storage-js";
 import { readFile } from "fs/promises";
 import formidable from "formidable";
 import path from "path";
-import { randomUUID } from "crypto";
 import sharp from "sharp";
 import { SearchResultItem, toCrosswordResultItem } from "./search";
+import { buildStorageUploadKey, SUPABASE_URL } from "./storage";
 
 export type MultimediaItem = Omit<multimedia, "id"> & { id: number };
 export type CrosswordCreditItem = { id: number; title: string; author: string; date: string };
@@ -38,7 +38,7 @@ if (!yolo && process.env.NODE_ENV !== "production") {
 	global.__towerPrisma = prisma;
 }
 
-const supabase = !process.env.SERVICE_ROLE ? undefined : createClient("https://yusjougmsdnhcsksadaw.supabase.co/", process.env.SERVICE_ROLE);
+const supabase = !process.env.SERVICE_ROLE ? undefined : createClient(`${SUPABASE_URL}/`, process.env.SERVICE_ROLE);
 
 function getArticleSubcategoryFilter(subcat: string) {
 	return subcat === "articles" ? { in: ["articles", "random-musings"] } : subcat;
@@ -1144,10 +1144,7 @@ export async function uploadFile(file: formidable.File, bucket: string, options?
 			.slice(0, 60) || "upload";
 
 	// folder by year/month + unique suffix prevents 409s
-	const now = new Date();
-	const key = [now.getFullYear(), String(now.getMonth() + 1).padStart(2, "0"), `${base}-${Date.now()}-${randomUUID().slice(0, 8)}.${ext}`].join(
-		"/"
-	);
+	const key = buildStorageUploadKey(`${base}.${ext}`, ext);
 
 	console.log("Uploading to:", bucket, key);
 	return await uploadBuffer(fileContent as Buffer, bucket, key, finalMimeType);

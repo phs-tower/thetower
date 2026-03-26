@@ -15,6 +15,7 @@ import {
 	uploadSpread,
 } from "~/lib/queries";
 import { renderPdfBufferToPngBuffers } from "~/lib/spread-pages";
+import { buildPublicStorageUrl } from "~/lib/storage";
 import { buildSpreadSource, getSpreadPageImageUrl, parseSpreadSource } from "~/lib/utils";
 
 function getSingleFile(fileField: formidable.File | formidable.File[] | undefined) {
@@ -35,30 +36,50 @@ async function uploadVanguardSpread(files: formidable.Files, fields: formidable.
 	let ret = { code: 500, error: "" };
 
 	const spreadFile = getSingleFile(files.spread);
-	if (!spreadFile) return { ...ret, error: "Did you upload a spread?" };
+	const spreadStoragePath = getFirstFieldValue((fields as any)["spread-storage-path"]).trim();
+	let spreadPdfUrl = "";
+	let spreadPath = "";
+	let pdfBuffer: Buffer;
 
-	const upload = await uploadFile(spreadFile, "spreads");
-	if (upload.code != 200) return { ...ret, code: upload.code, error: upload.message };
-	if (!("path" in upload) || typeof upload.path !== "string") {
-		return { ...ret, error: "The spread PDF uploaded, but its preview image path could not be determined." };
+	if (spreadStoragePath) {
+		spreadPath = spreadStoragePath;
+		spreadPdfUrl = buildPublicStorageUrl("spreads", spreadStoragePath);
+
+		const response = await fetch(spreadPdfUrl);
+		if (!response.ok) {
+			return { ...ret, error: "The uploaded Vanguard spread PDF could not be loaded from storage." };
+		}
+
+		pdfBuffer = Buffer.from(await response.arrayBuffer());
+	} else {
+		if (!spreadFile) return { ...ret, error: "Did you upload a spread?" };
+
+		const upload = await uploadFile(spreadFile, "spreads");
+		if (upload.code != 200) return { ...ret, code: upload.code, error: upload.message };
+		if (!("path" in upload) || typeof upload.path !== "string") {
+			return { ...ret, error: "The spread PDF uploaded, but its preview image path could not be determined." };
+		}
+
+		spreadPdfUrl = upload.message;
+		spreadPath = upload.path;
+		pdfBuffer = await readFile(spreadFile.filepath);
 	}
 
 	try {
-		const pdfBuffer = await readFile(spreadFile.filepath);
 		const { renderedPages, totalPages } = await renderPdfBufferToPngBuffers(pdfBuffer);
 		if (!totalPages || renderedPages.length === 0) {
 			return { ...ret, error: "The Vanguard spread PDF could not be rendered into page images." };
 		}
 
 		for (const renderedPage of renderedPages) {
-			const pagePath = upload.path.replace(/\.pdf$/i, `-page-${renderedPage.pageNumber}.png`);
+			const pagePath = spreadPath.replace(/\.pdf$/i, `-page-${renderedPage.pageNumber}.png`);
 			const pageUpload = await uploadBuffer(renderedPage.pngBuffer, "spreads", pagePath, "image/png");
 			if (pageUpload.code !== 200) return { ...ret, code: pageUpload.code, error: pageUpload.message };
 		}
 
 		await uploadSpread({
 			title: getFirstFieldValue(fields.title) || "No title provided",
-			src: buildSpreadSource(upload.message, totalPages),
+			src: buildSpreadSource(spreadPdfUrl, totalPages),
 			month: chosenMonth,
 			year: chosenYear,
 			category: "vanguard",

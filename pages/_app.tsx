@@ -299,9 +299,7 @@ function Masthead() {
 
 export default function App({ Component, pageProps }: AppProps) {
 	const router = useRouter();
-	const [pageTransitionState, setPageTransitionState] = useState<"idle" | "leaving" | "entering">("idle");
-	const transitionTimeoutRef = useRef<number | null>(null);
-	const enablePageTransitions = true;
+	const [routePending, setRoutePending] = useState(false);
 
 	useEffect(() => {
 		if (typeof window === "undefined") return;
@@ -312,44 +310,25 @@ export default function App({ Component, pageProps }: AppProps) {
 	}, []);
 
 	useEffect(() => {
-		if (!enablePageTransitions) return;
-		const clearTransitionTimeout = () => {
-			if (transitionTimeoutRef.current === null) return;
-			window.clearTimeout(transitionTimeoutRef.current);
-			transitionTimeoutRef.current = null;
-		};
-
 		const handleRouteStart = (url: string) => {
 			if (url === router.asPath) return;
-			clearTransitionTimeout();
-			setPageTransitionState("leaving");
+			setRoutePending(true);
 		};
 
-		const handleRouteComplete = () => {
-			clearTransitionTimeout();
-			setPageTransitionState("entering");
-			transitionTimeoutRef.current = window.setTimeout(() => {
-				setPageTransitionState("idle");
-				transitionTimeoutRef.current = null;
-			}, 150);
-		};
-
-		const handleRouteError = () => {
-			clearTransitionTimeout();
-			setPageTransitionState("idle");
+		const handleRouteDone = () => {
+			setRoutePending(false);
 		};
 
 		router.events.on("routeChangeStart", handleRouteStart);
-		router.events.on("routeChangeComplete", handleRouteComplete);
-		router.events.on("routeChangeError", handleRouteError);
+		router.events.on("routeChangeComplete", handleRouteDone);
+		router.events.on("routeChangeError", handleRouteDone);
 
 		return () => {
-			clearTransitionTimeout();
 			router.events.off("routeChangeStart", handleRouteStart);
-			router.events.off("routeChangeComplete", handleRouteComplete);
-			router.events.off("routeChangeError", handleRouteError);
+			router.events.off("routeChangeComplete", handleRouteDone);
+			router.events.off("routeChangeError", handleRouteDone);
 		};
-	}, [enablePageTransitions, router]);
+	}, [router]);
 
 	return (
 		<>
@@ -360,8 +339,8 @@ export default function App({ Component, pageProps }: AppProps) {
 			{/* <Banner /> */}
 			<Nav />
 			<PromoPopup />
-			<main className="content" data-transition={enablePageTransitions ? pageTransitionState : "idle"}>
-				<div className="page-shell">
+			<main className="content" data-route-pending={routePending ? "true" : "false"}>
+				<div className="page-shell" key={router.asPath}>
 					<Component {...pageProps} />
 				</div>
 			</main>

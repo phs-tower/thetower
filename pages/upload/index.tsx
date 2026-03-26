@@ -6,7 +6,7 @@ import Link from "next/link";
 import { remark } from "remark";
 import html from "remark-html";
 import confetti from "canvas-confetti";
-import { article, spreads } from "@prisma/client";
+import type { spreads } from "@prisma/client";
 import styles from "./upload.module.scss";
 import { ArticleContent } from "../articles/[year]/[month]/[cat]/[slug]";
 import dynamic from "next/dynamic";
@@ -19,111 +19,33 @@ import CrosswordBuilder, {
 	type CrosswordDraft,
 } from "~/components/crosswordbuilder.client";
 import { getSpreadPageImageUrl, inferVanguardPageFromImageUrl, parseSpreadSource } from "~/lib/utils";
-import { getPdfJs } from "~/lib/pdfjs-client";
+import {
+	buildLegacyVanguardSpreadPageAsset as createLegacyVanguardSpreadPageAsset,
+	buildPdfPreviewImages,
+	convertHeicToPng,
+	setFileInputVisualState,
+} from "~/lib/upload/client";
+import {
+	attemptUpload,
+	deleteUploadDraft,
+	fetchArticleForEditing,
+	fetchIssueArticles,
+	fetchIssueVanguardSpread,
+	uploadVanguardSpreadPdfDirect,
+} from "~/lib/upload/api";
+import {
+	THREE_DAYS_MS,
+	MONTH_NAMES,
+	formatBytes,
+	hasAllowedImageExtension,
+	isHeicLike,
+	normalizeVanguardSubcategory,
+	type FormDataType,
+	type UploadListItem,
+} from "~/lib/upload/shared";
 
 const Video = dynamic(() => import("~/components/video.client"), { ssr: false });
 const Podcast = dynamic(() => import("~/components/podcast.client"), { ssr: false });
-
-// Our form data shape (added contentInfo for header info)
-type FormDataType = {
-	category?: string | null;
-	subcategory?: string | null;
-	title?: string | null;
-	authors?: string | null;
-	content?: string | null;
-	contentInfo?: string | null; // New header info field
-	multi?: string | null;
-	img?: File | null; // Not stored in localStorage
-	spread?: File | null; // Not stored in localStorage
-	imgData?: string | null;
-	imgName?: string | null;
-	month?: number | null;
-	year?: number | null;
-	vanguardPageNumber?: number | null;
-};
-
-type UploadListItem = Pick<article, "id" | "title" | "category" | "subcategory" | "published" | "month" | "year">;
-
-// 72 hours in ms
-const THREE_DAYS_MS = 72 * 60 * 60 * 1000;
-const VALID_IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".heic", ".heif"];
-const HEIC_EXTENSIONS = [".heic", ".heif"];
-const MONTH_NAMES = ["", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-
-function hasAllowedImageExtension(fileName: string) {
-	const lowerName = fileName.toLowerCase();
-	return VALID_IMAGE_EXTENSIONS.some(ext => lowerName.endsWith(ext));
-}
-
-function isHeicLike(fileName: string) {
-	const lowerName = fileName.toLowerCase();
-	return HEIC_EXTENSIONS.some(ext => lowerName.endsWith(ext));
-}
-
-function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality?: number) {
-	return new Promise<Blob>((resolve, reject) => {
-		canvas.toBlob(
-			result => {
-				if (result) resolve(result);
-				else reject(new Error("Could not convert this Vanguard spread page into an image."));
-			},
-			type,
-			quality
-		);
-	});
-}
-
-function resizeCanvas(source: HTMLCanvasElement, maxDimension: number) {
-	const largestDimension = Math.max(source.width, source.height);
-	if (largestDimension <= maxDimension) return source;
-
-	const scale = maxDimension / largestDimension;
-	const resized = document.createElement("canvas");
-	resized.width = Math.max(1, Math.round(source.width * scale));
-	resized.height = Math.max(1, Math.round(source.height * scale));
-
-	const resizedContext = resized.getContext("2d");
-	if (!resizedContext) throw new Error("Could not resize this Vanguard spread page.");
-
-	resizedContext.drawImage(source, 0, 0, resized.width, resized.height);
-	return resized;
-}
-
-async function buildCompactCanvasImageAsset(canvas: HTMLCanvasElement, fileStem: string, targetBytes = 3_000_000) {
-	let workingCanvas = resizeCanvas(canvas, 2200);
-	let bestBlob = await canvasToBlob(workingCanvas, "image/webp", 0.94);
-	const qualities = [0.94, 0.9, 0.86, 0.82, 0.76];
-
-	for (let shrinkRound = 0; shrinkRound < 5; shrinkRound++) {
-		for (const quality of qualities) {
-			const blob = await canvasToBlob(workingCanvas, "image/webp", quality);
-			bestBlob = blob;
-			if (blob.size <= targetBytes) {
-				return {
-					previewUrl: URL.createObjectURL(blob),
-					file: new File([blob], `${fileStem}.webp`, {
-						type: "image/webp",
-						lastModified: Date.now(),
-					}),
-				};
-			}
-		}
-
-		workingCanvas = resizeCanvas(workingCanvas, Math.max(1200, Math.round(Math.max(workingCanvas.width, workingCanvas.height) * 0.9)));
-	}
-
-	return {
-		previewUrl: URL.createObjectURL(bestBlob),
-		file: new File([bestBlob], `${fileStem}.webp`, {
-			type: "image/webp",
-			lastModified: Date.now(),
-		}),
-	};
-}
-
-function normalizeVanguardSubcategory(subcategory?: string | null) {
-	return subcategory === "random-musings" ? "articles" : subcategory;
-}
 
 function SavingIndicator({ uploadStatus, isSaving }: { uploadStatus: string; isSaving: boolean }) {
 	return (
@@ -250,38 +172,8 @@ export default function Upload() {
 	}, []);
 
 	const buildLegacyVanguardSpreadPageAsset = useCallback(
-		async (spreadSrc: string, pageNumber: number) => {
-			const { pdfUrl } = parseSpreadSource(spreadSrc);
-			const sourceUrl = pdfUrl || spreadSrc;
-			const response = await fetch(sourceUrl);
-			if (!response.ok) throw new Error("Could not load this Vanguard spread PDF.");
-
-			const pdfjs = await getPdfJs();
-			const loadingTask = pdfjs.getDocument({ data: await response.arrayBuffer(), disableWorker: true } as any);
-			const pdf = await loadingTask.promise;
-			if (pageNumber > pdf.numPages) {
-				await loadingTask.destroy();
-				throw new Error(`Page ${pageNumber} is not available in this PDF.`);
-			}
-
-			const page = await pdf.getPage(pageNumber);
-			const viewport = page.getViewport({ scale: 1.25 });
-			const canvas = document.createElement("canvas");
-			const context = canvas.getContext("2d");
-			if (!context) {
-				await loadingTask.destroy();
-				throw new Error("Could not create a canvas context for this Vanguard page preview.");
-			}
-
-			canvas.width = Math.ceil(viewport.width);
-			canvas.height = Math.ceil(viewport.height);
-			await page.render({ canvasContext: context as any, viewport } as any).promise;
-
-			page.cleanup();
-			await loadingTask.destroy();
-
-			return await buildCompactCanvasImageAsset(canvas, `vanguard-${selectedYear}-${selectedMonth}-page-${pageNumber}`);
-		},
+		async (spreadSrc: string, pageNumber: number) =>
+			await createLegacyVanguardSpreadPageAsset(spreadSrc, pageNumber, `vanguard-${selectedYear}-${selectedMonth}-page-${pageNumber}`),
 		[selectedMonth, selectedYear]
 	);
 
@@ -432,14 +324,8 @@ export default function Upload() {
 			setIssueVanguardSpread(undefined);
 			setIssueVanguardSpreadLoading(true);
 			try {
-				const response = await fetch("/api/load/spread-by-issue", {
-					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({ category: "vanguard", month: selectedMonth, year: selectedYear }),
-				});
-				const data = await response.json();
-				if (!response.ok) throw new Error(data?.message || "Could not load the Vanguard spread for this issue.");
-				if (!cancelled) setIssueVanguardSpread(data ?? null);
+				const spread = await fetchIssueVanguardSpread(selectedMonth, selectedYear);
+				if (!cancelled) setIssueVanguardSpread(spread);
 			} catch (error) {
 				console.error(error);
 				if (!cancelled) setIssueVanguardSpread(null);
@@ -507,94 +393,16 @@ export default function Upload() {
 		setCompletedUploadMessage("");
 	}
 
-	function formatBytes(bytes: number | null | undefined) {
-		if (bytes === null || bytes === undefined) return "";
-		const units = ["B", "KB", "MB", "GB"] as const;
-		let b = bytes;
-		let i = 0;
-		while (b >= 1024 && i < units.length - 1) {
-			b /= 1024;
-			i++;
-		}
-		return `${Math.round(b * 10) / 10} ${units[i]}`;
-	}
-
 	function replaceSpreadPreviewUrls(urls: string[]) {
 		spreadPreviewUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
 		spreadPreviewUrlsRef.current = urls;
 		setSpreadPreviewUrls(urls);
 	}
 
-	function setFileInputVisualState(inp: HTMLInputElement) {
-		const label = inp.parentElement;
-		const fileName = inp.files?.[0]?.name ?? "";
-		const nameTarget = label?.querySelector("span.img-name");
-
-		if (nameTarget) nameTarget.textContent = fileName;
-		if (label) {
-			if (fileName) label.classList.add(styles["has-file"]);
-			else label.classList.remove(styles["has-file"]);
-		}
-	}
-
-	async function buildPdfPreviewImages(source: File) {
-		const pdfjs = await getPdfJs();
-		const loadingTask = pdfjs.getDocument({ data: await source.arrayBuffer(), disableWorker: true } as any);
-		const pdf = await loadingTask.promise;
-		const previewUrls: string[] = [];
-
-		for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
-			const page = await pdf.getPage(pageNumber);
-			const viewport = page.getViewport({ scale: 1.2 });
-			const canvas = document.createElement("canvas");
-			const context = canvas.getContext("2d");
-			if (!context) throw new Error("Could not create a canvas context for this PDF preview.");
-
-			canvas.width = Math.ceil(viewport.width);
-			canvas.height = Math.ceil(viewport.height);
-
-			await page.render({ canvasContext: context as any, viewport } as any).promise;
-
-			page.cleanup();
-			const previewAsset = await buildCompactCanvasImageAsset(canvas, `${source.name.replace(/\.pdf$/i, "")}-preview-${pageNumber}`, 800_000);
-			previewUrls.push(previewAsset.previewUrl);
-		}
-
-		await loadingTask.destroy();
-		return { previewUrls, pageCount: pdf.numPages };
-	}
-
-	async function convertHeicToPng(source: File): Promise<File> {
-		const fd = new FormData();
-		fd.append("img", source);
-		const response = await fetch("/api/upload/convert-image", {
-			method: "POST",
-			body: fd,
-		});
-		if (!response.ok) {
-			let msg = "Could not convert HEIC image.";
-			try {
-				const data = await response.json();
-				msg = data?.message || msg;
-			} catch {}
-			throw new Error(msg);
-		}
-		const converted = await response.blob();
-		const outName = source.name.replace(/\.(heic|heif)$/i, ".png");
-		return new File([converted], outName, { type: "image/png", lastModified: Date.now() });
-	}
-
 	async function refreshIssueArticles(month: number, year: number) {
 		setIssueArticlesLoading(true);
 		try {
-			const response = await fetch("/api/load/articles-by-issue", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ month, year }),
-			});
-			const data = await response.json();
-			if (!response.ok) throw new Error(data?.message || "Could not load uploaded articles.");
-			setIssueArticles(Array.isArray(data) ? data : []);
+			setIssueArticles(await fetchIssueArticles(month, year));
 		} catch (error) {
 			console.error(error);
 			setIssueArticles([]);
@@ -607,13 +415,7 @@ export default function Upload() {
 		dismissCompletedUploadMessage();
 		setLoadingArticleId(id);
 		try {
-			const response = await fetch("/api/load/article-by-id", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ id }),
-			});
-			const loaded = (await response.json()) as article & { message?: string };
-			if (!response.ok) throw new Error(loaded?.message || "Could not load this article.");
+			const loaded = await fetchArticleForEditing(id);
 			if (loaded.published) throw new Error("Published articles are locked and cannot be edited here.");
 			const normalizedSubcategory = loaded.category === "vanguard" ? normalizeVanguardSubcategory(loaded.subcategory) : loaded.subcategory;
 
@@ -657,18 +459,10 @@ export default function Upload() {
 
 		setDeletingDraft(true);
 		try {
-			const response = await fetch("/api/upload/delete-draft", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ id: editingArticleId }),
-			});
-			const data = await response.json();
-			if (!response.ok) throw new Error(data?.message || "Failed to delete draft.");
-
 			const month = formData.month ?? new Date().getMonth() + 1;
 			const year = formData.year ?? new Date().getFullYear();
 			clearEditingState();
-			setUploadResponse(data.message || "Draft deleted.");
+			setUploadResponse(await deleteUploadDraft(editingArticleId));
 			setUploadStatus("success");
 			void refreshIssueArticles(month, year);
 		} catch (error: any) {
@@ -792,7 +586,7 @@ export default function Upload() {
 			alert("Invalid file format. Please select a JPG, JPEG, PNG, WEBP, GIF, HEIC, or HEIF file.");
 			inp.value = "";
 			setFormData({ ...formData, img: null, imgData: null, imgName: null });
-			setFileInputVisualState(inp);
+			setFileInputVisualState(inp, styles["has-file"]);
 			return;
 		}
 
@@ -809,7 +603,7 @@ export default function Upload() {
 				triggerErrorAnimation();
 				inp.value = "";
 				setFormData({ ...formData, img: null, imgData: null, imgName: null });
-				setFileInputVisualState(inp);
+				setFileInputVisualState(inp, styles["has-file"]);
 				return;
 			}
 		}
@@ -824,7 +618,7 @@ export default function Upload() {
 			}));
 		};
 		reader.readAsDataURL(image);
-		setFileInputVisualState(inp);
+		setFileInputVisualState(inp, styles["has-file"]);
 	}
 
 	function clearImage() {
@@ -835,7 +629,7 @@ export default function Upload() {
 		const inp = document.getElementById("article-img-upload") as HTMLInputElement | null;
 		if (inp) {
 			inp.value = "";
-			setFileInputVisualState(inp);
+			setFileInputVisualState(inp, styles["has-file"]);
 		}
 	}
 
@@ -867,13 +661,13 @@ export default function Upload() {
 		const articleImageInput = document.getElementById("article-img-upload") as HTMLInputElement | null;
 		if (articleImageInput) {
 			articleImageInput.value = "";
-			setFileInputVisualState(articleImageInput);
+			setFileInputVisualState(articleImageInput, styles["has-file"]);
 		}
 
 		const spreadInput = document.getElementById("spread-upload") as HTMLInputElement | null;
 		if (spreadInput) {
 			spreadInput.value = "";
-			setFileInputVisualState(spreadInput);
+			setFileInputVisualState(spreadInput, styles["has-file"]);
 		}
 	}
 
@@ -889,7 +683,7 @@ export default function Upload() {
 			triggerErrorAnimation();
 			inp.value = "";
 			setFormData({ ...formData, spread: null });
-			setFileInputVisualState(inp);
+			setFileInputVisualState(inp, styles["has-file"]);
 			return;
 		}
 		const fiftyMB = 50 * 1024 * 1024;
@@ -902,7 +696,7 @@ export default function Upload() {
 			triggerErrorAnimation();
 			inp.value = "";
 			setFormData({ ...formData, spread: null });
-			setFileInputVisualState(inp);
+			setFileInputVisualState(inp, styles["has-file"]);
 			return;
 		}
 
@@ -912,7 +706,7 @@ export default function Upload() {
 			setFormData(prev => ({ ...prev, spread: file }));
 			setSpreadPageCount(pageCount);
 			replaceSpreadPreviewUrls(previewUrls);
-			setFileInputVisualState(inp);
+			setFileInputVisualState(inp, styles["has-file"]);
 			setUploadResponse(`Prepared ${pageCount} Vanguard spread page${pageCount === 1 ? "" : "s"} for preview.`);
 		} catch (error: any) {
 			console.error(error);
@@ -920,7 +714,7 @@ export default function Upload() {
 			setFormData(prev => ({ ...prev, spread: null }));
 			setSpreadPageCount(0);
 			replaceSpreadPreviewUrls([]);
-			setFileInputVisualState(inp);
+			setFileInputVisualState(inp, styles["has-file"]);
 			setUploadResponse(`Upload failed: ${error?.message || "Could not process the Vanguard PDF."}`);
 			setUploadStatus("error");
 			triggerErrorAnimation();
@@ -930,46 +724,6 @@ export default function Upload() {
 	function updateMulti(e: ChangeEvent<HTMLInputElement>) {
 		dismissCompletedUploadMessage();
 		setFormData({ ...formData, multi: e.target.value });
-	}
-
-	// Attempt upload with retries (1 extra attempt). Returns response even on non-OK.
-	async function attemptUpload(fd: FormData, retries = 1): Promise<{ response: Response; data: any }> {
-		try {
-			let response = await fetch("/api/upload", { method: "POST", body: fd });
-			let contentType = response.headers.get("content-type") || "";
-
-			let data;
-			if (contentType.includes("application/json")) {
-				try {
-					data = await response.json();
-				} catch (err) {
-					console.error("Failed to parse JSON:", err);
-					data = { message: "Invalid JSON response from server." };
-				}
-			} else {
-				const text = await response.text();
-
-				// If it's a common file-size error, throw something clear
-				if (text.toLowerCase().includes("entity too large")) {
-					throw new Error("Image is too large to upload. Try compressing or using a smaller image.");
-				}
-
-				// Fallback
-				console.error("Unexpected text response:", text);
-				throw new Error(text);
-			}
-
-			if (!response.ok) {
-				if (retries > 0) return await attemptUpload(fd, retries - 1);
-				// Return non-OK so caller can handle 413 (too large) differently.
-				return { response, data };
-			}
-
-			return { response, data };
-		} catch (error: any) {
-			if (retries > 0) return await attemptUpload(fd, retries - 1);
-			throw error;
-		}
 	}
 
 	async function submitArticle(e: FormEvent<HTMLFormElement>) {
@@ -1077,8 +831,26 @@ export default function Upload() {
 				triggerErrorAnimation();
 				return;
 			}
+
+			setUploadResponse("Uploading Vanguard PDF...");
+			let directUpload: { path: string };
+			try {
+				directUpload = await uploadVanguardSpreadPdfDirect(formData.spread);
+			} catch (error: any) {
+				setUploadResponse(`Upload failed: ${error?.message || "Could not upload the Vanguard PDF."}`);
+				setUploadStatus("error");
+				triggerErrorAnimation();
+				return;
+			}
+			if (!directUpload.path) {
+				setUploadResponse("Upload failed: the Vanguard PDF upload finished without a valid storage path.");
+				setUploadStatus("error");
+				triggerErrorAnimation();
+				return;
+			}
+
 			fd.append("subcategory", "spreads");
-			fd.append("spread", formData.spread);
+			fd.append("spread-storage-path", directUpload.path);
 			fd.append("title", formData.title || "");
 		}
 		// Multimedia
