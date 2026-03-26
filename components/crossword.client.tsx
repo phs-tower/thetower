@@ -1,26 +1,31 @@
 /** @format */
 
-import { useMutativeReducer } from "use-mutative";
 import { Action, CrosswordDispatchContext, crosswordStateReducer, initialStateFromInput } from "lib/crossword/state";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
 import { Direction, PuzzleInput, RuntimeClue } from "~/lib/crossword/types";
 import React from "react";
 import styles from "~/lib/styles";
 import SubBanner from "~/components/subbanner.client";
 import Link from "next/link";
+import CreditLink from "./credit.client";
 
-type Props = { puzzleInput: PuzzleInput };
+type Props = {
+	puzzleInput: PuzzleInput;
+	showArchiveTeaser?: boolean;
+	showSubscribePromo?: boolean;
+};
 
-export default function CrosswordGame({ puzzleInput }: Props) {
+export default function CrosswordGame({ puzzleInput, showArchiveTeaser = true, showSubscribePromo = true }: Props) {
 	const initialState = useMemo(() => {
 		return initialStateFromInput(puzzleInput);
 	}, [puzzleInput]);
 
-	const [state, dispatch] = useMutativeReducer(crosswordStateReducer, initialState);
-	const inputRef = useRef<HTMLInputElement>(null);
-	const focused = typeof window !== "undefined" ? inputRef.current == document.activeElement : false;
+	const [state, dispatch] = useReducer(crosswordStateReducer, initialState);
+	const boardRef = useRef<HTMLDivElement>(null);
+	const restoredStorageKeyRef = useRef<string | null>(null);
 	const cellSize = 30;
 	const hasMutatedRef = useRef(false);
+	const storageKey = useMemo(() => `crosswordGameState:v4:${puzzleInput.date}`, [puzzleInput.date]);
 
 	const date = useMemo(() => {
 		return new Date(puzzleInput.date);
@@ -31,16 +36,13 @@ export default function CrosswordGame({ puzzleInput }: Props) {
 	}, [state.grid]);
 
 	useEffect(() => {
-		if (won == true) {
+		if (won == true && !state.won) {
 			dispatch({ type: "setWon", to: true });
 		}
-	}, [dispatch, won]);
+	}, [dispatch, state.won, won]);
 
 	// Function to find the clue associated with the selected cell
 	const selectedClue = useMemo(() => {
-		if (!focused) {
-			return null;
-		}
 		const { row, col } = state.position;
 
 		const clue =
@@ -49,24 +51,39 @@ export default function CrosswordGame({ puzzleInput }: Props) {
 				: state.clues.down.find(clue => col === clue.col && row >= clue.row && row < clue.row + clue.answer.length) ?? null;
 
 		return clue;
-	}, [focused, state.position, state.direction, state.clues]);
+	}, [state.position, state.direction, state.clues]);
 
 	useEffect(() => {
 		if (hasMutatedRef.current) {
-			console.log("saving");
-			const serializedState = JSON.stringify(state);
-			localStorage.setItem("crosswordGameState", serializedState);
+			const serializedState = JSON.stringify({
+				grid: state.grid,
+				seconds: state.seconds,
+				position: state.position,
+				direction: state.direction,
+				autocheck: state.autocheck,
+			});
+			localStorage.setItem(storageKey, serializedState);
 		}
-	}, [state]);
+	}, [state.autocheck, state.direction, state.grid, state.position, state.seconds, storageKey]);
 
 	useEffect(() => {
-		console.log("loading");
-		const savedState = localStorage.getItem("crosswordGameState");
+		if (restoredStorageKeyRef.current === storageKey) return;
+		restoredStorageKeyRef.current = storageKey;
+
+		const savedState = localStorage.getItem(storageKey);
 		if (savedState) {
-			const parsedState = JSON.parse(savedState);
-			dispatch({ type: "loadState", state: parsedState });
+			try {
+				const parsedState = JSON.parse(savedState);
+				dispatch({ type: "loadState", state: parsedState, puzzleInput });
+			} catch {
+				localStorage.removeItem(storageKey);
+			}
 		}
-	}, [dispatch]);
+	}, [dispatch, puzzleInput, storageKey]);
+
+	const focusBoard = useCallback(() => {
+		boardRef.current?.focus();
+	}, []);
 
 	const dispatchWithTracking = useCallback(
 		(action: Action) => {
@@ -77,6 +94,10 @@ export default function CrosswordGame({ puzzleInput }: Props) {
 	);
 
 	useEffect(() => {
+		focusBoard();
+	}, [focusBoard, storageKey]);
+
+	useEffect(() => {
 		const intervalId = setInterval(() => {
 			if (!won) {
 				dispatchWithTracking({ type: "tick" });
@@ -85,6 +106,26 @@ export default function CrosswordGame({ puzzleInput }: Props) {
 
 		return () => clearInterval(intervalId);
 	}, [dispatchWithTracking, won]);
+
+	const focusClue = useCallback(
+		(clue: RuntimeClue, direction: Direction) => {
+			dispatchWithTracking({ type: "focusClue", row: clue.row, col: clue.col, direction });
+			focusBoard();
+		},
+		[dispatchWithTracking, focusBoard]
+	);
+
+	const handleBoardKeyDown = useCallback(
+		(e: React.KeyboardEvent<HTMLDivElement>) => {
+			const handledKeys = [" ", "Backspace", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"];
+			const isLetter = e.key.length === 1 && /[a-z]/i.test(e.key);
+			if (isLetter || handledKeys.includes(e.key)) {
+				e.preventDefault();
+			}
+			dispatchWithTracking({ type: "keyDown", key: e.key });
+		},
+		[dispatchWithTracking]
+	);
 
 	return (
 		<CrosswordDispatchContext.Provider value={dispatchWithTracking}>
@@ -127,19 +168,28 @@ export default function CrosswordGame({ puzzleInput }: Props) {
 				}
 			`}</style>
 			<div className="title-container">
-				<h1>The Crossword</h1>
+				<h1>{puzzleInput.title}</h1>
 				<p style={{ fontFamily: styles.font.sans }}>
-					By {puzzleInput.author} on {date.toLocaleString("en-us", { timeZone: "America/New_York", dateStyle: "long" })}
+					By <CreditLink author={puzzleInput.author} /> on{" "}
+					{date.toLocaleString("en-us", { timeZone: "America/New_York", dateStyle: "long" })}
 				</p>
 			</div>
 			<MenuBar
 				seconds={state.seconds}
 				autocheck={state.autocheck}
 				paused={state.paused}
-				won={won}
-				onReset={() => dispatchWithTracking({ type: "resetGrid", puzzleInput: puzzleInput })}
-				onToggleAutocheck={() => dispatch({ type: "toggleAutocheck" })}
-				onTogglePaused={() => dispatch({ type: "togglePaused" })}
+				onReset={() => {
+					dispatchWithTracking({ type: "resetGrid", puzzleInput: puzzleInput });
+					focusBoard();
+				}}
+				onToggleAutocheck={() => {
+					dispatchWithTracking({ type: "toggleAutocheck" });
+					focusBoard();
+				}}
+				onTogglePaused={() => {
+					dispatchWithTracking({ type: "togglePaused" });
+					focusBoard();
+				}}
 			/>
 
 			{state.paused ? (
@@ -154,14 +204,7 @@ export default function CrosswordGame({ puzzleInput }: Props) {
 				</div>
 			) : (
 				<div className="crossword-container">
-					<input
-						ref={inputRef}
-						type="text"
-						className="hidden-input"
-						onKeyDown={e => dispatchWithTracking({ type: "keyDown", key: e.key })}
-						style={{ position: "absolute", opacity: 0, pointerEvents: "none" }}
-					/>
-					<div>
+					<div ref={boardRef} tabIndex={0} onKeyDown={handleBoardKeyDown} style={{ outline: "none" }} aria-label="Crossword grid">
 						<SelectedCluePanel clue={selectedClue ?? undefined} direction={state.direction} />
 						<svg
 							className="crossword-svg"
@@ -177,7 +220,7 @@ export default function CrosswordGame({ puzzleInput }: Props) {
 												guess={cell.guess}
 												answer={cell.answer}
 												num={cell.num}
-												isSelected={focused && rowIndex == state.position.row && colIndex == state.position.col}
+												isSelected={rowIndex == state.position.row && colIndex == state.position.col}
 												isHighlighted={
 													state.direction == "across"
 														? selectedClue?.row == rowIndex &&
@@ -189,9 +232,8 @@ export default function CrosswordGame({ puzzleInput }: Props) {
 												}
 												isWrong={state.autocheck && cell.guess != null && cell.guess != cell.answer}
 												onClick={() => {
-													console.log("cloick");
 													dispatchWithTracking({ type: "selectCell", row: rowIndex, col: colIndex });
-													inputRef.current?.focus();
+													focusBoard();
 												}}
 												size={cellSize}
 												x={colIndex}
@@ -203,16 +245,32 @@ export default function CrosswordGame({ puzzleInput }: Props) {
 						</svg>
 					</div>
 					<div className="clues-container">
-						<CluesSectionMemo clues={state.clues.across} title="Across" />
-						<CluesSectionMemo clues={state.clues.down} title="Down" />
+						<CluesSectionMemo
+							clues={state.clues.across}
+							title="Across"
+							direction="across"
+							selectedClueNum={selectedClue?.num}
+							selectedDirection={state.direction}
+							onSelectClue={focusClue}
+						/>
+						<CluesSectionMemo
+							clues={state.clues.down}
+							title="Down"
+							direction="down"
+							selectedClueNum={selectedClue?.num}
+							selectedDirection={state.direction}
+							onSelectClue={focusClue}
+						/>
 					</div>
 				</div>
 			)}
 			<br />
-			<Link href="/games/crossword/archive">
-				<p>Explore more at our archives &#x21E8;</p>
-			</Link>
-			<SubBanner title="Enjoyed the crossword? Consider subscribing." />
+			{showArchiveTeaser ? (
+				<Link href="/games/crossword">
+					<p>Browse the latest puzzle and archive &#x21E8;</p>
+				</Link>
+			) : null}
+			{showSubscribePromo ? <SubBanner title="Enjoyed the crossword? Consider subscribing." /> : null}
 		</CrosswordDispatchContext.Provider>
 	);
 }
@@ -234,7 +292,13 @@ function Cell({ guess, answer, isSelected, isHighlighted, isWrong, size, x, y, o
 	const fillColor = isSelected ? "#FFD700" : isHighlighted ? "#9dd9fa" : "white";
 
 	return (
-		<g onClick={onClick}>
+		<g
+			onPointerDown={e => {
+				e.preventDefault();
+				onClick();
+			}}
+			style={{ cursor: "pointer" }}
+		>
 			<rect x={x * size} y={y * size} width={size} height={size} fill={fillColor} stroke="#555555" strokeWidth={0.6} />
 			<text x={x * size + 6} y={y * size + 8} fontSize={size * 0.3} dominantBaseline="left" textAnchor="middle" fill="black">
 				{num}
@@ -274,7 +338,6 @@ type MenuBarProps = {
 	seconds: number;
 	paused: boolean;
 	autocheck: boolean;
-	won: boolean;
 
 	onTogglePaused?: () => void;
 	onReset?: () => void;
@@ -282,7 +345,7 @@ type MenuBarProps = {
 };
 
 // MenuBar component with toggle button for autocheck and reset button
-function MenuBar({ seconds, paused, autocheck, onTogglePaused, onReset, onToggleAutocheck, won }: MenuBarProps) {
+function MenuBar({ seconds, paused, autocheck, onTogglePaused, onReset, onToggleAutocheck }: MenuBarProps) {
 	return (
 		<div className="menu-bar">
 			<style jsx>{`
@@ -345,10 +408,13 @@ function MenuBar({ seconds, paused, autocheck, onTogglePaused, onReset, onToggle
 type CluesSectionProps = {
 	title: string;
 	clues: RuntimeClue[];
+	direction: Direction;
+	selectedClueNum?: string;
+	selectedDirection: Direction;
+	onSelectClue: (clue: RuntimeClue, direction: Direction) => void;
 };
 
-function CluesSection({ clues, title }: CluesSectionProps): JSX.Element {
-	console.log("rerendering clues");
+function CluesSection({ clues, title, direction, selectedClueNum, selectedDirection, onSelectClue }: CluesSectionProps): JSX.Element {
 	return (
 		<div className="clues-section">
 			<style jsx>{`
@@ -365,23 +431,52 @@ function CluesSection({ clues, title }: CluesSectionProps): JSX.Element {
 				}
 
 				li {
-					margin-bottom: 10px; /* Adjust the margin as needed */
+					margin-bottom: 6px;
 					font-size: 1rem;
 				}
 
 				.clue-number {
-					margin-right: 5px; /* Adjust the margin as needed */
+					margin-right: 5px;
 				}
 
 				h2 {
 					padding-bottom: 10px;
+				}
+
+				.clue-button {
+					width: 100%;
+					border: none;
+					background: transparent;
+					padding: 0.45rem 0.5rem;
+					text-align: left;
+					top: 0;
+					transition: background 0.18s ease, color 0.18s ease;
+				}
+
+				.clue-button:hover {
+					background: #eef4fb;
+				}
+
+				.clue-button.is-active {
+					background: #dcecff;
+				}
+
+				.clue-button:focus-visible {
+					outline: 2px solid rgb(94, 150, 229);
+					outline-offset: 1px;
 				}
 			`}</style>
 			<h2>{title}</h2>
 			<ul>
 				{clues.map((clue: RuntimeClue) => (
 					<li key={clue.num}>
-						<span className="clue-number">{clue.num}</span> {clue.clue}
+						<button
+							type="button"
+							className={`clue-button ${selectedDirection === direction && selectedClueNum === clue.num ? "is-active" : ""}`}
+							onClick={() => onSelectClue(clue, direction)}
+						>
+							<span className="clue-number">{clue.num}</span> {clue.clue}
+						</button>
 					</li>
 				))}
 			</ul>

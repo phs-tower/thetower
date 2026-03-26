@@ -37,6 +37,7 @@ model spreads {
 model crossword {
   id     BigInt   @id @default(autoincrement())
   date   DateTime @unique(map: "crossword_created_at_key") @db.Date
+  title  String?  @db.VarChar
   author String   @db.VarChar
   clues  String
 }

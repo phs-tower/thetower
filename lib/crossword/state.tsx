@@ -1,13 +1,11 @@
 /** @format */
 
-import { createContext, useContext } from "react";
-import { useMutativeReducer } from "use-mutative";
+import { createContext, useContext, type Dispatch } from "react";
 import { Clues, Direction, GameState, GridData, PuzzleInput, SavedPuzzleState } from "./types";
 
-type Dispatcher = ReturnType<typeof useMutativeReducer<GameState, Action>>[1];
+type Dispatcher = Dispatch<Action>;
 
 export function initialStateFromInput(input: PuzzleInput, existingGrid?: GridData): GameState {
-	console.log("create an initial state");
 	let max = 0;
 
 	for (const directionKey in input.clues) {
@@ -25,9 +23,7 @@ export function initialStateFromInput(input: PuzzleInput, existingGrid?: GridDat
 	}
 
 	// Initialize grid with unused cells
-	const grid: GridData = Array(max)
-		.fill(null)
-		.map(() => Array(max).fill({ used: false }));
+	const grid: GridData = Array.from({ length: max }, () => Array.from({ length: max }, () => ({ used: false })));
 
 	// Populate grid with used cells and set numbers for starting positions
 	const clues: Clues = { across: [], down: [] };
@@ -54,14 +50,18 @@ export function initialStateFromInput(input: PuzzleInput, existingGrid?: GridDat
 		clues[direction as Direction].sort((a, b) => Number(a.num) - Number(b.num));
 	}
 
+	const firstClue = clues.across[0] ?? clues.down[0];
+	const initialPosition = firstClue ? { row: firstClue.row, col: firstClue.col } : { row: 0, col: 0 };
+	const initialDirection: Direction = clues.across[0] ? "across" : "down";
+
 	// Set initial state
 	return {
 		rows: max,
 		cols: max,
 		grid: existingGrid ?? grid,
 		clues,
-		position: { row: 0, col: 0 },
-		direction: "across",
+		position: initialPosition,
+		direction: initialDirection,
 		seconds: 0,
 		autocheck: false,
 		paused: false,
@@ -71,15 +71,20 @@ export function initialStateFromInput(input: PuzzleInput, existingGrid?: GridDat
 
 export type Action =
 	| { type: "selectCell"; col: number; row: number }
+	| { type: "focusClue"; col: number; row: number; direction: Direction }
 	| { type: "keyDown"; key: string }
-	| { type: "loadState"; state: SavedPuzzleState }
+	| { type: "loadState"; state: SavedPuzzleState; puzzleInput: PuzzleInput }
 	| { type: "tick" }
 	| { type: "resetGrid"; puzzleInput: PuzzleInput }
 	| { type: "toggleAutocheck" }
 	| { type: "togglePaused" }
 	| { type: "setWon"; to: boolean };
 
-export function crosswordStateReducer(state: GameState, action: Action) {
+function isDirection(value: unknown): value is Direction {
+	return value === "across" || value === "down";
+}
+
+function applyCrosswordAction(state: GameState, action: Action) {
 	function moveRelative(rows: number, cols: number) {
 		const newRow = state.position.row + rows;
 		const newCol = state.position.col + cols;
@@ -114,7 +119,12 @@ export function crosswordStateReducer(state: GameState, action: Action) {
 			} else {
 				state.position = { col: action.col, row: action.row };
 			}
-			break;
+			return;
+		}
+		case "focusClue": {
+			state.position = { col: action.col, row: action.row };
+			state.direction = action.direction;
+			return;
 		}
 		case "keyDown": {
 			const cell = state.grid[state.position.row][state.position.col];
@@ -163,42 +173,90 @@ export function crosswordStateReducer(state: GameState, action: Action) {
 				}
 			}
 
-			break;
+			return;
 		}
 		case "loadState": {
-			state.seconds = action.state.seconds;
-			state.grid = action.state.grid;
-			break;
-		}
+			const restored = initialStateFromInput(action.puzzleInput);
+			const savedGrid = action.state.grid;
 
+			if (Array.isArray(savedGrid)) {
+				for (let row = 0; row < restored.rows; row++) {
+					for (let col = 0; col < restored.cols; col++) {
+						const restoredCell = restored.grid[row]?.[col];
+						const savedCell = savedGrid[row]?.[col];
+
+						if (!restoredCell?.used || !savedCell || !savedCell.used) continue;
+						if (typeof savedCell.guess === "string" && savedCell.guess.length === 1) {
+							restoredCell.guess = savedCell.guess.toUpperCase();
+						}
+					}
+				}
+			}
+
+			state.grid = restored.grid;
+			state.clues = restored.clues;
+			state.rows = restored.rows;
+			state.cols = restored.cols;
+			state.seconds = Number.isFinite(action.state.seconds) && action.state.seconds >= 0 ? action.state.seconds : 0;
+			state.autocheck = Boolean(action.state.autocheck);
+			state.paused = false;
+			state.won = false;
+			state.direction = isDirection(action.state.direction) ? action.state.direction : restored.direction;
+
+			const savedPosition = action.state.position;
+			if (
+				savedPosition &&
+				Number.isInteger(savedPosition.row) &&
+				Number.isInteger(savedPosition.col) &&
+				savedPosition.row >= 0 &&
+				savedPosition.row < restored.rows &&
+				savedPosition.col >= 0 &&
+				savedPosition.col < restored.cols &&
+				restored.grid[savedPosition.row][savedPosition.col].used
+			) {
+				state.position = savedPosition;
+			} else {
+				state.position = restored.position;
+			}
+			return;
+		}
 		case "tick": {
 			if (state.paused) return;
 			state.seconds++;
-			break;
+			return;
 		}
-
 		case "resetGrid": {
-			state.grid = initialStateFromInput(action.puzzleInput).grid;
+			const resetState = initialStateFromInput(action.puzzleInput);
+			state.grid = resetState.grid;
+			state.clues = resetState.clues;
+			state.rows = resetState.rows;
+			state.cols = resetState.cols;
+			state.position = resetState.position;
+			state.direction = resetState.direction;
 			state.seconds = 0;
+			state.paused = false;
 			state.won = false;
-			break;
+			return;
 		}
-
 		case "toggleAutocheck": {
 			state.autocheck = !state.autocheck;
-			break;
+			return;
 		}
-
 		case "togglePaused": {
 			state.paused = !state.paused;
-			break;
+			return;
 		}
-
 		case "setWon": {
 			state.won = action.to;
-			break;
+			return;
 		}
 	}
+}
+
+export function crosswordStateReducer(state: GameState, action: Action) {
+	const nextState = structuredClone(state) as GameState;
+	applyCrosswordAction(nextState, action);
+	return nextState;
 }
 
 export const CrosswordDispatchContext = createContext<Dispatcher>(_ => {});

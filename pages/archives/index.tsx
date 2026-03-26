@@ -30,19 +30,24 @@ function ArchiveList({ availableIssues }: Props) {
 	const years = [...new Set(availableIssues.map(issue => issue.year))].sort((a, b) => b - a);
 
 	for (const year of years) {
-		const container = [];
-		for (let month of [12, 11, 10, 9, 6, 4, 3, 2]) {
-			if (!issueSet.has(`${year}-${month}`)) continue;
-
-			container.push(<VirtualArchive key={month} month={month} year={year} />);
-		}
+		const yearIssues = availableIssues
+			.filter(issue => issue.year === year && issueSet.has(`${issue.year}-${issue.month}`))
+			.sort((a, b) => b.month - a.month);
+		const container = yearIssues.map((issue, index) => (
+			<VirtualArchive key={`${issue.year}-${issue.month}`} month={issue.month} year={issue.year} issueNumber={index + 1} />
+		));
 
 		if (!container.length) continue;
-		outer.push(<h2 key={year * 2}>{year}</h2>);
 		outer.push(
-			<div className={styles.container} key={year * 2 + 1}>
-				{container}
-			</div>
+			<section className={styles.yearSection} key={year}>
+				<div className={styles.yearHeader}>
+					<h2>{year}</h2>
+					<p>
+						{container.length} issue{container.length === 1 ? "" : "s"}
+					</p>
+				</div>
+				<div className={styles.container}>{container}</div>
+			</section>
 		);
 	}
 
@@ -57,8 +62,14 @@ export default function Archives({ availableIssues }: Props) {
 				<meta property="og:title" content="Archives | The Tower" />
 				<meta property="og:description" content="Read scanned PDF newspapers here" />
 			</Head>
-			<h1>Archives</h1>
-			<br></br>
+			<header className={styles.hero}>
+				<p className={styles.eyebrow}>Print and Issue Archive</p>
+				<h1>Archives</h1>
+				<p className={styles.description}>
+					Browse past Tower issues by month. Each archive opens the issue landing page with featured stories, section lists, and the digital
+					copy when available.
+				</p>
+			</header>
 			<ArchiveList availableIssues={availableIssues}></ArchiveList>
 		</div>
 	);

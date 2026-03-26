@@ -5,7 +5,7 @@ import Head from "next/head";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import type { MouseEvent } from "react";
+import type { FormEvent, MouseEvent } from "react";
 import "~/styles/styles.scss";
 import styles from "~/lib/styles";
 import { useRouter } from "next/router";
@@ -127,6 +127,7 @@ export function Nav() {
 					name="SPORTS"
 					subsections={[{ name: "Student Athletes", href: "/category/sports/student-athletes" }]}
 				/>
+				<SectionLink href="/games/crossword" name="CROSSWORDS" />
 				<SectionLink href="/about" name="ABOUT" subsections={aboutSubsections} />
 				<SectionLink href="/archives" name="ARCHIVES" />
 			</div>
@@ -140,6 +141,12 @@ function Masthead() {
 	const [menuX, setMenuX] = useState(false);
 	const router = useRouter();
 	const searchInputRef = useRef<HTMLInputElement>(null);
+
+	const submitSearch = (e?: FormEvent<HTMLFormElement>) => {
+		e?.preventDefault();
+		const q = encodeURIComponent(searchInputRef.current?.value || "");
+		router.push(`/search/${q}`);
+	};
 
 	async function pdfExists(month: number, year: number) {
 		const url = `https://yusjougmsdnhcsksadaw.supabase.co/storage/v1/object/public/prints/${month}-${year}.pdf`;
@@ -248,15 +255,14 @@ function Masthead() {
 						<p suppressHydrationWarning>{displayFullDate().toUpperCase()}</p>
 					</div>
 					<button id="menu" data-open={menuOpen} onClick={() => setMenuOpen(!menuOpen)}>
-						{menuX ? (
-							<svg viewBox="0 0 24 24" aria-hidden="true">
-								<path d="M6 6l12 12M18 6l-12 12" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
-							</svg>
-						) : (
-							<svg viewBox="0 0 24 24" aria-hidden="true">
+						<span className="menu-icon" aria-hidden="true">
+							<svg className="menu-icon-hamburger" viewBox="0 0 24 24">
 								<path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
 							</svg>
-						)}
+							<svg className="menu-icon-close" viewBox="0 0 24 24">
+								<path d="M6 6l12 12M18 6l-12 12" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+							</svg>
+						</span>
 						<span>Sections</span>
 					</button>
 				</div>
@@ -264,32 +270,27 @@ function Masthead() {
 					<button className="subscribe" onClick={() => router.push("/subscribe")}>
 						<span>Subscribe</span>
 					</button>
-					<div className="search-box">
+					<form className="search-box" role="search" autoComplete="off" onSubmit={submitSearch}>
 						<input
 							ref={searchInputRef}
-							type="text"
+							type="search"
+							name="tower-search"
 							placeholder="Search"
+							aria-label="Search articles"
+							autoComplete="off"
+							autoCorrect="off"
+							autoCapitalize="none"
+							spellCheck={false}
+							enterKeyHint="search"
 							onFocus={() => warmSearchIndex()}
-							onKeyDown={e => {
-								if (e.key === "Enter") {
-									const q = encodeURIComponent(searchInputRef.current?.value || "");
-									router.push(`/search/${q}`);
-								}
-							}}
 						/>
-						<button
-							onMouseEnter={() => warmSearchIndex()}
-							onClick={() => {
-								const q = encodeURIComponent(searchInputRef.current?.value || "");
-								router.push(`/search/${q}`);
-							}}
-						>
+						<button type="submit" aria-label="Submit search" onMouseEnter={() => warmSearchIndex()}>
 							<svg viewBox="0 0 24 24" aria-hidden="true">
 								<circle cx="11" cy="11" r="6.5" stroke="currentColor" strokeWidth="2" fill="none" />
 								<path d="M16.2 16.2l4.3 4.3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
 							</svg>
 						</button>
-					</div>
+					</form>
 				</div>
 			</div>
 		</div>
@@ -297,6 +298,11 @@ function Masthead() {
 }
 
 export default function App({ Component, pageProps }: AppProps) {
+	const router = useRouter();
+	const [pageTransitionState, setPageTransitionState] = useState<"idle" | "leaving" | "entering">("idle");
+	const transitionTimeoutRef = useRef<number | null>(null);
+	const enablePageTransitions = process.env.NODE_ENV === "production";
+
 	useEffect(() => {
 		if (typeof window === "undefined") return;
 		if (sessionStorage.getItem(SITE_VISIT_TRACKED_KEY)) return;
@@ -304,6 +310,46 @@ export default function App({ Component, pageProps }: AppProps) {
 
 		fetch("/api/track", { method: "POST" }).catch(() => {});
 	}, []);
+
+	useEffect(() => {
+		if (!enablePageTransitions) return;
+		const clearTransitionTimeout = () => {
+			if (transitionTimeoutRef.current === null) return;
+			window.clearTimeout(transitionTimeoutRef.current);
+			transitionTimeoutRef.current = null;
+		};
+
+		const handleRouteStart = (url: string) => {
+			if (url === router.asPath) return;
+			clearTransitionTimeout();
+			setPageTransitionState("leaving");
+		};
+
+		const handleRouteComplete = () => {
+			clearTransitionTimeout();
+			setPageTransitionState("entering");
+			transitionTimeoutRef.current = window.setTimeout(() => {
+				setPageTransitionState("idle");
+				transitionTimeoutRef.current = null;
+			}, 220);
+		};
+
+		const handleRouteError = () => {
+			clearTransitionTimeout();
+			setPageTransitionState("idle");
+		};
+
+		router.events.on("routeChangeStart", handleRouteStart);
+		router.events.on("routeChangeComplete", handleRouteComplete);
+		router.events.on("routeChangeError", handleRouteError);
+
+		return () => {
+			clearTransitionTimeout();
+			router.events.off("routeChangeStart", handleRouteStart);
+			router.events.off("routeChangeComplete", handleRouteComplete);
+			router.events.off("routeChangeError", handleRouteError);
+		};
+	}, [enablePageTransitions, router]);
 
 	return (
 		<>
@@ -314,8 +360,10 @@ export default function App({ Component, pageProps }: AppProps) {
 			{/* <Banner /> */}
 			<Nav />
 			<PromoPopup />
-			<main className="content">
-				<Component {...pageProps} />
+			<main className="content" data-transition={enablePageTransitions ? pageTransitionState : "idle"}>
+				<div className="page-shell">
+					<Component {...pageProps} />
+				</div>
 			</main>
 			<Footer />
 			<Analytics />

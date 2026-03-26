@@ -8,8 +8,10 @@ import styles from "~/lib/styles";
 import React, { Fragment } from "react";
 import Image from "next/image";
 
+export type PreviewArticle = article & { href?: string };
+
 interface Props {
-	article: article;
+	article: PreviewArticle;
 	category?: boolean;
 	style?: "box" | "row";
 	size?: "small" | "medium" | "large" | "featured" | "category-list";
@@ -135,6 +137,11 @@ export default function ArticlePreview({
 	const previewText = showPreviewText && charlen > 0 && article.content ? buildPreviewText(article.content, charlen) : "";
 	const imageSizes = getPreviewImageSizes(style, size, shrinkThumb);
 	const priority = style === "box" && size === "featured";
+	const href =
+		article.href ??
+		`/articles/${article.year}/${article.month}/${article.category}/${article.title.replaceAll(" ", "-").replaceAll(/[^0-9a-z\-]/gi, "")}-${
+			article.id
+		}`;
 
 	return (
 		<div className={"article-preview " + style + " " + size + " " + showimg}>
@@ -299,8 +306,21 @@ export default function ArticlePreview({
 				}
 
 				/* Keep featured text aligned with featured image (now 7% side margins) */
-				.featured-preview > div:last-child {
+				.featured-preview > .content-block {
 					padding-inline: 1%;
+				}
+				.article-preview.box.featured > .featured-preview {
+					display: flex;
+					flex-direction: column;
+				}
+				.article-preview.box.featured > .featured-preview > .img-wrapper {
+					order: 2;
+				}
+				.article-preview.box.featured > .featured-preview > .content-block {
+					order: 1;
+				}
+				.article-preview.box.featured > .featured-preview > .note-below-image {
+					order: 3;
 				}
 				.article-preview > .medium-preview {
 					display: contents;
@@ -375,7 +395,7 @@ export default function ArticlePreview({
 						max-height: 9rem !important;
 					}
 
-					.featured-preview > div:last-child {
+					.featured-preview > .content-block {
 						padding-inline: clamp(0.9rem, 3.75vw, 1.35rem);
 					}
 
@@ -480,7 +500,7 @@ export default function ArticlePreview({
 					)}
 				</div>
 				{noteBelowImage ? <div className="note-below-image">{noteBelowImage}</div> : null}
-				<div>
+				<div className="content-block">
 					{eyebrow ? <div className="article-eyebrow">{eyebrow}</div> : null}
 					<section className="category">
 						{category && (
@@ -491,12 +511,7 @@ export default function ArticlePreview({
 					</section>
 					{showIssueDate ? <section className="issue-date">{displayDate(article.year, article.month)}</section> : null}
 					<section className="title">
-						<Link
-							href={`/articles/${article.year}/${article.month}/${article.category}/${article.title
-								.replaceAll(" ", "-")
-								.replaceAll(/[^0-9a-z\-]/gi, "")}-${article.id}`}
-							legacyBehavior
-						>
+						<Link href={href} legacyBehavior>
 							<a className={size}>{article.title}</a>
 						</Link>
 					</section>

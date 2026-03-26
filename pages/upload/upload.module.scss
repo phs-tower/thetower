@@ -301,11 +301,39 @@
 .submit-row {
 	margin-top: 1rem;
 	margin-bottom: 1rem;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.75rem;
 }
 
 .submit-response {
-	margin-top: 0.75rem;
+	margin-top: 0;
 	margin-bottom: 0;
+	flex-basis: 100%;
+}
+
+.reset-query-button {
+	display: block;
+	padding: 0 !important;
+	margin-top: -0.35rem;
+	margin-bottom: 1rem;
+	border: none !important;
+	background: transparent !important;
+	color: #6b6b6b;
+	font-size: 0.82rem !important;
+	text-decoration: underline;
+	text-underline-offset: 0.14em;
+	transition: color 0.18s ease, opacity 0.18s ease;
+
+	&:hover {
+		color: var(--accent);
+		background: transparent !important;
+	}
+
+	&:active {
+		top: 0;
+	}
 }
 
 .completed-upload-message {

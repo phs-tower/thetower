@@ -9,10 +9,12 @@ import {
 	updateArticleById,
 	uploadArticle,
 	uploadBuffer,
+	uploadCrossword,
 	uploadFile,
 	uploadMulti,
 	uploadSpread,
 } from "~/lib/queries";
+import { renderPdfBufferToPngBuffers } from "~/lib/spread-pages";
 import { buildSpreadSource, getSpreadPageImageUrl, parseSpreadSource } from "~/lib/utils";
 
 function getSingleFile(fileField: formidable.File | formidable.File[] | undefined) {
@@ -29,30 +31,11 @@ function normalizeVanguardSubcategory(category: string, subcategory: string) {
 	return category === "vanguard" && subcategory === "random-musings" ? "articles" : subcategory;
 }
 
-function getSpreadPageFiles(files: formidable.Files) {
-	return Object.entries(files)
-		.map(([fieldName, fileValue]) => ({
-			fieldName,
-			pageNumber: Number(fieldName.replace("spread-page-", "")),
-			file: getSingleFile(fileValue),
-		}))
-		.filter(entry => entry.fieldName.startsWith("spread-page-") && entry.file && Number.isInteger(entry.pageNumber) && entry.pageNumber > 0)
-		.sort((a, b) => a.pageNumber - b.pageNumber) as { fieldName: string; pageNumber: number; file: formidable.File }[];
-}
-
 async function uploadVanguardSpread(files: formidable.Files, fields: formidable.Fields, chosenMonth: number, chosenYear: number) {
 	let ret = { code: 500, error: "" };
 
 	const spreadFile = getSingleFile(files.spread);
 	if (!spreadFile) return { ...ret, error: "Did you upload a spread?" };
-	const spreadPageFiles = getSpreadPageFiles(files);
-	const clientPageCount = Number(getFirstFieldValue((fields as any)["spread-page-count"]));
-	if (!clientPageCount || spreadPageFiles.length === 0) {
-		return { ...ret, error: "The PDF preview pages could not be generated. Re-select the spread PDF and try again." };
-	}
-	if (spreadPageFiles.length !== clientPageCount) {
-		return { ...ret, error: "The Vanguard spread page previews were incomplete. Re-select the PDF and try again." };
-	}
 
 	const upload = await uploadFile(spreadFile, "spreads");
 	if (upload.code != 200) return { ...ret, code: upload.code, error: upload.message };
@@ -61,16 +44,21 @@ async function uploadVanguardSpread(files: formidable.Files, fields: formidable.
 	}
 
 	try {
-		for (const pageEntry of spreadPageFiles) {
-			const pageBuffer = await readFile(pageEntry.file.filepath);
-			const pagePath = upload.path.replace(/\.pdf$/i, `-page-${pageEntry.pageNumber}.png`);
-			const pageUpload = await uploadBuffer(pageBuffer, "spreads", pagePath, pageEntry.file.mimetype || "image/png");
+		const pdfBuffer = await readFile(spreadFile.filepath);
+		const { renderedPages, totalPages } = await renderPdfBufferToPngBuffers(pdfBuffer);
+		if (!totalPages || renderedPages.length === 0) {
+			return { ...ret, error: "The Vanguard spread PDF could not be rendered into page images." };
+		}
+
+		for (const renderedPage of renderedPages) {
+			const pagePath = upload.path.replace(/\.pdf$/i, `-page-${renderedPage.pageNumber}.png`);
+			const pageUpload = await uploadBuffer(renderedPage.pngBuffer, "spreads", pagePath, "image/png");
 			if (pageUpload.code !== 200) return { ...ret, code: pageUpload.code, error: pageUpload.message };
 		}
 
 		await uploadSpread({
 			title: getFirstFieldValue(fields.title) || "No title provided",
-			src: buildSpreadSource(upload.message, clientPageCount),
+			src: buildSpreadSource(upload.message, totalPages),
 			month: chosenMonth,
 			year: chosenYear,
 			category: "vanguard",
@@ -124,6 +112,42 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 				});
 				return res.status(200).json({ message: "Uploaded!" });
 			} catch (e) {
+				return res.status(500).json({ message: `Unexpected problem in the server! Message: ${e}` });
+			}
+		}
+		if (category == "crossword") {
+			const title = getFirstFieldValue((fields as any)["crossword-title"]).trim();
+			const author = getFirstFieldValue((fields as any)["crossword-author"]).trim();
+			const dateValue = getFirstFieldValue((fields as any)["crossword-date"]).trim();
+			const cluesRaw = getFirstFieldValue((fields as any)["crossword-clues"]).trim();
+			if (!title || !author || !dateValue || !cluesRaw) {
+				return res.status(400).json({ message: "Upload failed: crossword title, author, date, and clues are required." });
+			}
+
+			const crosswordDate = new Date(`${dateValue}T00:00:00`);
+			if (Number.isNaN(crosswordDate.getTime())) {
+				return res.status(400).json({ message: "Upload failed: crossword date is invalid." });
+			}
+
+			try {
+				JSON.parse(cluesRaw);
+			} catch {
+				return res.status(400).json({ message: "Upload failed: crossword clue data is invalid." });
+			}
+
+			try {
+				await uploadCrossword({
+					title,
+					author,
+					date: crosswordDate,
+					clues: cluesRaw,
+				});
+				return res.status(200).json({ message: "Crossword uploaded!" });
+			} catch (e: any) {
+				const message = String(e?.message || e || "");
+				if (message.toLowerCase().includes("unique") || message.toLowerCase().includes("crossword_created_at_key")) {
+					return res.status(409).json({ message: "Upload failed: a crossword for that date already exists." });
+				}
 				return res.status(500).json({ message: `Unexpected problem in the server! Message: ${e}` });
 			}
 		}

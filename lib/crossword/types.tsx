@@ -12,6 +12,7 @@ export type Clue = { clue: string; answer: string; row: number; col: number };
 export type RuntimeClue = Clue & { num: string };
 
 export type PuzzleInput = {
+	title: string;
 	date: string;
 	author: string;
 	clues: Record<Direction, Record<string, Clue>>;
@@ -20,6 +21,9 @@ export type PuzzleInput = {
 export type SavedPuzzleState = {
 	grid: GridData;
 	seconds: number;
+	position?: Pos;
+	direction?: Direction;
+	autocheck?: boolean;
 };
 
 // These two arrays will be sorted by num so that we can display the two columns easily

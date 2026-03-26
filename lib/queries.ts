@@ -9,8 +9,10 @@ import formidable from "formidable";
 import path from "path";
 import { randomUUID } from "crypto";
 import sharp from "sharp";
+import { SearchResultItem, toCrosswordResultItem } from "./search";
 
 export type MultimediaItem = Omit<multimedia, "id"> & { id: number };
+export type CrosswordCreditItem = { id: number; title: string; author: string; date: string };
 
 declare global {
 	// eslint-disable-next-line no-var
@@ -42,9 +44,16 @@ function getArticleSubcategoryFilter(subcat: string) {
 	return subcat === "articles" ? { in: ["articles", "random-musings"] } : subcat;
 }
 
+function getCrosswordTitleFallback(title: string | null | undefined, id: number | bigint) {
+	const trimmed = `${title || ""}`.trim();
+	return trimmed || `Crossword No. ${Number(id)}`;
+}
+
 const recentQueryFailures = new Map<string, number>();
 let prismaConnectPromise: Promise<void> | null = null;
 let prismaConnected = false;
+const prismaConnectRetryDelays = process.env.NODE_ENV === "development" ? [0] : [0, 500, 1500];
+const queryRetryDelays = process.env.NODE_ENV === "development" ? [] : [400, 1000];
 
 function sleep(ms: number) {
 	return new Promise(resolve => setTimeout(resolve, ms));
@@ -84,11 +93,10 @@ async function ensurePrismaConnected(db: PrismaClient) {
 
 	prismaConnectPromise = (async () => {
 		let lastError: unknown;
-		const retryDelays = [0, 500, 1500];
 
-		for (let i = 0; i < retryDelays.length; i++) {
-			if (retryDelays[i] > 0) {
-				await sleep(retryDelays[i]);
+		for (let i = 0; i < prismaConnectRetryDelays.length; i++) {
+			if (prismaConnectRetryDelays[i] > 0) {
+				await sleep(prismaConnectRetryDelays[i]);
 			}
 
 			try {
@@ -121,15 +129,14 @@ async function withQueryFallback<T>(
 
 	let attempt = 0;
 	let lastError: unknown;
-	const retryDelays = [400, 1000];
 
-	while (attempt <= retryDelays.length) {
+	while (attempt <= queryRetryDelays.length) {
 		try {
 			await ensurePrismaConnected(db);
 			return await run(db);
 		} catch (error) {
 			lastError = error;
-			if (!isRetryableConnectionError(error) || attempt === retryDelays.length) {
+			if (!isRetryableConnectionError(error) || attempt === queryRetryDelays.length) {
 				break;
 			}
 
@@ -139,7 +146,7 @@ async function withQueryFallback<T>(
 			} catch {
 				// ignore disconnect cleanup failures
 			}
-			await sleep(retryDelays[attempt]);
+			await sleep(queryRetryDelays[attempt]);
 		}
 
 		attempt++;
@@ -216,6 +223,10 @@ export async function getPublishedArchiveIssues() {
 			await db.article.findMany({
 				where: {
 					published: true,
+					NOT: {
+						year: 1970,
+						month: 1,
+					},
 				},
 				select: {
 					year: true,
@@ -420,6 +431,7 @@ export async function getArticlesByDate(year: string, month: string) {
 	const categories = Object.keys(articles);
 
 	if (!prisma) return articles;
+	if (parseInt(year) === 1970 && parseInt(month) === 1) return articles;
 
 	return withQueryFallback("getArticlesByDate", articles, async db => {
 		for (let category of categories) {
@@ -633,23 +645,51 @@ export async function getArticlesBySearch(query: string | string[]) {
 export async function getSearchIndexArticles() {
 	if (!prisma) return [];
 
-	return await prisma.article.findMany({
-		where: {
-			published: true,
-		},
-		orderBy: [{ id: "desc" }],
-		select: {
-			id: true,
-			title: true,
-			category: true,
-			subcategory: true,
-			authors: true,
-			month: true,
-			year: true,
-			img: true,
-			contentInfo: true,
-		},
-	});
+	const [articles, crosswords] = await Promise.all([
+		prisma.article.findMany({
+			where: {
+				published: true,
+			},
+			orderBy: [{ id: "desc" }],
+			select: {
+				id: true,
+				title: true,
+				category: true,
+				subcategory: true,
+				authors: true,
+				month: true,
+				year: true,
+				img: true,
+				contentInfo: true,
+			},
+		}),
+		prisma.crossword.findMany({
+			orderBy: [{ date: "desc" }],
+			select: {
+				id: true,
+				title: true,
+				author: true,
+				date: true,
+			},
+		}),
+	]);
+
+	return [
+		...articles,
+		...crosswords.map(crossword => ({
+			id: Number(crossword.id),
+			title: getCrosswordTitleFallback(crossword.title, crossword.id),
+			category: "crossword",
+			subcategory: "",
+			authors: [crossword.author],
+			month: crossword.date.getMonth() + 1,
+			year: crossword.date.getFullYear(),
+			img: "",
+			contentInfo: null,
+			searchType: "crossword" as const,
+			crosswordId: Number(crossword.id),
+		})),
+	];
 }
 
 export async function getArticlesBySubcategory(category: string, subcat: string, take: number, offsetCursor: number, skip: number) {
@@ -725,6 +765,76 @@ export async function getArticlesByAuthor(author: string) {
 	});
 }
 
+export async function getCrosswordsByAuthor(author: string) {
+	if (!prisma) return [];
+	const decoded = decodeURI(author).trim();
+	if (!decoded) return [];
+
+	return withQueryFallback("getCrosswordsByAuthor", [] as CrosswordCreditItem[], async db => {
+		const rows = await db.crossword.findMany({
+			where: {
+				author: decoded,
+			},
+			orderBy: [{ date: "desc" }],
+			select: {
+				id: true,
+				title: true,
+				author: true,
+				date: true,
+			},
+		});
+
+		return rows.map(row => ({
+			id: Number(row.id),
+			title: getCrosswordTitleFallback(row.title, row.id),
+			author: row.author,
+			date: row.date.toISOString(),
+		}));
+	});
+}
+
+export async function getCrosswordsBySearch(query: string): Promise<SearchResultItem[]> {
+	const safeQuery = query.trim();
+	if (!prisma || !safeQuery) return [];
+
+	return withQueryFallback("getCrosswordsBySearch", [] as SearchResultItem[], async db => {
+		const rows = await db.crossword.findMany({
+			where: {
+				OR: [
+					{
+						title: {
+							contains: safeQuery,
+							mode: "insensitive",
+						},
+					},
+					{
+						author: {
+							contains: safeQuery,
+							mode: "insensitive",
+						},
+					},
+				],
+			},
+			orderBy: [{ date: "desc" }],
+			select: {
+				id: true,
+				title: true,
+				author: true,
+				date: true,
+			},
+		});
+
+		return rows.map(row =>
+			toCrosswordResultItem({
+				id: Number(row.id),
+				title: getCrosswordTitleFallback(row.title, row.id),
+				author: row.author,
+				date: row.date,
+			})
+		);
+	});
+}
+
 export async function getSpreadsByCategory(category: string, take: number, offsetCursor: number, skip: number) {
 	if (!take) take = 1;
 
@@ -786,6 +896,7 @@ export async function getCurrentCrossword(): Promise<PuzzleInput | null> {
 	if (!crossword) return null;
 
 	return {
+		title: getCrosswordTitleFallback(crossword.title, crossword.id),
 		author: crossword.author,
 		clues: JSON.parse(crossword.clues),
 		date: crossword.date.toISOString(),
@@ -795,7 +906,7 @@ export async function getCurrentCrossword(): Promise<PuzzleInput | null> {
 export async function getCrosswords(take: number, offsetCursor: number, skip: number) {
 	const crosswords = await withQueryFallback(
 		"getCrosswords",
-		[] as { author: string; date: Date; id: number | bigint }[],
+		[] as { author: string; title: string | null; date: Date; id: number | bigint }[],
 		async db =>
 			await db.crossword.findMany({
 				orderBy: [{ date: "desc" }],
@@ -804,13 +915,19 @@ export async function getCrosswords(take: number, offsetCursor: number, skip: nu
 				skip,
 				select: {
 					author: true,
+					title: true,
 					date: true,
 					id: true,
 				},
 			})
 	);
 
-	return crosswords.map(c => ({ author: c.author, id: Number(c.id), date: c.date.toLocaleDateString() }));
+	return crosswords.map(c => ({
+		author: c.author,
+		title: getCrosswordTitleFallback(c.title, c.id),
+		id: Number(c.id),
+		date: c.date.toLocaleDateString(),
+	}));
 }
 
 export async function getIdOfNewestCrossword() {
@@ -828,8 +945,9 @@ export async function getCrosswordById(id: number) {
 	);
 	if (!crossword) return null;
 	return {
+		title: getCrosswordTitleFallback(crossword.title, crossword.id),
 		author: crossword.author,
-		date: crossword.date.toLocaleDateString(),
+		date: crossword.date.toISOString(),
 		clues: JSON.parse(crossword.clues),
 	};
 }
@@ -905,6 +1023,11 @@ export async function uploadSpread(info: { title: string; src: string; month: nu
 export async function uploadMulti(info: { format: string; src_id: string; month: number; year: number; title: string }) {
 	if (!prisma) throw new Error("no");
 	await prisma.multimedia.create({ data: info });
+}
+
+export async function uploadCrossword(info: { title: string; author: string; date: Date; clues: string }) {
+	if (!prisma) throw new Error("no");
+	await prisma.crossword.create({ data: info });
 }
 
 /**

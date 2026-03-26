@@ -11,6 +11,13 @@ import styles from "./upload.module.scss";
 import { ArticleContent } from "../articles/[year]/[month]/[cat]/[slug]";
 import dynamic from "next/dynamic";
 import SpreadGallery from "~/components/spreadgallery.client";
+import CrosswordBuilder, {
+	createEmptyCrosswordDraft,
+	hasCrosswordDraftContent,
+	normalizeCrosswordDraft,
+	serializeCrosswordDraft,
+	type CrosswordDraft,
+} from "~/components/crosswordbuilder.client";
 import { getSpreadPageImageUrl, inferVanguardPageFromImageUrl, parseSpreadSource } from "~/lib/utils";
 import { getPdfJs } from "~/lib/pdfjs-client";
 
@@ -143,7 +150,7 @@ export default function Upload() {
 	const [category, setCategory] = useState<string>("");
 	const [uploadResponse, setUploadResponse] = useState("");
 	const [previewContent, setPreviewContent] = useState("");
-	const [spreadPageAssets, setSpreadPageAssets] = useState<File[]>([]);
+	const [spreadPageCount, setSpreadPageCount] = useState(0);
 	const [spreadPreviewUrls, setSpreadPreviewUrls] = useState<string[]>([]);
 	const [imgOrigBytes, setImgOrigBytes] = useState<number | null>(null);
 	const [serverImgBytes, setServerImgBytes] = useState<number | null>(null);
@@ -156,6 +163,7 @@ export default function Upload() {
 	const [issueVanguardSpreadLoading, setIssueVanguardSpreadLoading] = useState(false);
 	const [legacyVanguardPagePreviewUrl, setLegacyVanguardPagePreviewUrl] = useState("");
 	const [completedUploadMessage, setCompletedUploadMessage] = useState("");
+	const [crosswordDraft, setCrosswordDraft] = useState<CrosswordDraft>(() => createEmptyCrosswordDraft());
 
 	const selectedMonth = formData.month ?? new Date().getMonth() + 1;
 	const selectedYear = formData.year ?? new Date().getFullYear();
@@ -182,7 +190,8 @@ export default function Upload() {
 
 	const isVanguardSpread = category === "vanguard" && (formData.subcategory || "spreads") === "spreads";
 	const isVanguardArticle = category === "vanguard" && formData.subcategory === "articles";
-	const isArticleLikeSection = Boolean(category && category !== "multimedia" && !isVanguardSpread);
+	const isCrosswordSection = category === "crossword";
+	const isArticleLikeSection = Boolean(category && category !== "multimedia" && category !== "crossword" && !isVanguardSpread);
 	const usesExistingVanguardSpreadImage =
 		isVanguardArticle && !formData.img && inferVanguardPageFromImageUrl(formData.imgData ?? undefined) !== null;
 	const hasManualHeaderImage = Boolean(formData.img || (formData.imgData && !usesExistingVanguardSpreadImage));
@@ -214,6 +223,25 @@ export default function Upload() {
 						: ""
 					: formData.imgData || "")
 			: formData.imgData || "";
+	const hasResettableArticleFields = Boolean(
+		formData.title?.trim() ||
+			formData.authors?.trim() ||
+			formData.content?.trim() ||
+			formData.contentInfo?.trim() ||
+			formData.imgData ||
+			formData.vanguardPageNumber
+	);
+	const hasStoredDraftContent = Boolean(
+		formData.title?.trim() ||
+			formData.authors?.trim() ||
+			formData.content?.trim() ||
+			formData.contentInfo?.trim() ||
+			formData.multi?.trim() ||
+			formData.imgData ||
+			formData.spread ||
+			formData.vanguardPageNumber ||
+			(category === "crossword" && hasCrosswordDraftContent(crosswordDraft))
+	);
 
 	useEffect(() => {
 		return () => {
@@ -331,6 +359,7 @@ export default function Upload() {
 			const normalizedRest = rest?.category === "vanguard" ? { ...rest, subcategory: normalizeVanguardSubcategory(rest.subcategory) } : rest;
 			setFormData(normalizedRest);
 			if (normalizedRest?.category) setCategory(normalizedRest.category);
+			if (normalizedRest?.crosswordDraft) setCrosswordDraft(normalizeCrosswordDraft(normalizedRest.crosswordDraft));
 		} else {
 			localStorage.removeItem("uploadFormData");
 			localStorage.removeItem("uploadFormTimestamp");
@@ -340,10 +369,28 @@ export default function Upload() {
 	// Save to localStorage on every update
 	useEffect(() => {
 		if (!hydrated) return;
-		setIsSaving(true);
 		// Persist core fields only; month/year should not be saved
 		const { category, subcategory, title, authors, content, multi, contentInfo, vanguardPageNumber } = formData;
-		const fieldsToStore = { category, subcategory, title, authors, content, multi, contentInfo, vanguardPageNumber };
+		const fieldsToStore = {
+			category,
+			subcategory,
+			title,
+			authors,
+			content,
+			multi,
+			contentInfo,
+			vanguardPageNumber,
+			crosswordDraft: category === "crossword" ? crosswordDraft : undefined,
+		};
+
+		if (!hasStoredDraftContent) {
+			localStorage.removeItem("uploadFormData");
+			localStorage.removeItem("uploadFormTimestamp");
+			setIsSaving(false);
+			return;
+		}
+
+		setIsSaving(true);
 		try {
 			localStorage.setItem("uploadFormData", JSON.stringify(fieldsToStore));
 			localStorage.setItem("uploadFormTimestamp", Date.now().toString());
@@ -354,7 +401,7 @@ export default function Upload() {
 			setIsSaving(false);
 		}, 1500);
 		return () => clearTimeout(timer);
-	}, [formData, hydrated]);
+	}, [crosswordDraft, formData, hasStoredDraftContent, hydrated]);
 
 	// Process Markdown -> HTML when content changes
 	useEffect(() => {
@@ -494,12 +541,11 @@ export default function Upload() {
 		const pdfjs = await getPdfJs();
 		const loadingTask = pdfjs.getDocument({ data: await source.arrayBuffer(), disableWorker: true } as any);
 		const pdf = await loadingTask.promise;
-		const pageFiles: File[] = [];
 		const previewUrls: string[] = [];
 
 		for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
 			const page = await pdf.getPage(pageNumber);
-			const viewport = page.getViewport({ scale: 1.8 });
+			const viewport = page.getViewport({ scale: 1.2 });
 			const canvas = document.createElement("canvas");
 			const context = canvas.getContext("2d");
 			if (!context) throw new Error("Could not create a canvas context for this PDF preview.");
@@ -509,25 +555,13 @@ export default function Upload() {
 
 			await page.render({ canvasContext: context as any, viewport } as any).promise;
 
-			const blob = await new Promise<Blob>((resolve, reject) => {
-				canvas.toBlob(result => {
-					if (result) resolve(result);
-					else reject(new Error("Could not convert the Vanguard spread page into an image."));
-				}, "image/png");
-			});
-
 			page.cleanup();
-
-			const imageFile = new File([blob], `${source.name.replace(/\.pdf$/i, "")}-page-${pageNumber}.png`, {
-				type: "image/png",
-				lastModified: Date.now(),
-			});
-			pageFiles.push(imageFile);
-			previewUrls.push(URL.createObjectURL(blob));
+			const previewAsset = await buildCompactCanvasImageAsset(canvas, `${source.name.replace(/\.pdf$/i, "")}-preview-${pageNumber}`, 800_000);
+			previewUrls.push(previewAsset.previewUrl);
 		}
 
 		await loadingTask.destroy();
-		return { pageFiles, previewUrls, pageCount: pdf.numPages };
+		return { previewUrls, pageCount: pdf.numPages };
 	}
 
 	async function convertHeicToPng(source: File): Promise<File> {
@@ -605,7 +639,7 @@ export default function Upload() {
 			setImgOrigBytes(null);
 			setServerImgBytes(null);
 			replaceSpreadPreviewUrls([]);
-			setSpreadPageAssets([]);
+			setSpreadPageCount(0);
 			setUploadResponse(`Loaded "${loaded.title}" for editing.`);
 		} catch (error: any) {
 			console.error(error);
@@ -659,7 +693,7 @@ export default function Upload() {
 		});
 		setPreviewContent("");
 		replaceSpreadPreviewUrls([]);
-		setSpreadPageAssets([]);
+		setSpreadPageCount(0);
 		setImgOrigBytes(null);
 		setServerImgBytes(null);
 	}
@@ -676,6 +710,8 @@ export default function Upload() {
 				? formData.subcategory === "youtube" || formData.subcategory === "podcast"
 					? formData.subcategory
 					: ""
+				: nextCategory === "crossword"
+				? ""
 				: formData.subcategory;
 
 		setCategory(nextCategory);
@@ -687,7 +723,7 @@ export default function Upload() {
 		});
 		if (nextCategory !== "vanguard" || nextSubcategory !== "spreads") {
 			replaceSpreadPreviewUrls([]);
-			setSpreadPageAssets([]);
+			setSpreadPageCount(0);
 		}
 	}
 
@@ -702,7 +738,7 @@ export default function Upload() {
 		});
 		if (category === "vanguard" && nextSubcategory !== "spreads") {
 			replaceSpreadPreviewUrls([]);
-			setSpreadPageAssets([]);
+			setSpreadPageCount(0);
 		}
 	}
 
@@ -803,6 +839,44 @@ export default function Upload() {
 		}
 	}
 
+	function clearDraftFields() {
+		dismissCompletedUploadMessage();
+		setEditingArticleId(null);
+		setUploadResponse("");
+		setUploadStatus("normal");
+		setPreviewContent("");
+		setLegacyVanguardPagePreviewUrl("");
+		replaceSpreadPreviewUrls([]);
+		setSpreadPageCount(0);
+		setImgOrigBytes(null);
+		setServerImgBytes(null);
+		localStorage.removeItem("uploadFormData");
+		localStorage.removeItem("uploadFormTimestamp");
+		setFormData(prev => ({
+			...prev,
+			title: "",
+			authors: "",
+			content: "",
+			contentInfo: "",
+			img: null,
+			imgData: null,
+			imgName: null,
+			vanguardPageNumber: null,
+		}));
+
+		const articleImageInput = document.getElementById("article-img-upload") as HTMLInputElement | null;
+		if (articleImageInput) {
+			articleImageInput.value = "";
+			setFileInputVisualState(articleImageInput);
+		}
+
+		const spreadInput = document.getElementById("spread-upload") as HTMLInputElement | null;
+		if (spreadInput) {
+			spreadInput.value = "";
+			setFileInputVisualState(spreadInput);
+		}
+	}
+
 	// Update PDF spread (for Vanguard)
 	async function updateSpread(inp: HTMLInputElement) {
 		dismissCompletedUploadMessage();
@@ -833,18 +907,18 @@ export default function Upload() {
 		}
 
 		try {
-			setUploadResponse("Converting Vanguard spread PDF into page images...");
-			const { pageFiles, previewUrls } = await buildPdfPreviewImages(file);
+			setUploadResponse("Preparing Vanguard spread preview...");
+			const { previewUrls, pageCount } = await buildPdfPreviewImages(file);
 			setFormData(prev => ({ ...prev, spread: file }));
-			setSpreadPageAssets(pageFiles);
+			setSpreadPageCount(pageCount);
 			replaceSpreadPreviewUrls(previewUrls);
 			setFileInputVisualState(inp);
-			setUploadResponse(`Prepared ${pageFiles.length} Vanguard spread page${pageFiles.length === 1 ? "" : "s"} for upload.`);
+			setUploadResponse(`Prepared ${pageCount} Vanguard spread page${pageCount === 1 ? "" : "s"} for preview.`);
 		} catch (error: any) {
 			console.error(error);
 			inp.value = "";
 			setFormData(prev => ({ ...prev, spread: null }));
-			setSpreadPageAssets([]);
+			setSpreadPageCount(0);
 			replaceSpreadPreviewUrls([]);
 			setFileInputVisualState(inp);
 			setUploadResponse(`Upload failed: ${error?.message || "Could not process the Vanguard PDF."}`);
@@ -908,11 +982,20 @@ export default function Upload() {
 			triggerErrorAnimation();
 			return;
 		}
-		if (!formData.title) {
+		if (formData.category !== "crossword" && !formData.title) {
 			setUploadResponse("Upload failed: You need a title.");
 			setUploadStatus("error");
 			triggerErrorAnimation();
 			return;
+		}
+		if (formData.category === "crossword") {
+			const serializedCrossword = serializeCrosswordDraft(crosswordDraft);
+			if (!serializedCrossword.ok) {
+				setUploadResponse(serializedCrossword.error);
+				setUploadStatus("error");
+				triggerErrorAnimation();
+				return;
+			}
 		}
 		const hasLinkedImage = Boolean(formData.imgData && formData.imgData.trim() !== "");
 		const hasVanguardImageSource = Boolean(formData.img || hasLinkedImage || (formData.vanguardPageNumber && formData.vanguardPageNumber > 0));
@@ -923,8 +1006,8 @@ export default function Upload() {
 			triggerErrorAnimation();
 			return;
 		}
-		if (isVanguardSpread && (!formData.spread || spreadPageAssets.length === 0)) {
-			setUploadResponse("Upload failed: upload the Vanguard spread PDF so the page images can be generated.");
+		if (isVanguardSpread && (!formData.spread || spreadPageCount === 0)) {
+			setUploadResponse("Upload failed: upload the Vanguard spread PDF so the page preview can be generated.");
 			setUploadStatus("error");
 			triggerErrorAnimation();
 			return;
@@ -996,11 +1079,7 @@ export default function Upload() {
 			}
 			fd.append("subcategory", "spreads");
 			fd.append("spread", formData.spread);
-			fd.append("spread-page-count", String(spreadPageAssets.length));
-			spreadPageAssets.forEach((pageFile, index) => {
-				fd.append(`spread-page-${index + 1}`, pageFile);
-			});
-			fd.append("title", formData.title);
+			fd.append("title", formData.title || "");
 		}
 		// Multimedia
 		else if (formData.category === "multimedia") {
@@ -1018,12 +1097,24 @@ export default function Upload() {
 				return;
 			}
 			fd.append("subcategory", formData.subcategory);
-			fd.append("title", formData.title);
+			fd.append("title", formData.title || "");
+		} else if (formData.category === "crossword") {
+			const serializedCrossword = serializeCrosswordDraft(crosswordDraft);
+			if (!serializedCrossword.ok) {
+				setUploadResponse(serializedCrossword.error);
+				setUploadStatus("error");
+				triggerErrorAnimation();
+				return;
+			}
+			fd.append("crossword-title", serializedCrossword.value.title);
+			fd.append("crossword-author", serializedCrossword.value.author);
+			fd.append("crossword-date", serializedCrossword.value.date);
+			fd.append("crossword-clues", JSON.stringify(serializedCrossword.value.clues));
 		}
 		// Everything else (standard article)
 		else {
 			fd.append("subcategory", formData.subcategory || formData.category);
-			fd.append("title", formData.title);
+			fd.append("title", formData.title || "");
 			fd.append("authors", JSON.stringify(authors));
 			if (formData.content) fd.append("content", formData.content);
 			if (preparedImg) fd.append("img", preparedImg);
@@ -1067,11 +1158,15 @@ export default function Upload() {
 				setUploadStatus("success");
 				if (errorRef.current) errorRef.current.classList.remove("error-message");
 				confetti();
-				clearEditingState();
+				if (formData.category === "crossword") {
+					setCrosswordDraft(createEmptyCrosswordDraft());
+				} else {
+					clearEditingState();
+				}
 				setUploadResponse("");
 				localStorage.removeItem("uploadFormData");
 				localStorage.removeItem("uploadFormTimestamp");
-				void refreshIssueArticles(Number(chosenMonth), Number(chosenYear));
+				if (formData.category !== "crossword") void refreshIssueArticles(Number(chosenMonth), Number(chosenYear));
 			}
 		} catch (error: any) {
 			console.error(error);
@@ -1129,6 +1224,7 @@ export default function Upload() {
 							<option value="arts-entertainment">Arts & Entertainment</option>
 							<option value="sports">Sports</option>
 							<option value="multimedia">Multimedia</option>
+							<option value="crossword">Crossword</option>
 						</select>
 						<div id={styles.subcats}>
 							<select style={{ display: !category ? "inline" : "none" }} disabled onChange={changeSubcategory}>
@@ -1237,6 +1333,11 @@ export default function Upload() {
 						<section className={styles["section-input"]}>
 							<div id={styles["std-sections"]} style={{ display: isArticleLikeSection ? "block" : "none" }}>
 								<h3>{category === "vanguard" ? "Vanguard Article" : "Article"}</h3>
+								{hasResettableArticleFields && (
+									<button type="button" onClick={clearDraftFields} className={styles["reset-query-button"]}>
+										Clear draft
+									</button>
+								)}
 								{isVanguardArticle && (
 									<>
 										<p className={styles["vanguard-note"]}>
@@ -1399,9 +1500,9 @@ export default function Upload() {
 										<input id="spread-upload" type="file" accept=".pdf" onChange={e => void updateSpread(e.target)} />
 									</label>
 								</div>
-								{spreadPageAssets.length > 0 && (
+								{spreadPageCount > 0 && (
 									<p className={styles["spread-summary"]}>
-										Prepared {spreadPageAssets.length} page image{spreadPageAssets.length === 1 ? "" : "s"} for this spread.
+										Prepared {spreadPageCount} page preview{spreadPageCount === 1 ? "" : "s"} for this spread.
 									</p>
 								)}
 							</div>
@@ -1435,6 +1536,12 @@ export default function Upload() {
 								<input type="text" onChange={updateMulti} value={formData.multi || ""} />
 							</div>
 
+							<div style={{ display: isCrosswordSection ? "block" : "none" }}>
+								<h3>Crossword Builder</h3>
+								<p>Build the grid directly here, black out squares, fill letters, and write clues for each across/down entry.</p>
+								<CrosswordBuilder value={crosswordDraft} onChange={setCrosswordDraft} />
+							</div>
+
 							{formData.category && (
 								<div className={styles["submit-row"]}>
 									<button type="submit">
@@ -1444,6 +1551,8 @@ export default function Upload() {
 											? "Submit Spread"
 											: formData.category === "multimedia"
 											? "Submit Multimedia"
+											: formData.category === "crossword"
+											? "Submit Crossword"
 											: "Submit Article"}
 									</button>
 									<p id="bruh" ref={errorRef} className={styles["submit-response"]}>
@@ -1584,6 +1693,17 @@ export default function Upload() {
 									<>
 										<h3 style={{ margin: "1rem" }}>Select a Category!</h3>
 									</>
+								)}
+
+								{isCrosswordSection && (
+									<div style={{ padding: "1rem" }}>
+										<h3>{crosswordDraft.title?.trim() || "Crossword Preview"}</h3>
+										<p>
+											The builder on the left is the source of truth. Use it to set the title, grid, black squares, answers, and
+											clue text.
+										</p>
+										<p>Published crosswords will use this title on the live page, in the archive, and in search.</p>
+									</div>
 								)}
 							</div>
 						</section>

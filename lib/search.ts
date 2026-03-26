@@ -1,6 +1,7 @@
 /** @format */
 
 import type { article } from "@prisma/client";
+import type { PreviewArticle } from "~/components/preview.client";
 
 export type SearchIndexArticle = {
 	id: number;
@@ -12,7 +13,11 @@ export type SearchIndexArticle = {
 	year: number;
 	img: string;
 	contentInfo: string | null;
+	searchType?: "article" | "crossword";
+	crosswordId?: number;
 };
+
+export type SearchResultItem = PreviewArticle;
 
 export type SearchSuggestion =
 	| {
@@ -23,6 +28,11 @@ export type SearchSuggestion =
 			month: number;
 			category: string;
 			slug: string;
+	  }
+	| {
+			type: "crossword";
+			id: number;
+			title: string;
 	  }
 	| {
 			type: "author" | "photo";
@@ -40,9 +50,7 @@ export function normalizeSearchText(text: string | null | undefined) {
 		.toLowerCase();
 }
 
-export function buildSearchIndexArticle(
-	article: Pick<article, "id" | "title" | "category" | "subcategory" | "authors" | "month" | "year" | "img" | "contentInfo">
-): SearchIndexArticle {
+export function buildSearchIndexArticle(article: SearchIndexArticle): SearchIndexArticle {
 	return {
 		id: article.id,
 		title: article.title,
@@ -53,6 +61,8 @@ export function buildSearchIndexArticle(
 		year: article.year,
 		img: article.img,
 		contentInfo: article.contentInfo,
+		searchType: article.searchType,
+		crosswordId: article.crosswordId,
 	};
 }
 
@@ -86,20 +96,28 @@ export function buildSearchSuggestions(index: SearchIndexArticle[], query: strin
 			photographers.add(name);
 		}
 
-		if (
+		const matches =
 			normalizeSearchText(item.title).includes(normalized) ||
 			item.authors.some(author => normalizeSearchText(author).includes(normalized)) ||
-			normalizeSearchText(item.contentInfo).includes(normalized)
-		) {
-			articleSuggestions.push({
-				type: "article",
-				id: item.id,
-				title: item.title,
-				year: item.year,
-				month: item.month,
-				category: item.category,
-				slug: item.title.replace(/\s+/g, "-"),
-			});
+			normalizeSearchText(item.contentInfo).includes(normalized);
+		if (matches) {
+			if (item.searchType === "crossword" && item.crosswordId) {
+				articleSuggestions.push({
+					type: "crossword",
+					id: item.crosswordId,
+					title: item.title,
+				});
+			} else {
+				articleSuggestions.push({
+					type: "article",
+					id: item.id,
+					title: item.title,
+					year: item.year,
+					month: item.month,
+					category: item.category,
+					slug: item.title.replace(/\s+/g, "-"),
+				});
+			}
 		}
 	}
 
@@ -111,19 +129,20 @@ export function buildSearchSuggestions(index: SearchIndexArticle[], query: strin
 }
 
 export function getLatestIssueArticles(index: SearchIndexArticle[]) {
-	if (!index.length) return [];
+	const articleItems = index.filter(item => item.searchType !== "crossword");
+	if (!articleItems.length) return [];
 
-	const latest = index.reduce(
+	const latest = articleItems.reduce(
 		(acc, article) => {
 			if (article.year > acc.year || (article.year === acc.year && article.month > acc.month)) {
 				return { year: article.year, month: article.month };
 			}
 			return acc;
 		},
-		{ year: index[0].year, month: index[0].month }
+		{ year: articleItems[0].year, month: articleItems[0].month }
 	);
 
-	return index.filter(article => article.year === latest.year && article.month === latest.month);
+	return articleItems.filter(article => article.year === latest.year && article.month === latest.month);
 }
 
 export function toSearchResultArticle(item: SearchIndexArticle): article {
@@ -143,5 +162,28 @@ export function toSearchResultArticle(item: SearchIndexArticle): article {
 		contentInfo: item.contentInfo,
 		spotifyUrl: null,
 		Index: false,
+	};
+}
+
+export function toCrosswordResultItem(item: { id: number; title: string; author: string; date: string | Date }): SearchResultItem {
+	const date = item.date instanceof Date ? item.date : new Date(item.date);
+
+	return {
+		id: item.id,
+		title: item.title,
+		content: "",
+		published: true,
+		category: "crossword",
+		subcategory: "",
+		authors: [item.author],
+		month: date.getMonth() + 1,
+		year: date.getFullYear(),
+		img: "/assets/crossword.png",
+		featured: false,
+		markdown: false,
+		contentInfo: null,
+		spotifyUrl: null,
+		Index: false,
+		href: `/games/crossword/${item.id}`,
 	};
 }

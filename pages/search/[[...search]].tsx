@@ -9,7 +9,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import styles from "~/lib/styles";
-import { SearchIndexArticle, buildSearchSuggestions, getLatestIssueArticles, toSearchResultArticle } from "~/lib/search";
+import { SearchIndexArticle, SearchResultItem, buildSearchSuggestions, getLatestIssueArticles, toSearchResultArticle } from "~/lib/search";
 import { loadSearchIndex, warmSearchIndex } from "~/lib/search-client";
 
 const PHOTO_KEYWORDS = ["photo", "image", "graphic"];
@@ -47,7 +47,7 @@ const SEARCH_RESULTS_TTL_MS = 5 * 60 * 1000;
 
 type SearchResultsCacheEntry = {
 	expiry: number;
-	data: article[];
+	data: SearchResultItem[];
 };
 
 const searchResultsCache = new Map<string, SearchResultsCacheEntry>();
@@ -74,7 +74,7 @@ function readCachedSearchResults(key: string) {
 	}
 }
 
-function writeCachedSearchResults(key: string, data: article[]) {
+function writeCachedSearchResults(key: string, data: SearchResultItem[]) {
 	const payload: SearchResultsCacheEntry = {
 		expiry: Date.now() + SEARCH_RESULTS_TTL_MS,
 		data,
@@ -105,7 +105,7 @@ export default function SearchPage() {
 	const [selectedSection, setSelectedSection] = useState("Any");
 	const [showSuggestions, setShowSuggestions] = useState(false);
 	const [activeIndex, setActiveIndex] = useState(-1);
-	const [articles, setArticles] = useState<article[]>([]);
+	const [articles, setArticles] = useState<SearchResultItem[]>([]);
 	const [resultsStatus, setResultsStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
 
 	const search = getRouterSearch(router.query.search);
@@ -171,7 +171,7 @@ export default function SearchPage() {
 		})
 			.then(async res => {
 				if (!res.ok) throw new Error(`Search request failed: ${res.status}`);
-				return (await res.json()) as article[];
+				return (await res.json()) as SearchResultItem[];
 			})
 			.then(data => {
 				writeCachedSearchResults(cacheKey, data);
@@ -203,6 +203,24 @@ export default function SearchPage() {
 		setShowSuggestions(false);
 	};
 
+	const openSuggestion = (suggestion: (typeof suggestions)[number]) => {
+		setShowSuggestions(false);
+
+		if (suggestion.type === "article") {
+			handleSearchRedirect(suggestion.title);
+			return;
+		}
+
+		if (suggestion.type === "crossword") {
+			setManualQuery(suggestion.title);
+			void router.push(`/games/crossword/${suggestion.id}`);
+			return;
+		}
+
+		setManualQuery(suggestion.name);
+		handleSearchRedirect(suggestion.name);
+	};
+
 	const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
 		if (e.key === "ArrowDown" || e.key === "Tab") {
 			e.preventDefault();
@@ -214,8 +232,7 @@ export default function SearchPage() {
 			setActiveIndex(prev => (prev - 1 + suggestions.length) % suggestions.length);
 		} else if (e.key === "Enter") {
 			if (activeIndex >= 0 && suggestions[activeIndex]) {
-				const suggestion = suggestions[activeIndex];
-				handleSearchRedirect(suggestion.type === "article" ? suggestion.title : suggestion.name);
+				openSuggestion(suggestions[activeIndex]);
 			} else {
 				handleSearchRedirect(manualQuery);
 			}
@@ -422,7 +439,7 @@ export default function SearchPage() {
 							}}
 							onBlur={() => setTimeout(() => setShowSuggestions(false), 100)}
 							onKeyDown={handleKeyDown}
-							placeholder="Search articles, authors, or photo credits..."
+							placeholder="Search articles, titles, authors, or photo credits..."
 							style={{
 								padding: ".6rem",
 								fontSize: "1rem",
@@ -440,16 +457,20 @@ export default function SearchPage() {
 						<ul className="suggestions">
 							{suggestions.map((suggestion, i) => (
 								<li
-									key={suggestion.type === "article" ? suggestion.id : `${suggestion.type}-${suggestion.name}`}
+									key={
+										suggestion.type === "article" || suggestion.type === "crossword"
+											? `${suggestion.type}-${suggestion.id}`
+											: `${suggestion.type}-${suggestion.name}`
+									}
 									className={i === activeIndex ? "active" : ""}
-									onClick={() => {
-										const text = suggestion.type === "article" ? suggestion.title : suggestion.name;
-										setManualQuery(text);
-										handleSearchRedirect(text);
-									}}
+									onClick={() => openSuggestion(suggestion)}
 								>
-									<strong>{suggestion.type === "article" ? suggestion.title : suggestion.name}</strong>{" "}
-									{suggestion.type !== "article" && <span style={{ fontSize: "0.6rem", color: "#777" }}>(Contributor)</span>}
+									<strong>
+										{suggestion.type === "article" || suggestion.type === "crossword" ? suggestion.title : suggestion.name}
+									</strong>{" "}
+									{suggestion.type !== "article" && suggestion.type !== "crossword" ? (
+										<span style={{ fontSize: "0.6rem", color: "#777" }}>(Contributor)</span>
+									) : null}
 								</li>
 							))}
 						</ul>
@@ -501,16 +522,20 @@ export default function SearchPage() {
 					{!search.trim() ? <p className="empty-state">Enter a search term to explore articles, authors, and photo credits.</p> : null}
 					{search.trim() && resultsStatus === "loading" ? <p className="empty-state">Loading results...</p> : null}
 					{search.trim() && resultsStatus === "error" ? <p className="empty-state">Search is temporarily unavailable.</p> : null}
-					{search.trim() && resultsStatus === "ready" && articles.length === 0 ? (
-						<p className="empty-state">No articles matched that search.</p>
+					{search.trim() && resultsStatus === "ready" ? (
+						<p className="empty-state">
+							{articles.length} result{articles.length === 1 ? "" : "s"} found
+						</p>
 					) : null}
 					{articles.map(article => {
+						const isCrossword = article.category === "crossword";
 						const sectionLabel = sections.find(sec => sec.value === article.category)?.label || article.category;
 
 						return (
 							<div key={article.id} style={{ marginBottom: "1.25rem" }}>
 								<div className="meta">
-									<Link href={`/category/${encodeURIComponent(article.category)}`}>{sectionLabel}</Link> -{" "}
+									{isCrossword ? null : <Link href={`/category/${encodeURIComponent(article.category)}`}>{sectionLabel}</Link>}
+									{!isCrossword ? " - " : ""}
 									{new Date(article.year, article.month - 1).toLocaleString("default", {
 										month: "long",
 										year: "numeric",

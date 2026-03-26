@@ -1,8 +1,8 @@
 /** @format */
 
 import type { NextApiRequest, NextApiResponse } from "next";
-import { getArticlesBySearch, getSearchIndexArticles } from "~/lib/queries";
-import { buildSearchIndexArticle } from "~/lib/search";
+import { getArticlesBySearch, getCrosswordsBySearch, getSearchIndexArticles } from "~/lib/queries";
+import { buildSearchIndexArticle, buildSearchSuggestions } from "~/lib/search";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
 	const mode = typeof req.query.mode === "string" ? req.query.mode : "suggestions";
@@ -25,7 +25,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 				return res.status(200).json([]);
 			}
 
-			const all = await getArticlesBySearch(rawQuery);
+			const [articles, crosswords] = await Promise.all([getArticlesBySearch(rawQuery), getCrosswordsBySearch(rawQuery)]);
+			const all = [...articles, ...crosswords];
 			const filtered = section === "Any" ? all : all.filter(article => article.category === section);
 			const sorted = [...filtered].sort((a, b) =>
 				sort === "newest"
@@ -46,46 +47,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 		res.setHeader("Cache-Control", "public, s-maxage=900, stale-while-revalidate=86400");
 
 		const articles = await getSearchIndexArticles();
-
-		const authorsSet = new Set<string>();
-		const photographersSet = new Set<string>();
-		const articleSuggestions: any[] = [];
-
-		for (const a of articles) {
-			a.authors.forEach(name => {
-				if (name.toLowerCase().includes(query)) authorsSet.add(name);
-			});
-
-			const info = a.contentInfo?.toLowerCase() || "";
-			if (info.includes(query)) {
-				a.contentInfo!.split("\n").forEach(line => {
-					if (line.toLowerCase().includes(query) && line.includes(":")) {
-						const name = line.split(":")[1]?.trim();
-						if (name) photographersSet.add(name);
-					}
-				});
-			}
-
-			if (a.title.toLowerCase().includes(query)) {
-				articleSuggestions.push({
-					id: a.id,
-					title: a.title,
-					year: a.year,
-					month: a.month,
-					category: a.category,
-					slug: a.title.replace(/\s+/g, "-"),
-					type: "article",
-				});
-			}
-		}
-
-		const formatted = [
-			...Array.from(authorsSet).map(name => ({ name, type: "author" })),
-			...Array.from(photographersSet).map(name => ({ name, type: "photo" })),
-			...articleSuggestions,
-		];
-
-		res.status(200).json(formatted.slice(0, 6));
+		res.status(200).json(buildSearchSuggestions(articles.map(buildSearchIndexArticle), query));
 	} catch (err) {
 		console.error(err);
 		res.status(500).json([]);
