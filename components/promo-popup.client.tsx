@@ -6,14 +6,15 @@ import { useRouter } from "next/router";
 import styles from "~/lib/styles";
 
 const METER_KEY = "tower_promo_meter_v1";
-const DISMISS_MONTH_KEY = "tower_promo_dismissed_month";
 const SHOWN_SESSION_KEY = "tower_promo_shown_session";
 const COUNTED_SESSION_PREFIX = "tower_promo_counted_path:";
+const LAST_SHOWN_AT_KEY = "tower_promo_last_shown_at";
 
 const MONTHLY_READ_LIMIT = 2;
 const MIN_SCROLL_RATIO = 0.5;
 const MIN_ENGAGED_MS = 60_000;
 const HARD_ENGAGED_MS = 150_000;
+const REOPEN_COOLDOWN_MS = 3 * 24 * 60 * 60 * 1000;
 
 type MeterState = {
 	month: string;
@@ -47,6 +48,26 @@ const writeMeter = (meter: MeterState) => {
 	}
 };
 
+const readLastShownAt = () => {
+	if (typeof window === "undefined") return 0;
+	try {
+		const raw = localStorage.getItem(LAST_SHOWN_AT_KEY);
+		if (!raw) return 0;
+		const parsed = Number(raw);
+		return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+	} catch {
+		return 0;
+	}
+};
+
+const writeLastShownAt = (timestamp: number) => {
+	try {
+		localStorage.setItem(LAST_SHOWN_AT_KEY, String(timestamp));
+	} catch {
+		// ignore storage errors
+	}
+};
+
 export default function PromoPopup() {
 	const [open, setOpen] = useState(false);
 	const router = useRouter();
@@ -70,8 +91,17 @@ export default function PromoPopup() {
 		if (!router.isReady) return;
 		if (sessionStorage.getItem(SHOWN_SESSION_KEY) === "1") return;
 
+		const now = Date.now();
+		const lastShownAt = readLastShownAt();
+		if (lastShownAt) {
+			if (now - lastShownAt < REOPEN_COOLDOWN_MS) return;
+			sessionStorage.setItem(SHOWN_SESSION_KEY, "1");
+			writeLastShownAt(now);
+			setOpen(true);
+			return;
+		}
+
 		const month = monthKeyNow();
-		if (localStorage.getItem(DISMISS_MONTH_KEY) === month) return;
 		const meter = readMeter();
 		if (meter.month !== month || meter.reads < MONTHLY_READ_LIMIT) return;
 
@@ -83,6 +113,7 @@ export default function PromoPopup() {
 			if (!enoughEngagement) return;
 			if (sessionStorage.getItem(SHOWN_SESSION_KEY) === "1") return;
 			sessionStorage.setItem(SHOWN_SESSION_KEY, "1");
+			writeLastShownAt(Date.now());
 			setOpen(true);
 			window.removeEventListener("scroll", onScroll);
 			clearInterval(intervalId);
@@ -124,7 +155,7 @@ export default function PromoPopup() {
 		setOpen(false);
 		try {
 			sessionStorage.setItem(SHOWN_SESSION_KEY, "1");
-			localStorage.setItem(DISMISS_MONTH_KEY, monthKeyNow());
+			writeLastShownAt(Date.now());
 		} catch {
 			// ignore storage errors
 		}
