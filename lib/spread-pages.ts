@@ -1,9 +1,13 @@
 /** @format */
 
 import { createCanvas } from "canvas";
+// The react-pdf package ships a stable pdfjs-dist 4.x build that renders correctly
+// with node-canvas for our Vanguard spread pipeline.
+import * as pdfjsServer from "../node_modules/react-pdf/node_modules/pdfjs-dist/legacy/build/pdf.mjs";
+import { WorkerMessageHandler } from "../node_modules/react-pdf/node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs";
 import { getSpreadPageImageUrl, parseSpreadSource } from "./utils";
 
-let pdfjsPromise: Promise<any> | null = null;
+let pdfjsReady = false;
 
 class NodeCanvasFactory {
 	create(width: number, height: number) {
@@ -29,19 +33,22 @@ class NodeCanvasFactory {
 	}
 }
 
-async function getPdfJsServer() {
-	if (!pdfjsPromise) {
-		pdfjsPromise = import("react-pdf/node_modules/pdfjs-dist/legacy/build/pdf.mjs").catch(async primaryError => {
-			try {
-				return await import("pdfjs-dist/legacy/build/pdf.mjs");
-			} catch (fallbackError) {
-				console.error("Failed to load bundled PDF.js for Vanguard spread rendering.", primaryError);
-				throw fallbackError;
-			}
-		});
+function getPdfJsServer() {
+	if (!pdfjsReady) {
+		const globalScope = globalThis as typeof globalThis & {
+			pdfjsWorker?: {
+				WorkerMessageHandler?: typeof WorkerMessageHandler;
+			};
+		};
+
+		globalScope.pdfjsWorker = {
+			...globalScope.pdfjsWorker,
+			WorkerMessageHandler,
+		};
+		pdfjsReady = true;
 	}
 
-	return await pdfjsPromise;
+	return pdfjsServer as any;
 }
 
 async function getPdfBufferFromSpreadSrc(spreadSrc: string) {
@@ -53,10 +60,9 @@ async function getPdfBufferFromSpreadSrc(spreadSrc: string) {
 }
 
 async function loadPdfDocument(pdfBuffer: Buffer) {
-	const pdfjs = await getPdfJsServer();
+	const pdfjs = getPdfJsServer();
 	const loadingTask = pdfjs.getDocument({
 		data: new Uint8Array(pdfBuffer),
-		disableWorker: true,
 		isEvalSupported: false,
 		useSystemFonts: true,
 		verbosity: 0,
