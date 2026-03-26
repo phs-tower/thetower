@@ -1,9 +1,6 @@
 /** @format */
 
 import { createCanvas } from "canvas";
-import { existsSync } from "fs";
-import { join } from "path";
-import { pathToFileURL } from "url";
 import { getSpreadPageImageUrl, parseSpreadSource } from "./utils";
 
 let pdfjsPromise: Promise<any> | null = null;
@@ -34,10 +31,14 @@ class NodeCanvasFactory {
 
 async function getPdfJsServer() {
 	if (!pdfjsPromise) {
-		const bundledPdfJsPath = join(process.cwd(), "node_modules", "react-pdf", "node_modules", "pdfjs-dist", "legacy", "build", "pdf.mjs");
-		const fallbackPdfJsPath = join(process.cwd(), "node_modules", "pdfjs-dist", "legacy", "build", "pdf.mjs");
-		const pdfJsModuleUrl = existsSync(bundledPdfJsPath) ? pathToFileURL(bundledPdfJsPath).href : pathToFileURL(fallbackPdfJsPath).href;
-		pdfjsPromise = import(/* webpackIgnore: true */ pdfJsModuleUrl);
+		pdfjsPromise = import("react-pdf/node_modules/pdfjs-dist/legacy/build/pdf.mjs").catch(async primaryError => {
+			try {
+				return await import("pdfjs-dist/legacy/build/pdf.mjs");
+			} catch (fallbackError) {
+				console.error("Failed to load bundled PDF.js for Vanguard spread rendering.", primaryError);
+				throw fallbackError;
+			}
+		});
 	}
 
 	return await pdfjsPromise;
