@@ -301,7 +301,7 @@ export default function App({ Component, pageProps }: AppProps) {
 	const router = useRouter();
 	const [pageTransitionState, setPageTransitionState] = useState<"idle" | "leaving" | "entering">("idle");
 	const transitionTimeoutRef = useRef<number | null>(null);
-	const enablePageTransitions = process.env.NODE_ENV === "production";
+	const enablePageTransitions = true;
 
 	useEffect(() => {
 		if (typeof window === "undefined") return;
@@ -331,7 +331,7 @@ export default function App({ Component, pageProps }: AppProps) {
 			transitionTimeoutRef.current = window.setTimeout(() => {
 				setPageTransitionState("idle");
 				transitionTimeoutRef.current = null;
-			}, 220);
+			}, 150);
 		};
 
 		const handleRouteError = () => {
