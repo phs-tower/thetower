@@ -28,6 +28,7 @@ interface Props {
 	noteBelowImage?: React.ReactNode;
 	eyebrow?: React.ReactNode;
 	showPreviewText?: boolean;
+	previewTextBelowImage?: boolean;
 	showIssueDate?: boolean;
 }
 
@@ -87,6 +88,7 @@ export default function ArticlePreview({
 	noteBelowImage,
 	eyebrow,
 	showPreviewText = false,
+	previewTextBelowImage = false,
 	showIssueDate = false,
 }: Props) {
 	const [imageLoaded, setImageLoaded] = useState(false);
@@ -103,7 +105,7 @@ export default function ArticlePreview({
 		// BOX STYLE
 		switch (size) {
 			case "featured":
-				charlen = 200;
+				charlen = 240;
 				break;
 
 			case "large":
@@ -346,6 +348,9 @@ export default function ArticlePreview({
 				.article-preview.box.featured > .featured-preview > .note-below-image {
 					order: 3;
 				}
+				.article-preview.box.featured > .featured-preview > .preview-text-below-image {
+					order: 4;
+				}
 				.article-preview > .medium-preview {
 					display: contents;
 				}
@@ -484,7 +489,7 @@ export default function ArticlePreview({
 											width: "100%",
 											height: size == "featured" ? "100%" : thumbHeight ?? "16rem",
 											maxWidth: size == "featured" ? "100%" : "100%",
-											maxHeight: size == "featured" ? "90%" : typeof thumbHeight !== "undefined" ? thumbHeight : "16rem",
+											maxHeight: size == "featured" ? "100%" : typeof thumbHeight !== "undefined" ? thumbHeight : "16rem",
 											marginLeft: size == "featured" ? "1%" : "0",
 											marginRight: size == "featured" ? "7%" : "0",
 											objectFit: fit,
@@ -515,7 +520,7 @@ export default function ArticlePreview({
 											width: "100%",
 											height: size == "featured" ? "100%" : typeof thumbHeight !== "undefined" ? thumbHeight : "16rem",
 											maxWidth: size == "featured" ? "100%" : "100%",
-											maxHeight: size == "featured" ? "90%" : typeof thumbHeight !== "undefined" ? thumbHeight : "16rem",
+											maxHeight: size == "featured" ? "100%" : typeof thumbHeight !== "undefined" ? thumbHeight : "16rem",
 											marginLeft: size == "featured" ? "1%" : "0",
 											marginRight: size == "featured" ? "7%" : "0",
 											objectFit: fit,
@@ -526,6 +531,7 @@ export default function ArticlePreview({
 					)}
 				</div>
 				{noteBelowImage ? <div className="note-below-image">{noteBelowImage}</div> : null}
+				{previewText && previewTextBelowImage ? <section className="preview-text preview-text-below-image">{previewText}</section> : null}
 				<div className="content-block">
 					{eyebrow ? <div className="article-eyebrow">{eyebrow}</div> : null}
 					<section className="category">
@@ -553,7 +559,7 @@ export default function ArticlePreview({
 						))}
 					</section>
 
-					{previewText ? <section className="preview-text">{previewText}</section> : null}
+					{previewText && !previewTextBelowImage ? <section className="preview-text">{previewText}</section> : null}
 				</div>
 			</div>
 		</div>

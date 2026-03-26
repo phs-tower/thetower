@@ -4,6 +4,7 @@ import { article, spreads } from "@prisma/client";
 import Head from "next/head";
 import Link from "next/link";
 import Image from "next/image";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import ArticlePreview from "~/components/preview.client";
 import Video from "~/components/video.client";
 import Podcast from "~/components/podcast.client";
@@ -42,6 +43,13 @@ interface Props {
 
 export default function FrontPage({ articles, vang, featuredVanguardArticle, volumeLabel }: Props) {
 	const leftBottomArticle = featuredVanguardArticle ?? articles["opinions"][1];
+	const leftTopArticleId = articles["opinions"][0]?.id ?? null;
+	const rightTopArticleId = articles["sports"][0]?.id ?? null;
+	const rightBottomArticleId = articles["arts-entertainment"][0]?.id ?? null;
+	const leftTopCardRef = useRef<HTMLDivElement>(null);
+	const leftBottomCardRef = useRef<HTMLDivElement>(null);
+	const rightColumnRef = useRef<HTMLDivElement>(null);
+	const [leftBottomImageHeight, setLeftBottomImageHeight] = useState<number | null>(null);
 	const mobileHeroArticles = [
 		articles["featured"][0],
 		articles["opinions"][0],
@@ -51,6 +59,60 @@ export default function FrontPage({ articles, vang, featuredVanguardArticle, vol
 	]
 		.filter((item): item is article => Boolean(item))
 		.filter((item, index, list) => list.findIndex(candidate => candidate.id === item.id) === index);
+
+	useEffect(() => {
+		const measureLeftBottomCard = () => {
+			if (typeof window === "undefined" || window.innerWidth <= 1000) {
+				setLeftBottomImageHeight(null);
+				return;
+			}
+
+			const leftTopCard = leftTopCardRef.current;
+			const leftBottomCard = leftBottomCardRef.current;
+			const rightColumn = rightColumnRef.current;
+			const leftBottomImage = leftBottomCard?.querySelector(".preview-image") as HTMLElement | null;
+
+			if (!leftTopCard || !leftBottomCard || !rightColumn || !leftBottomImage) return;
+
+			const leftTopRect = leftTopCard.getBoundingClientRect();
+			const leftBottomRect = leftBottomCard.getBoundingClientRect();
+			const rightRect = rightColumn.getBoundingClientRect();
+			const imageRect = leftBottomImage.getBoundingClientRect();
+
+			if (!leftTopRect.height || !leftBottomRect.height || !rightRect.height || !imageRect.height) return;
+
+			const gap = Math.max(0, leftBottomRect.top - leftTopRect.bottom);
+			const leftBottomNonImageHeight = leftBottomRect.height - imageRect.height;
+			const nextImageHeight = Math.max(220, Math.round(rightRect.height - leftTopRect.height - gap - leftBottomNonImageHeight));
+
+			setLeftBottomImageHeight(prev => (prev !== null && Math.abs(prev - nextImageHeight) < 2 ? prev : nextImageHeight));
+		};
+
+		const scheduleMeasure = () => {
+			window.requestAnimationFrame(measureLeftBottomCard);
+		};
+
+		scheduleMeasure();
+		window.addEventListener("resize", scheduleMeasure);
+
+		const observer =
+			typeof ResizeObserver !== "undefined"
+				? new ResizeObserver(() => {
+						scheduleMeasure();
+				  })
+				: null;
+
+		if (observer) {
+			if (leftTopCardRef.current) observer.observe(leftTopCardRef.current);
+			if (leftBottomCardRef.current) observer.observe(leftBottomCardRef.current);
+			if (rightColumnRef.current) observer.observe(rightColumnRef.current);
+		}
+
+		return () => {
+			window.removeEventListener("resize", scheduleMeasure);
+			observer?.disconnect();
+		};
+	}, [leftBottomArticle?.id, leftTopArticleId, rightTopArticleId, rightBottomArticleId]);
 
 	return (
 		<div>
@@ -112,6 +174,16 @@ export default function FrontPage({ articles, vang, featuredVanguardArticle, vol
 				:global(.mosaic .triple.home-hero .article-preview.box:not(.featured) .authors) {
 					margin-top: 0 !important;
 				}
+				:global(.mosaic .triple.home-hero .hero-featured .article-preview.box.featured .authors) {
+					margin-bottom: 0.55rem !important;
+				}
+				:global(.mosaic .triple.home-hero .hero-featured .article-preview.box.featured .preview-text) {
+					margin-top: 0.85rem !important;
+					margin-bottom: 0 !important;
+				}
+				:global(.mosaic .triple.home-hero .hero-featured .article-preview.box.featured .preview-text.preview-text-below-image) {
+					margin-top: 0.35rem !important;
+				}
 				:global(.mosaic .triple.home-hero .hero-card .article-preview.box .preview-image) {
 					width: 100% !important;
 					height: 16rem !important;
@@ -124,6 +196,10 @@ export default function FrontPage({ articles, vang, featuredVanguardArticle, vol
 				:global(.mosaic .triple.home-hero .hero-card .article-preview.box.noimg .preview-image) {
 					object-fit: contain !important;
 					background: black !important;
+				}
+				:global(.mosaic .triple.home-hero .hero-card.hero-card-dynamic .article-preview.box .preview-image) {
+					height: var(--dynamic-image-height, 16rem) !important;
+					max-height: var(--dynamic-image-height, 16rem) !important;
 				}
 				.mobile-issue {
 					display: none;
@@ -186,21 +262,31 @@ export default function FrontPage({ articles, vang, featuredVanguardArticle, vol
 			<div className="mosaic">
 				<div className="triple home-hero">
 					<div className="hero-side hero-left-column">
-						<div className="hero-card">
+						<div className="hero-card" ref={leftTopCardRef}>
 							<hr />
 							{articles["opinions"][0] && <ArticlePreview article={articles["opinions"][0]} style="box" size="large" fit="cover" />}
 						</div>
-						<div className="hero-card">
+						<div
+							className="hero-card hero-card-dynamic"
+							ref={leftBottomCardRef}
+							style={
+								leftBottomImageHeight
+									? ({ ["--dynamic-image-height" as string]: `${leftBottomImageHeight}px` } as CSSProperties)
+									: undefined
+							}
+						>
 							{leftBottomArticle && <ArticlePreview article={leftBottomArticle} style="box" size="large" fit="cover" />}
 						</div>
 					</div>
 					<div className="hero-center">
 						{volumeLabel ? <div className="hero-issue">{volumeLabel}</div> : null}
 						<div className="hero-featured">
-							{articles["featured"][0] && <ArticlePreview article={articles["featured"][0]} style="box" size="featured" />}
+							{articles["featured"][0] && (
+								<ArticlePreview article={articles["featured"][0]} style="box" size="featured" showPreviewText previewTextBelowImage />
+							)}
 						</div>
 					</div>
-					<div className="hero-side hero-right-column">
+					<div className="hero-side hero-right-column" ref={rightColumnRef}>
 						<div className="hero-card">
 							<hr />
 							{articles["sports"][0] && <ArticlePreview article={articles["sports"][0]} style="box" size="large" fit="cover" />}

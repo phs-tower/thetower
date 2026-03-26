@@ -86,6 +86,11 @@ nav {
 			> a {
 				color: var(--text-light);
 			}
+
+			.bar-vertical,
+			.section-toggle {
+				display: none;
+			}
 		}
 
 		// The underline on top-level categories
@@ -99,10 +104,6 @@ nav {
 			height: 2px;
 			background: var(--text-light);
 			transition: width 0.25s;
-		}
-
-		> .section-button:has(i) > a::before {
-			right: calc(0.5rem + 2ch);
 		}
 
 		i {
@@ -165,10 +166,6 @@ nav {
 					width: calc(100% - 1rem);
 				}
 
-				> .section-button:has(i) > a::before {
-					width: calc(100% - 1rem - 2ch);
-				}
-
 				i {
 					transform: rotate(-180deg);
 				}
@@ -178,14 +175,6 @@ nav {
 		@media screen and (max-width: 1064px) and (min-width: ($mobile + 1px)) {
 			i {
 				display: none;
-			}
-
-			> .section-button:has(i) > a::before {
-				right: 0.5rem;
-			}
-
-			> .section-button:has(i):hover > a::before {
-				width: calc(100% - 1rem);
 			}
 		}
 	}
@@ -462,7 +451,17 @@ nav {
 					border-bottom: #ccc solid 0.5px;
 					// padding: 1rem 0.5rem;
 
-					span {
+					.section-toggle {
+						display: grid;
+						place-items: center;
+						width: 56px;
+						padding: 1rem;
+						height: auto;
+						border: none;
+						border-radius: 0;
+						background: none;
+						flex-shrink: 0;
+
 						&:hover {
 							background: white;
 							cursor: pointer;
@@ -471,10 +470,6 @@ nav {
 								color: var(--accent-dark);
 							}
 						}
-
-						width: 24px;
-						padding: 1rem 1rem;
-						overflow: hidden;
 					}
 
 					i {
@@ -490,6 +485,7 @@ nav {
 					}
 
 					div.bar-vertical {
+						display: block;
 						width: 0.5px;
 						height: 2rem;
 						background: #ccc;
@@ -542,7 +538,6 @@ nav {
 					transform: rotate(-180deg);
 				}
 
-				.section-link:has(i[data-open="true"]) .dropdown,
 				.section-link[data-open="true"] .dropdown {
 					display: block;
 					opacity: 1;

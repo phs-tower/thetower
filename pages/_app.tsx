@@ -36,19 +36,23 @@ function buildStaffMenuItems(years: number[]) {
 function SectionLink({ href, name: section, subsections }: { href: string; name: string; subsections?: Subsection[] }) {
 	const [open, setOpen] = useState(false);
 	return (
-		<div className="section-link">
+		<div className="section-link" data-open={open ? "true" : "false"}>
 			<div className="section-button">
 				<Link href={href}>{section}</Link>
 				{subsections && <div className="bar-vertical" />}
 				{subsections && (
-					<span
+					<button
+						type="button"
+						className="section-toggle"
+						aria-label={`Toggle ${section} submenu`}
+						aria-expanded={open}
 						onClick={e => {
 							e.preventDefault();
 							setOpen(!open);
 						}}
 					>
 						<i className="fa-solid fa-chevron-down" data-open={open} />
-					</span>
+					</button>
 				)}
 			</div>
 			{subsections && (
