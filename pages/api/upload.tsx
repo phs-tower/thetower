@@ -189,10 +189,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 		let imgURL = existingArticle?.img ?? "";
 		let serverImgSizeBytes: number | undefined;
 		const imageFile = getSingleFile(files.img);
+		const imageStoragePath = getFirstFieldValue((fields as any)["image-storage-path"]).trim();
+		const imageUploadSizeBytes = Number(getFirstFieldValue((fields as any)["image-upload-size-bytes"]));
 		const vanguardPageNumber = Number(getFirstFieldValue((fields as any)["vanguard-page-number"]));
 		const hasVanguardPageNumber = Number.isInteger(vanguardPageNumber) && vanguardPageNumber > 0;
 		const isVanguardArticle = category === "vanguard" && subcategory === "articles";
-		if (imageFile) {
+		if (imageStoragePath) {
+			imgURL = buildPublicStorageUrl("images", imageStoragePath);
+			serverImgSizeBytes = Number.isFinite(imageUploadSizeBytes) && imageUploadSizeBytes > 0 ? imageUploadSizeBytes : undefined;
+		} else if (imageFile) {
 			console.log("uploading file...");
 			const clientCompressed = getFirstFieldValue((fields as any)["img-client-compressed"]) === "1";
 

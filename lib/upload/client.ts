@@ -64,6 +64,72 @@ export async function buildCompactCanvasImageAsset(canvas: HTMLCanvasElement, fi
 	};
 }
 
+async function loadImageElement(source: File) {
+	const objectUrl = URL.createObjectURL(source);
+	const image = new Image();
+	image.decoding = "async";
+
+	await new Promise<void>((resolve, reject) => {
+		image.onload = () => resolve();
+		image.onerror = () => reject(new Error("Could not decode this image in the browser."));
+		image.src = objectUrl;
+	});
+
+	return {
+		image,
+		release: () => URL.revokeObjectURL(objectUrl),
+	};
+}
+
+function fileStemFromName(fileName: string) {
+	return (fileName.replace(/\.[^.]+$/, "") || "upload").replace(/[^a-z0-9-_]+/gi, "-");
+}
+
+export async function prepareArticleImageUpload(source: File, options?: { maxDimension?: number; targetBytes?: number }) {
+	const lowerName = source.name.toLowerCase();
+	if (lowerName.endsWith(".gif")) {
+		return {
+			file: source,
+			compressed: false,
+		};
+	}
+
+	const maxDimension = options?.maxDimension ?? 2400;
+	const targetBytes = options?.targetBytes ?? 1_400_000;
+
+	const { image, release } = await loadImageElement(source);
+
+	try {
+		const largestDimension = Math.max(image.naturalWidth || image.width, image.naturalHeight || image.height);
+		const scale = largestDimension > maxDimension ? maxDimension / largestDimension : 1;
+
+		const canvas = document.createElement("canvas");
+		canvas.width = Math.max(1, Math.round((image.naturalWidth || image.width) * scale));
+		canvas.height = Math.max(1, Math.round((image.naturalHeight || image.height) * scale));
+
+		const context = canvas.getContext("2d");
+		if (!context) throw new Error("Could not create a canvas for image upload preparation.");
+		context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+		const prepared = await buildCompactCanvasImageAsset(canvas, fileStemFromName(source.name), targetBytes);
+		if (prepared.file.size >= source.size * 0.98 && source.size <= targetBytes) {
+			URL.revokeObjectURL(prepared.previewUrl);
+			return {
+				file: source,
+				compressed: false,
+			};
+		}
+
+		URL.revokeObjectURL(prepared.previewUrl);
+		return {
+			file: prepared.file,
+			compressed: true,
+		};
+	} finally {
+		release();
+	}
+}
+
 export function setFileInputVisualState(inp: HTMLInputElement, hasFileClassName: string) {
 	const label = inp.parentElement;
 	const fileName = inp.files?.[0]?.name ?? "";

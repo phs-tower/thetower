@@ -92,8 +92,8 @@ export async function attemptUpload(fd: FormData, retries = 1): Promise<{ respon
 	}
 }
 
-export async function uploadVanguardSpreadPdfDirect(file: File) {
-	const prepareResponse = await fetch("/api/upload/spread-signed-url", {
+async function uploadFileDirectToStorage(file: File, endpoint: string, defaultErrorMessage: string) {
+	const prepareResponse = await fetch(endpoint, {
 		method: "POST",
 		headers: {
 			"Content-Type": "application/json",
@@ -101,9 +101,9 @@ export async function uploadVanguardSpreadPdfDirect(file: File) {
 		body: JSON.stringify({ filename: file.name }),
 	});
 
-	const prepareData = await parseJsonSafely<{ signedUrl?: string; path?: string; message?: string }>(prepareResponse);
+	const prepareData = await parseJsonSafely<{ signedUrl?: string; path?: string; publicUrl?: string; message?: string }>(prepareResponse);
 	if (!prepareResponse.ok) {
-		throw new Error(prepareData?.message || "Could not prepare the Vanguard PDF upload.");
+		throw new Error(prepareData?.message || defaultErrorMessage);
 	}
 
 	const body = new FormData();
@@ -120,10 +120,20 @@ export async function uploadVanguardSpreadPdfDirect(file: File) {
 
 	if (!signedUploadResponse.ok) {
 		const errorText = await signedUploadResponse.text().catch(() => "");
-		throw new Error(errorText || "Could not upload the Vanguard PDF to storage.");
+		throw new Error(errorText || defaultErrorMessage);
 	}
 
 	return {
 		path: String(prepareData.path || ""),
+		publicUrl: String(prepareData.publicUrl || ""),
+		sizeBytes: file.size,
 	};
+}
+
+export async function uploadVanguardSpreadPdfDirect(file: File) {
+	return await uploadFileDirectToStorage(file, "/api/upload/spread-signed-url", "Could not upload the Vanguard PDF to storage.");
+}
+
+export async function uploadArticleImageDirect(file: File) {
+	return await uploadFileDirectToStorage(file, "/api/upload/image-signed-url", "Could not upload the article image to storage.");
 }

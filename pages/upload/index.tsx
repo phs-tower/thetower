@@ -23,6 +23,7 @@ import {
 	buildLegacyVanguardSpreadPageAsset as createLegacyVanguardSpreadPageAsset,
 	buildPdfPreviewImages,
 	convertHeicToPng,
+	prepareArticleImageUpload,
 	setFileInputVisualState,
 } from "~/lib/upload/client";
 import {
@@ -31,6 +32,7 @@ import {
 	fetchArticleForEditing,
 	fetchIssueArticles,
 	fetchIssueVanguardSpread,
+	uploadArticleImageDirect,
 	uploadVanguardSpreadPdfDirect,
 } from "~/lib/upload/api";
 import {
@@ -729,6 +731,7 @@ export default function Upload() {
 	async function submitArticle(e: FormEvent<HTMLFormElement>) {
 		e.preventDefault();
 		setUploadResponse("Checking...");
+		setServerImgBytes(null);
 
 		if (!formData.category) {
 			setUploadResponse("Upload failed: You need to select a category.");
@@ -806,9 +809,11 @@ export default function Upload() {
 		fd.append("year", chosenYear);
 		if (editingArticleId !== null) fd.append("article-id", String(editingArticleId));
 
-		// Send original image to server; server handles compression
+		// Prepare any new article image for a direct storage upload before the metadata request.
 		let preparedImg: File | null = formData.img ?? null;
 		let preparedImgClientCompressed = false;
+		let directUploadedImagePath = "";
+		let directUploadedImageSizeBytes: number | null = null;
 		if (isVanguardArticle && !formData.img && selectedVanguardPageNumber && issueVanguardSpread && issueVanguardSpreadPageCount === 0) {
 			try {
 				const rendered = await buildLegacyVanguardSpreadPageAsset(issueVanguardSpread.src, selectedVanguardPageNumber);
@@ -817,6 +822,37 @@ export default function Upload() {
 				URL.revokeObjectURL(rendered.previewUrl);
 			} catch (error: any) {
 				setUploadResponse(`Upload failed: ${error?.message || "Could not render the selected Vanguard spread page."}`);
+				setUploadStatus("error");
+				triggerErrorAnimation();
+				return;
+			}
+		}
+
+		if (isArticleLikeSection && preparedImg) {
+			let uploadReadyImage = preparedImg;
+
+			if (!preparedImgClientCompressed) {
+				setUploadResponse("Preparing header image...");
+				try {
+					const preparedUploadImage = await prepareArticleImageUpload(preparedImg);
+					uploadReadyImage = preparedUploadImage.file;
+					preparedImgClientCompressed = preparedUploadImage.compressed;
+				} catch (error) {
+					console.warn("Client image preparation failed, uploading original file instead.", error);
+					uploadReadyImage = preparedImg;
+				}
+			}
+
+			setUploadResponse("Uploading header image...");
+			try {
+				const directImageUpload = await uploadArticleImageDirect(uploadReadyImage);
+				if (!directImageUpload.path) {
+					throw new Error("The image upload finished without a valid storage path.");
+				}
+				directUploadedImagePath = directImageUpload.path;
+				directUploadedImageSizeBytes = directImageUpload.sizeBytes;
+			} catch (error: any) {
+				setUploadResponse(`Upload failed: ${error?.message || "Could not upload the article image."}`);
 				setUploadStatus("error");
 				triggerErrorAnimation();
 				return;
@@ -889,8 +925,13 @@ export default function Upload() {
 			fd.append("title", formData.title || "");
 			fd.append("authors", JSON.stringify(authors));
 			if (formData.content) fd.append("content", formData.content);
-			if (preparedImg) fd.append("img", preparedImg);
-			if (preparedImgClientCompressed) fd.append("img-client-compressed", "1");
+			if (directUploadedImagePath) {
+				fd.append("image-storage-path", directUploadedImagePath);
+				if (directUploadedImageSizeBytes !== null) fd.append("image-upload-size-bytes", String(directUploadedImageSizeBytes));
+			} else if (preparedImg) {
+				fd.append("img", preparedImg);
+				if (preparedImgClientCompressed) fd.append("img-client-compressed", "1");
+			}
 			if (!preparedImg && editingArticleId !== null) fd.append("existing-img", formData.imgData ? String(formData.imgData) : "");
 			// Append header info if provided
 			if (formData.contentInfo) fd.append("content-info", formData.contentInfo);
@@ -925,6 +966,7 @@ export default function Upload() {
 					setServerImgBytes(Number(data.serverImgSizeBytes));
 				} else {
 					setUploadResponse(data.message || "Upload successful!");
+					if (directUploadedImageSizeBytes !== null) setServerImgBytes(directUploadedImageSizeBytes);
 				}
 				setCompletedUploadMessage(data.message || "Uploaded!");
 				setUploadStatus("success");
