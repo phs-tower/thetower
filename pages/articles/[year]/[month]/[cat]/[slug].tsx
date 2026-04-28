@@ -29,11 +29,11 @@ interface ArticleContentProps {
 }
 
 const ARTICLE_COLUMN_AD = {
-	src: "/assets/fledermaus-article-column-2026.jpg",
-	href: "https://www.thestateoperanj.org/",
-	alt: "Die Fledermaus 2026 presented by The State Opera of New Jersey",
-	width: 1224,
-	height: 2000,
+	src: "/assets/yhis-night-market.png?v=20260427",
+	href: "https://www.yhis.org/activities-programs/night-market",
+	alt: "Yinghua International School Spring Night Market Fundraiser",
+	width: 160,
+	height: 600,
 };
 
 interface Params extends ParsedUrlQuery {
@@ -144,13 +144,19 @@ export function ArticleContent({ article, showColumnAd = true }: ArticleContentP
 				{showColumnAd && (
 					<aside className={articleStyles["article-column-ad"]} aria-label="Article sponsor">
 						<div className={articleStyles["article-column-ad-label"]}>ADVERTISEMENT</div>
-						<a href={ARTICLE_COLUMN_AD.href} target="_blank" rel="noreferrer" className={articleStyles["article-column-ad-image-link"]}>
-							<Image
+						<a
+							href={ARTICLE_COLUMN_AD.href}
+							target="_blank"
+							rel="noreferrer"
+							className={articleStyles["article-column-sponsor-image-link"]}
+						>
+							<img
 								src={ARTICLE_COLUMN_AD.src}
 								alt={ARTICLE_COLUMN_AD.alt}
 								width={ARTICLE_COLUMN_AD.width}
 								height={ARTICLE_COLUMN_AD.height}
-								sizes="(max-width: 900px) 100vw, (max-width: 1279px) 22rem, 30rem"
+								loading="lazy"
+								decoding="async"
 							/>
 						</a>
 						<div className={articleStyles["article-column-ad-caption"]}>
@@ -160,7 +166,7 @@ export function ArticleContent({ article, showColumnAd = true }: ArticleContentP
 								rel="noreferrer"
 								className={articleStyles["article-column-ad-caption-link"]}
 							>
-								Die Fledermaus 2026 presented by The State Opera of New Jersey
+								Yinghua International School Spring Night Market Fundraiser
 							</a>
 						</div>
 					</aside>

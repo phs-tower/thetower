@@ -54,16 +54,16 @@ section.content {
 }
 
 .article-column-ad {
-	width: min(100%, 22rem);
+	width: min(100%, 14rem);
 	margin: 0 auto;
 	align-self: center;
 	border: 1px solid #cfcfcf;
 	background: #f8f8f8;
 	box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
 
-	a.article-column-ad-image-link {
+	a.article-column-sponsor-image-link {
 		display: block;
-		padding: 0.7rem;
+		padding: 0.45rem;
 		background: #f8f8f8;
 
 		&:hover {
@@ -330,7 +330,7 @@ a.related-spread-card {
 @media screen and (min-width: 901px) and (max-width: 1279px) {
 	.article-body {
 		display: grid;
-		grid-template-columns: minmax(0, 1fr) clamp(17rem, 30vw, 23rem);
+		grid-template-columns: minmax(0, 1fr) clamp(11rem, 15vw, 14rem);
 		gap: 1.2rem;
 		align-items: start;
 	}
@@ -359,7 +359,7 @@ a.related-spread-card {
 	.main-article {
 		grid-column: 1;
 		grid-row: 1;
-		width: min(100%, 72ch);
+		width: min(100%, 86ch);
 		justify-self: start;
 	}
 
@@ -369,9 +369,9 @@ a.related-spread-card {
 		justify-self: end;
 		margin: 0;
 		margin-top: 12.5rem;
-		width: clamp(20rem, 27vw, 30rem);
+		width: clamp(12rem, 15vw, 14rem);
 		align-self: start;
-		transform: translateX(calc(70% + clamp(0.2rem, 0.55vw, 0.55rem)));
+		transform: translateX(calc(95% + clamp(0.15rem, 0.35vw, 0.35rem)));
 	}
 }
 
