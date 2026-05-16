@@ -1455,7 +1455,6 @@ export default function Upload() {
 							<div style={{ textAlign: "left" }}>
 								{isArticleLikeSection && (
 									<ArticleContent
-										showColumnAd={false}
 										article={{
 											id: -1,
 											title: formData.title ? formData.title : "Enter title to update preview",

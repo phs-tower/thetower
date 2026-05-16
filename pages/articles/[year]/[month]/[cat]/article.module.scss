@@ -53,7 +53,7 @@ section.content {
 	gap: 1.5rem;
 }
 
-.article-column-ad {
+.article-sponsor {
 	width: min(100%, 14rem);
 	margin: 0 auto;
 	align-self: center;
@@ -61,7 +61,7 @@ section.content {
 	background: #f8f8f8;
 	box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
 
-	a.article-column-sponsor-image-link {
+	a.article-sponsor-image-link {
 		display: block;
 		padding: 0.45rem;
 		background: #f8f8f8;
@@ -78,7 +78,7 @@ section.content {
 	}
 }
 
-.article-column-ad-label {
+.article-sponsor-label {
 	padding: 0.45rem 0.7rem;
 	background: #111;
 	color: #fff;
@@ -89,11 +89,11 @@ section.content {
 	text-align: center;
 }
 
-.article-column-ad-caption {
+.article-sponsor-caption {
 	padding: 0 0.7rem 0.7rem;
 }
 
-a.article-column-ad-caption-link {
+a.article-sponsor-caption-link {
 	display: block;
 	margin-top: 0.15rem;
 	font-family: var(--font-sans);
@@ -327,28 +327,6 @@ a.related-spread-card {
 	color: #102e63;
 }
 
-@media screen and (min-width: 901px) and (max-width: 1279px) {
-	.article-body {
-		display: grid;
-		grid-template-columns: minmax(0, 1fr) clamp(11rem, 15vw, 14rem);
-		gap: 1.2rem;
-		align-items: start;
-	}
-
-	.main-article {
-		grid-column: 1;
-		width: 100%;
-	}
-
-	.article-column-ad {
-		grid-column: 2;
-		margin: 0;
-		width: 100%;
-		margin-top: 12.5rem;
-		align-self: start;
-	}
-}
-
 @media screen and (min-width: 1280px) {
 	.article-body {
 		display: grid;
@@ -363,7 +341,7 @@ a.related-spread-card {
 		justify-self: start;
 	}
 
-	.article-column-ad {
+	.article-body.has-article-sponsor .article-sponsor {
 		grid-column: 1;
 		grid-row: 1;
 		justify-self: end;
@@ -372,6 +350,28 @@ a.related-spread-card {
 		width: clamp(12rem, 15vw, 14rem);
 		align-self: start;
 		transform: translateX(calc(95% + clamp(0.15rem, 0.35vw, 0.35rem)));
+	}
+}
+
+@media screen and (min-width: 901px) and (max-width: 1279px) {
+	.article-body.has-article-sponsor {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) clamp(11rem, 15vw, 14rem);
+		gap: 1.2rem;
+		align-items: start;
+	}
+
+	.article-body.has-article-sponsor .main-article {
+		grid-column: 1;
+		width: 100%;
+	}
+
+	.article-body.has-article-sponsor .article-sponsor {
+		grid-column: 2;
+		margin: 0;
+		width: 100%;
+		margin-top: 12.5rem;
+		align-self: start;
 	}
 }
 

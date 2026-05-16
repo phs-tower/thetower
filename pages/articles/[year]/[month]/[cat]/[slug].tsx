@@ -14,6 +14,7 @@ import SubBanner from "~/components/subbanner.client";
 import PhotoCredit from "~/components/photocredit";
 import Link from "next/link";
 import { PdfPageThumbnail } from "~/components/pdfspreadfallback.client";
+import { articleColumnSponsor } from "~/lib/article-column-sponsor";
 import { ParsedUrlQuery } from "querystring";
 
 import articleStyles from "./article.module.scss";
@@ -25,16 +26,7 @@ interface Props {
 
 interface ArticleContentProps {
 	article: article;
-	showColumnAd?: boolean;
 }
-
-const ARTICLE_COLUMN_AD = {
-	src: "/assets/yhis-night-market.png?v=20260427",
-	href: "https://www.yhis.org/activities-programs/night-market",
-	alt: "Yinghua International School Spring Night Market Fundraiser",
-	width: 160,
-	height: 600,
-};
 
 interface Params extends ParsedUrlQuery {
 	year: string;
@@ -94,7 +86,9 @@ export function ReturnToCategoryButton({ category }: { category: string }) {
 	);
 }
 
-export function ArticleContent({ article, showColumnAd = true }: ArticleContentProps) {
+export function ArticleContent({ article }: ArticleContentProps) {
+	const showColumnSponsor = articleColumnSponsor.enabled;
+
 	return (
 		<section className={articleStyles["content"]}>
 			<div className={articleStyles["titleblock"]}>
@@ -132,7 +126,7 @@ export function ArticleContent({ article, showColumnAd = true }: ArticleContentP
 				)}
 			</div>
 
-			<div className={articleStyles["article-body"]}>
+			<div className={`${articleStyles["article-body"]} ${showColumnSponsor ? articleStyles["has-article-sponsor"] : ""}`}>
 				{article.markdown ? (
 					<div className={articleStyles["main-article"]} dangerouslySetInnerHTML={{ __html: article.content }} />
 				) : (
@@ -141,32 +135,32 @@ export function ArticleContent({ article, showColumnAd = true }: ArticleContentP
 					</div>
 				)}
 
-				{showColumnAd && (
-					<aside className={articleStyles["article-column-ad"]} aria-label="Article sponsor">
-						<div className={articleStyles["article-column-ad-label"]}>ADVERTISEMENT</div>
+				{showColumnSponsor && (
+					<aside className={articleStyles["article-sponsor"]} aria-label="Article sponsor">
+						<div className={articleStyles["article-sponsor-label"]}>ADVERTISEMENT</div>
 						<a
-							href={ARTICLE_COLUMN_AD.href}
+							href={articleColumnSponsor.href}
 							target="_blank"
 							rel="noreferrer"
-							className={articleStyles["article-column-sponsor-image-link"]}
+							className={articleStyles["article-sponsor-image-link"]}
 						>
 							<img
-								src={ARTICLE_COLUMN_AD.src}
-								alt={ARTICLE_COLUMN_AD.alt}
-								width={ARTICLE_COLUMN_AD.width}
-								height={ARTICLE_COLUMN_AD.height}
+								src={articleColumnSponsor.src}
+								alt={articleColumnSponsor.alt}
+								width={articleColumnSponsor.width}
+								height={articleColumnSponsor.height}
 								loading="lazy"
 								decoding="async"
 							/>
 						</a>
-						<div className={articleStyles["article-column-ad-caption"]}>
+						<div className={articleStyles["article-sponsor-caption"]}>
 							<a
-								href={ARTICLE_COLUMN_AD.href}
+								href={articleColumnSponsor.href}
 								target="_blank"
 								rel="noreferrer"
-								className={articleStyles["article-column-ad-caption-link"]}
+								className={articleStyles["article-sponsor-caption-link"]}
 							>
-								Yinghua International School Spring Night Market Fundraiser
+								{articleColumnSponsor.caption}
 							</a>
 						</div>
 					</aside>
