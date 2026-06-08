@@ -33,6 +33,9 @@ type CrosswordEntry = {
 type Props = {
 	value: CrosswordDraft;
 	onChange: Dispatch<SetStateAction<CrosswordDraft>>;
+	fixedSize?: boolean;
+	rows?: number;
+	cols?: number;
 };
 
 function clamp(value: number, min: number, max: number) {
@@ -256,12 +259,26 @@ export function serializeCrosswordDraft(
 	};
 }
 
-export default function CrosswordBuilder({ value, onChange }: Props) {
+export default function CrosswordBuilder({ value, onChange, fixedSize = false, rows, cols }: Props) {
 	const entries = useMemo(() => getEntries(value.grid, value.clueTexts), [value.grid, value.clueTexts]);
 	const numberMap = useMemo(() => getCellNumberMap(value.grid), [value.grid]);
 	const boardCellSize = useMemo(() => getCellSizeRem(value.rows, value.cols), [value.cols, value.rows]);
 	const mobileBoardCellSize = useMemo(() => Math.max(1.9, boardCellSize * 0.74), [boardCellSize]);
 	const boardRef = useRef<HTMLDivElement>(null);
+
+	useEffect(() => {
+		if (!fixedSize) return;
+		const nextRows = typeof rows === "number" ? rows : value.rows;
+		const nextCols = typeof cols === "number" ? cols : value.cols;
+		if (nextRows === value.rows && nextCols === value.cols) return;
+
+		onChange(draft => ({
+			...draft,
+			rows: nextRows,
+			cols: nextCols,
+			grid: createGrid(nextRows, nextCols, draft.grid),
+		}));
+	}, [fixedSize, rows, cols, value.rows, value.cols, onChange]);
 
 	const updateDraft = useCallback(
 		(updater: (draft: CrosswordDraft) => CrosswordDraft) => {
@@ -674,16 +691,22 @@ export default function CrosswordBuilder({ value, onChange }: Props) {
 					<strong>Crossword Date</strong>
 					<input type="date" value={value.date} onChange={e => updateDraft(draft => ({ ...draft, date: e.target.value }))} />
 				</label>
-				<div className="grid-controls">
-					<label className="field">
-						<strong>Rows</strong>
-						<input type="number" min={3} max={25} value={value.rows} onChange={e => resizeGrid(Number(e.target.value), value.cols)} />
-					</label>
-					<label className="field">
-						<strong>Cols</strong>
-						<input type="number" min={3} max={25} value={value.cols} onChange={e => resizeGrid(value.rows, Number(e.target.value))} />
-					</label>
-				</div>
+{!fixedSize ? (
+						<div className="grid-controls">
+							<label className="field">
+								<strong>Rows</strong>
+								<input type="number" min={3} max={25} value={value.rows} onChange={e => resizeGrid(Number(e.target.value), value.cols)} />
+							</label>
+							<label className="field">
+								<strong>Cols</strong>
+								<input type="number" min={3} max={25} value={value.cols} onChange={e => resizeGrid(value.rows, Number(e.target.value))} />
+							</label>
+						</div>
+					) : (
+						<div className="meta-line">
+							This crossword is fixed at {rows ?? value.rows}×{cols ?? value.cols}.
+						</div>
+					)}
 			</div>
 
 			<div className="editor-layout">
