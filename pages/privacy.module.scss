@@ -1,0 +1,73 @@
+/** @format */
+
+.privacy {
+	max-width: 80ch;
+	margin-inline: auto;
+	padding-bottom: 3rem;
+
+	h1 {
+		border-bottom: 3px solid gainsboro;
+		padding-bottom: 0.5rem;
+	}
+
+	h2 {
+		margin-top: 2.5rem;
+		margin-bottom: 0.5rem;
+	}
+
+	h3 {
+		margin-top: 1.5rem;
+		margin-bottom: 0.25rem;
+	}
+
+	p,
+	li {
+		line-height: 1.6;
+	}
+
+	ul {
+		padding-left: 1.5rem;
+	}
+
+	li {
+		margin-bottom: 0.5rem;
+	}
+
+	hr {
+		margin-block: 2rem;
+		border: none;
+		border-top: 1px solid gainsboro;
+	}
+
+	blockquote {
+		margin-inline: 0;
+		padding: 0.5rem 1rem;
+		border-left: 4px solid gainsboro;
+		background: #f8f8f8;
+	}
+
+	a {
+		text-decoration: underline;
+		word-break: break-word;
+	}
+
+	table {
+		width: 100%;
+		border-collapse: collapse;
+		margin-block: 1rem;
+		display: block;
+		overflow-x: auto;
+	}
+
+	th,
+	td {
+		border: 1px solid gainsboro;
+		padding: 0.5rem 0.75rem;
+		text-align: left;
+		vertical-align: top;
+	}
+
+	th {
+		background: #f8f8f8;
+	}
+}
