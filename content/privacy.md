@@ -148,7 +148,7 @@ happens with:
 
 We do not use this technical information to identify individual readers.
 
-### 2.7 Information we do **not** collect
+### 2.7 Information we do not collect
 
 The app never asks for a location permission and contains no location-tracking
 code. It does not collect or request: GPS or device location, camera or
