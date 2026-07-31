@@ -1,8 +1,8 @@
 # Privacy Policy — The Tower (PHS Tower app)
 
 **Version 1.0**\
-**Effective date:** July 30, 2026\
-**Last updated:** July 30, 2026
+**Effective date:** July 10, 2026\
+**Last updated:** July 10, 2026
 
 This Privacy Policy describes how *The Tower*, the student newspaper of Princeton
 High School ("The Tower," "we," "us," or "our"), handles information in the
