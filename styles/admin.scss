@@ -20,7 +20,7 @@ $muted: #6b7280;
 	font-family: var(--font-sans), "Courier New", sans-serif;
 	text-transform: uppercase;
 	letter-spacing: 0.08em;
-	font-size: 0.75rem;
+	font-size: 0.82rem;
 }
 
 .ta-root {
@@ -54,7 +54,7 @@ $muted: #6b7280;
 	textarea,
 	button {
 		font-family: var(--font-sans), "Courier New", sans-serif;
-		font-size: 0.9rem;
+		font-size: 1rem;
 	}
 
 	input[type="text"],
@@ -84,7 +84,7 @@ $muted: #6b7280;
 
 	textarea {
 		font-family: var(--font-serif-text), serif;
-		font-size: 1rem;
+		font-size: 1.1rem;
 		line-height: 1.5;
 		resize: vertical;
 	}
@@ -166,12 +166,12 @@ $muted: #6b7280;
 
 	&.ta-btn-small {
 		padding: 0.2rem 0.55rem;
-		font-size: 0.7rem;
+		font-size: 0.78rem;
 	}
 
 	&.ta-btn-big {
 		padding: 1rem 1.25rem;
-		font-size: 0.95rem;
+		font-size: 1.05rem;
 		letter-spacing: 0.1em;
 	}
 }
@@ -234,7 +234,7 @@ $muted: #6b7280;
 
 .ta-gate-note {
 	@include label-caps;
-	font-size: 0.7rem;
+	font-size: 0.78rem;
 	color: $muted;
 	letter-spacing: 0.05em;
 	line-height: 1.7;
@@ -288,7 +288,7 @@ $muted: #6b7280;
 
 	.ta-masthead-tag {
 		@include label-caps;
-		font-size: 0.65rem;
+		font-size: 0.72rem;
 		letter-spacing: 0.3em;
 		color: $red;
 		border: 1px solid $red;
@@ -313,7 +313,7 @@ $muted: #6b7280;
 
 	.ta-masthead-date {
 		@include label-caps;
-		font-size: 0.65rem;
+		font-size: 0.72rem;
 		color: $muted;
 	}
 
@@ -324,7 +324,7 @@ $muted: #6b7280;
 
 		.ta-masthead-email {
 			@include label-caps;
-			font-size: 0.65rem;
+			font-size: 0.72rem;
 			color: $navy;
 			max-width: 22ch;
 			overflow: hidden;
@@ -369,7 +369,7 @@ $muted: #6b7280;
 			padding: 0.7rem 0.65rem;
 			color: #eee;
 			@include label-caps;
-			font-size: 0.7rem;
+			font-size: 0.78rem;
 
 			&::before {
 				content: "";
@@ -413,7 +413,7 @@ $muted: #6b7280;
 		color: #eee;
 		padding: 0.7rem 1rem;
 		@include label-caps;
-		font-size: 0.7rem;
+		font-size: 0.78rem;
 		text-align: left;
 		cursor: pointer;
 	}
@@ -515,7 +515,7 @@ $muted: #6b7280;
 
 	.ta-stat-label {
 		@include label-caps;
-		font-size: 0.68rem;
+		font-size: 0.75rem;
 		color: $muted;
 		margin-top: 0.35rem;
 		display: block;
@@ -531,21 +531,23 @@ $muted: #6b7280;
 	color: $muted;
 }
 
+/* Secondary text. The site's body copy is 1.25rem, so this sits at ~84% of
+   it — clearly subordinate but still comfortable to read. */
 .ta-small {
-	font-size: 0.85rem;
+	font-size: 1.05rem;
 }
 
 .ta-error {
 	color: $red;
 	font-family: var(--font-sans), sans-serif;
-	font-size: 0.85rem;
+	font-size: 1rem;
 	margin: 0;
 }
 
 .ta-ok {
 	color: #15803d;
 	font-family: var(--font-sans), sans-serif;
-	font-size: 0.85rem;
+	font-size: 1rem;
 	margin: 0;
 }
 
@@ -555,7 +557,7 @@ $muted: #6b7280;
 	border: 1px solid $navy;
 	border-radius: 0.15rem;
 	@include label-caps;
-	font-size: 0.62rem;
+	font-size: 0.7rem;
 	color: $navy;
 	background: #fff;
 	white-space: nowrap;
@@ -591,7 +593,7 @@ $muted: #6b7280;
 
 	th {
 		@include label-caps;
-		font-size: 0.65rem;
+		font-size: 0.72rem;
 		color: $muted;
 		border-bottom: 2px solid #000;
 	}
@@ -635,7 +637,7 @@ $muted: #6b7280;
 		margin-bottom: -1px;
 		padding: 0.5rem 0.9rem;
 		@include label-caps;
-		font-size: 0.7rem;
+		font-size: 0.78rem;
 		color: $muted;
 		cursor: pointer;
 		white-space: nowrap;
@@ -675,7 +677,7 @@ $muted: #6b7280;
 		padding: 0.6rem 1rem;
 		cursor: pointer;
 		@include label-caps;
-		font-size: 0.7rem;
+		font-size: 0.78rem;
 		color: $muted;
 
 		&.selected {
@@ -720,7 +722,7 @@ $muted: #6b7280;
 	.ta-layout-kind {
 		display: block;
 		@include label-caps;
-		font-size: 0.62rem;
+		font-size: 0.7rem;
 		color: $muted;
 		margin-bottom: 0.3rem;
 	}
@@ -739,7 +741,7 @@ $muted: #6b7280;
 			cursor: pointer;
 			line-height: 1;
 			color: $navy;
-			font-size: 0.6rem;
+			font-size: 0.68rem;
 
 			&:hover:not(:disabled) {
 				background: $navy;
@@ -763,7 +765,7 @@ $muted: #6b7280;
 	border-radius: 0.25rem;
 	padding: 0.15rem 0.3rem 0.15rem 0.55rem;
 	font-family: var(--font-sans), sans-serif;
-	font-size: 0.8rem;
+	font-size: 0.88rem;
 	margin: 0.15rem 0.3rem 0.15rem 0;
 
 	b {
@@ -775,7 +777,7 @@ $muted: #6b7280;
 		background: none;
 		cursor: pointer;
 		color: $muted;
-		font-size: 0.9rem;
+		font-size: 1rem;
 		padding: 0 0.2rem;
 		line-height: 1;
 
@@ -816,7 +818,7 @@ $muted: #6b7280;
 			padding: 0.5rem 0.75rem;
 			cursor: pointer;
 			font-family: var(--font-serif-text), serif;
-			font-size: 0.95rem;
+			font-size: 1.05rem;
 
 			&:hover {
 				background: #f5f7f9;
@@ -827,7 +829,7 @@ $muted: #6b7280;
 
 .ta-code {
 	font-family: "Courier New", monospace;
-	font-size: 0.85rem;
+	font-size: 0.95rem;
 	background: $navy-dark;
 	color: $pale;
 	border-radius: 0.35rem;
@@ -859,7 +861,7 @@ $muted: #6b7280;
 		padding: 0.3rem 0.7rem;
 		cursor: pointer;
 		@include label-caps;
-		font-size: 0.7rem;
+		font-size: 0.78rem;
 		color: $navy;
 
 		&.selected {
@@ -877,7 +879,7 @@ $muted: #6b7280;
 	padding: 0.7rem 0.8rem 0.9rem;
 
 	h3 {
-		font-size: 1.1rem;
+		font-size: 1.2rem;
 		margin-bottom: 0.5rem;
 		padding-bottom: 0.3rem;
 		border-bottom: 1px solid $rule;
@@ -891,7 +893,7 @@ $muted: #6b7280;
 
 	.ta-cal-head {
 		@include label-caps;
-		font-size: 0.6rem;
+		font-size: 0.68rem;
 		color: $muted;
 		text-align: center;
 		padding-bottom: 0.2rem;
@@ -913,14 +915,14 @@ $muted: #6b7280;
 
 		.d {
 			font-family: var(--font-sans), sans-serif;
-			font-size: 0.6rem;
+			font-size: 0.68rem;
 			color: $muted;
 		}
 
 		.t {
 			display: block;
 			font-family: var(--font-serif-header), serif;
-			font-size: 1rem;
+			font-size: 1.1rem;
 			color: $navy;
 		}
 
@@ -977,7 +979,7 @@ $muted: #6b7280;
 
 	.ta-blurb-title {
 		font-family: var(--font-serif-header), serif;
-		font-size: 1.15rem;
+		font-size: 1.25rem;
 	}
 
 	textarea {
@@ -993,7 +995,7 @@ $muted: #6b7280;
 
 .ta-charcount {
 	@include label-caps;
-	font-size: 0.62rem;
+	font-size: 0.7rem;
 	color: $muted;
 
 	&.long {
