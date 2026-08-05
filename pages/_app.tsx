@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent, MouseEvent } from "react";
 import "~/styles/styles.scss";
+import "~/styles/admin.scss";
 import styles from "~/lib/styles";
 import { useRouter } from "next/router";
 import { socialLinks } from "~/lib/constants";
@@ -333,6 +334,19 @@ export default function App({ Component, pageProps }: AppProps) {
 			router.events.off("routeChangeError", handleRouteDone);
 		};
 	}, [router]);
+
+	// The Tower Console lives under /admin with its own chrome — no site nav,
+	// footer, or promo popup.
+	if (router.pathname === "/admin" || router.pathname.startsWith("/admin/")) {
+		return (
+			<>
+				<Head>
+					<meta name="viewport" content="width=device-width, initial-scale=1" />
+				</Head>
+				<Component {...pageProps} />
+			</>
+		);
+	}
 
 	return (
 		<>

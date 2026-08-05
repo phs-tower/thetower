@@ -1,0 +1,845 @@
+/** @format */
+
+/* ─── The Tower Console ──────────────────────────────────────────────────────
+   Brand: navy #072636, editorial red #A31621, Inter for UI text.
+   All selectors are ta- prefixed and scoped under .ta-root so nothing leaks
+   into (or is disturbed by) the public site's global styles. */
+
+$navy: #072636;
+$red: #a31621;
+$paper: #f4f6f8;
+$ink: #16232c;
+$line: #dde3e8;
+$muted: #64748b;
+
+.ta-root {
+	font-family: "Inter", -apple-system, "Segoe UI", Roboto, sans-serif;
+	color: $ink;
+	background: $paper;
+	min-height: 100vh;
+	font-size: 15px;
+	line-height: 1.45;
+
+	h1,
+	h2,
+	h3 {
+		font-family: inherit;
+		color: $navy;
+		margin: 0;
+	}
+
+	a {
+		color: inherit;
+		text-decoration: none;
+	}
+
+	input,
+	select,
+	textarea,
+	button {
+		font-family: inherit;
+		font-size: 14px;
+	}
+
+	input[type="text"],
+	input[type="email"],
+	input[type="password"],
+	input[type="number"],
+	input[type="date"],
+	input[type="time"],
+	input[type="url"],
+	input[type="search"],
+	select,
+	textarea {
+		width: 100%;
+		padding: 8px 10px;
+		border: 1px solid $line;
+		border-radius: 8px;
+		background: #fff;
+		color: $ink;
+		&:focus {
+			outline: 2px solid rgba($navy, 0.35);
+			outline-offset: 0;
+			border-color: $navy;
+		}
+	}
+
+	textarea {
+		resize: vertical;
+	}
+
+	label {
+		display: block;
+		font-weight: 600;
+		font-size: 13px;
+		color: $navy;
+		margin-bottom: 10px;
+		input,
+		select,
+		textarea {
+			margin-top: 4px;
+			font-weight: 400;
+		}
+	}
+}
+
+/* ─── Buttons ─── */
+.ta-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	padding: 8px 14px;
+	border: 1px solid $line;
+	border-radius: 8px;
+	background: #fff;
+	color: $ink;
+	font-weight: 600;
+	cursor: pointer;
+	transition: background 0.12s, border-color 0.12s;
+
+	&:hover:not(:disabled) {
+		background: #eef1f4;
+	}
+	&:disabled {
+		opacity: 0.55;
+		cursor: default;
+	}
+
+	&.ta-btn-primary {
+		background: $navy;
+		border-color: $navy;
+		color: #fff;
+		&:hover:not(:disabled) {
+			background: lighten($navy, 8%);
+		}
+	}
+
+	&.ta-btn-danger {
+		background: $red;
+		border-color: $red;
+		color: #fff;
+		&:hover:not(:disabled) {
+			background: lighten($red, 6%);
+		}
+	}
+
+	&.ta-btn-ghost-danger {
+		color: $red;
+		border-color: rgba($red, 0.4);
+		&:hover:not(:disabled) {
+			background: rgba($red, 0.06);
+		}
+	}
+
+	&.ta-btn-small {
+		padding: 4px 10px;
+		font-size: 13px;
+	}
+
+	&.ta-btn-big {
+		padding: 16px 20px;
+		font-size: 17px;
+		border-radius: 12px;
+	}
+}
+
+/* ─── Gate screens ─── */
+.ta-center {
+	min-height: 100vh;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 24px;
+	background: linear-gradient(160deg, $navy 0%, darken($navy, 3%) 55%, #0d3a52 100%);
+}
+
+.ta-card {
+	background: #fff;
+	border: 1px solid $line;
+	border-radius: 14px;
+	padding: 20px;
+}
+
+.ta-center-card {
+	width: 100%;
+	max-width: 420px;
+	box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+
+	h1 {
+		font-size: 20px;
+	}
+}
+
+.ta-login-brand {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin-bottom: 6px;
+	p {
+		margin: 0;
+		color: $muted;
+		font-size: 13px;
+	}
+}
+
+.ta-login-mark,
+.ta-logo-mark {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 42px;
+	height: 42px;
+	border-radius: 10px;
+	background: $red;
+	color: #fff;
+	font-weight: 800;
+	font-size: 22px;
+	flex-shrink: 0;
+}
+
+/* ─── Chrome ─── */
+.ta-chrome {
+	display: flex;
+	min-height: 100vh;
+}
+
+.ta-sidebar {
+	width: 220px;
+	flex-shrink: 0;
+	background: $navy;
+	color: #cfdae2;
+	display: flex;
+	flex-direction: column;
+	position: sticky;
+	top: 0;
+	height: 100vh;
+
+	.ta-logo {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		padding: 18px 16px;
+		color: #fff;
+		font-weight: 700;
+		font-size: 16px;
+		em {
+			font-style: normal;
+			color: #f0b8bd;
+		}
+		.ta-logo-mark {
+			width: 34px;
+			height: 34px;
+			font-size: 18px;
+			border-radius: 8px;
+		}
+	}
+
+	nav {
+		flex: 1;
+		overflow-y: auto;
+		padding: 6px 10px;
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+
+		a {
+			padding: 9px 12px;
+			border-radius: 8px;
+			font-weight: 500;
+			font-size: 14px;
+			&:hover {
+				background: rgba(255, 255, 255, 0.08);
+				color: #fff;
+			}
+			&.active {
+				background: $red;
+				color: #fff;
+				font-weight: 600;
+			}
+		}
+	}
+
+	.ta-sidebar-foot {
+		padding: 12px 16px;
+		border-top: 1px solid rgba(255, 255, 255, 0.12);
+		font-size: 12px;
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		span {
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+		}
+		button {
+			align-self: flex-start;
+			background: none;
+			border: 1px solid rgba(255, 255, 255, 0.25);
+			color: #cfdae2;
+			border-radius: 6px;
+			padding: 4px 10px;
+			cursor: pointer;
+			&:hover {
+				background: rgba(255, 255, 255, 0.1);
+			}
+		}
+	}
+}
+
+.ta-main {
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+}
+
+.ta-topbar {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 14px 22px;
+	background: #fff;
+	border-bottom: 1px solid $line;
+	position: sticky;
+	top: 0;
+	z-index: 20;
+
+	h1 {
+		font-size: 19px;
+	}
+
+	.ta-menu-btn {
+		display: none;
+		background: none;
+		border: 1px solid $line;
+		border-radius: 8px;
+		padding: 4px 10px;
+		font-size: 16px;
+		cursor: pointer;
+	}
+}
+
+.ta-content {
+	padding: 22px;
+	max-width: 1200px;
+	width: 100%;
+}
+
+.ta-scrim {
+	display: none;
+}
+
+@media (max-width: 800px) {
+	.ta-sidebar {
+		position: fixed;
+		left: 0;
+		top: 0;
+		bottom: 0;
+		z-index: 40;
+		transform: translateX(-100%);
+		transition: transform 0.18s ease;
+		&.open {
+			transform: none;
+			box-shadow: 0 0 40px rgba(0, 0, 0, 0.4);
+		}
+	}
+	.ta-topbar .ta-menu-btn {
+		display: inline-flex;
+	}
+	.ta-scrim {
+		display: block;
+		position: fixed;
+		inset: 0;
+		background: rgba(0, 0, 0, 0.35);
+		z-index: 30;
+	}
+	.ta-content {
+		padding: 14px;
+	}
+}
+
+/* ─── Shared bits ─── */
+.ta-row {
+	display: flex;
+	gap: 10px;
+	align-items: center;
+	flex-wrap: wrap;
+}
+
+.ta-spread {
+	justify-content: space-between;
+}
+
+.ta-stack {
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+}
+
+.ta-grid-cards {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+	gap: 14px;
+}
+
+.ta-muted {
+	color: $muted;
+}
+
+.ta-small {
+	font-size: 12.5px;
+}
+
+.ta-error {
+	color: $red;
+	font-weight: 600;
+	margin: 0;
+}
+
+.ta-ok {
+	color: #15803d;
+	font-weight: 600;
+	margin: 0;
+}
+
+.ta-badge {
+	display: inline-block;
+	padding: 2px 9px;
+	border-radius: 999px;
+	font-size: 12px;
+	font-weight: 700;
+	background: #e8edf1;
+	color: $navy;
+
+	&.red {
+		background: rgba($red, 0.12);
+		color: $red;
+	}
+	&.green {
+		background: #dcf3e3;
+		color: #15803d;
+	}
+	&.gray {
+		background: #eceff2;
+		color: $muted;
+	}
+}
+
+.ta-table {
+	width: 100%;
+	border-collapse: collapse;
+	background: #fff;
+	border: 1px solid $line;
+	border-radius: 10px;
+	overflow: hidden;
+
+	th,
+	td {
+		text-align: left;
+		padding: 9px 12px;
+		border-bottom: 1px solid $line;
+		vertical-align: middle;
+	}
+
+	th {
+		background: #f8fafb;
+		font-size: 12.5px;
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+		color: $muted;
+	}
+
+	tr:last-child td {
+		border-bottom: none;
+	}
+}
+
+.ta-table-wrap {
+	overflow-x: auto;
+}
+
+.ta-toolbar {
+	display: flex;
+	gap: 10px;
+	align-items: center;
+	flex-wrap: wrap;
+	margin-bottom: 16px;
+
+	input[type="search"],
+	input[type="text"] {
+		max-width: 280px;
+	}
+}
+
+.ta-tabs {
+	display: flex;
+	gap: 4px;
+	border-bottom: 2px solid $line;
+	margin-bottom: 18px;
+	overflow-x: auto;
+
+	button {
+		background: none;
+		border: none;
+		border-bottom: 3px solid transparent;
+		margin-bottom: -2px;
+		padding: 8px 14px;
+		font-weight: 600;
+		color: $muted;
+		cursor: pointer;
+		white-space: nowrap;
+		&.active {
+			color: $navy;
+			border-bottom-color: $red;
+		}
+	}
+}
+
+/* ─── Dashboard / snow day ─── */
+.ta-snow-card {
+	border-left: 5px solid $red;
+
+	h2 {
+		font-size: 17px;
+		margin-bottom: 4px;
+	}
+
+	.ta-snow-days {
+		display: flex;
+		gap: 8px;
+		margin: 10px 0;
+		flex-wrap: wrap;
+	}
+
+	.ta-snow-day-pick {
+		border: 2px solid $line;
+		background: #fff;
+		border-radius: 10px;
+		padding: 10px 16px;
+		font-weight: 700;
+		cursor: pointer;
+		&.selected {
+			border-color: $navy;
+			background: rgba($navy, 0.06);
+		}
+	}
+
+	.ta-snow-actions {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 10px;
+		margin-top: 8px;
+
+		@media (max-width: 560px) {
+			grid-template-columns: 1fr;
+		}
+	}
+}
+
+/* ─── Layout editor ─── */
+.ta-layout-block {
+	display: flex;
+	gap: 10px;
+	align-items: flex-start;
+	background: #fff;
+	border: 1px solid $line;
+	border-radius: 10px;
+	padding: 10px 12px;
+
+	&.invalid {
+		border-color: rgba($red, 0.6);
+	}
+
+	.ta-layout-body {
+		flex: 1;
+		min-width: 0;
+	}
+
+	.ta-layout-kind {
+		font-size: 11.5px;
+		font-weight: 800;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		color: $muted;
+	}
+
+	.ta-layout-move {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		button {
+			border: 1px solid $line;
+			background: #fff;
+			border-radius: 6px;
+			width: 26px;
+			height: 22px;
+			cursor: pointer;
+			line-height: 1;
+			&:hover {
+				background: #eef1f4;
+			}
+			&:disabled {
+				opacity: 0.3;
+				cursor: default;
+			}
+		}
+	}
+}
+
+.ta-article-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	background: #f0f3f5;
+	border: 1px solid $line;
+	border-radius: 999px;
+	padding: 3px 6px 3px 10px;
+	font-size: 13px;
+	margin: 2px 4px 2px 0;
+
+	b {
+		color: $navy;
+	}
+
+	button {
+		border: none;
+		background: none;
+		cursor: pointer;
+		color: $muted;
+		font-size: 14px;
+		padding: 0 4px;
+		&:hover {
+			color: $red;
+		}
+	}
+
+	&.missing {
+		border-color: rgba($red, 0.55);
+		background: rgba($red, 0.07);
+	}
+}
+
+.ta-picker {
+	position: relative;
+
+	.ta-picker-results {
+		position: absolute;
+		z-index: 30;
+		top: calc(100% + 4px);
+		left: 0;
+		right: 0;
+		background: #fff;
+		border: 1px solid $line;
+		border-radius: 10px;
+		box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+		max-height: 300px;
+		overflow-y: auto;
+
+		button {
+			display: block;
+			width: 100%;
+			text-align: left;
+			background: none;
+			border: none;
+			border-bottom: 1px solid #f0f2f4;
+			padding: 8px 12px;
+			cursor: pointer;
+			font-size: 13.5px;
+			&:hover {
+				background: #f5f7f9;
+			}
+			.ta-muted {
+				font-size: 12px;
+			}
+		}
+	}
+}
+
+.ta-code {
+	font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+	font-size: 13px;
+	background: #0d1f2a;
+	color: #d9e6ee;
+	border-radius: 10px;
+	padding: 14px 16px;
+	white-space: pre;
+	overflow-x: auto;
+	line-height: 1.55;
+}
+
+/* ─── Calendar ─── */
+.ta-cal-controls {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+	flex-wrap: wrap;
+	margin-bottom: 12px;
+}
+
+.ta-cal-paint {
+	display: inline-flex;
+	gap: 6px;
+	flex-wrap: wrap;
+
+	button {
+		border: 2px solid $line;
+		border-radius: 8px;
+		background: #fff;
+		padding: 5px 12px;
+		font-weight: 700;
+		cursor: pointer;
+		&.selected {
+			border-color: $navy;
+			background: rgba($navy, 0.08);
+		}
+	}
+}
+
+.ta-cal-month {
+	background: #fff;
+	border: 1px solid $line;
+	border-radius: 10px;
+	padding: 10px 12px 14px;
+
+	h3 {
+		font-size: 14.5px;
+		margin-bottom: 8px;
+	}
+}
+
+.ta-cal-grid {
+	display: grid;
+	grid-template-columns: repeat(5, 1fr);
+	gap: 4px;
+
+	.ta-cal-head {
+		font-size: 11px;
+		font-weight: 700;
+		color: $muted;
+		text-align: center;
+	}
+
+	.ta-cal-cell {
+		border: 1px solid $line;
+		border-radius: 6px;
+		min-height: 44px;
+		padding: 3px 4px;
+		font-size: 11px;
+		cursor: pointer;
+		background: #fbfcfd;
+		position: relative;
+		text-align: left;
+
+		&:hover {
+			border-color: $navy;
+		}
+
+		.d {
+			font-weight: 700;
+			font-size: 11px;
+			color: $muted;
+		}
+
+		.t {
+			display: block;
+			font-weight: 800;
+			font-size: 13px;
+			color: $navy;
+		}
+
+		&.noschool {
+			background: #f1f3f5;
+			.t {
+				color: #b6bec6;
+				font-weight: 500;
+			}
+		}
+
+		&.special .t {
+			color: $red;
+		}
+
+		&.has-note::after {
+			content: "";
+			position: absolute;
+			top: 4px;
+			right: 4px;
+			width: 6px;
+			height: 6px;
+			border-radius: 50%;
+			background: $red;
+		}
+	}
+}
+
+.ta-cal-months {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+	gap: 12px;
+}
+
+/* ─── Map editor host ─── */
+.ta-map-frame {
+	width: 100%;
+	height: calc(100vh - 220px);
+	min-height: 480px;
+	border: 1px solid $line;
+	border-radius: 10px;
+	background: #fff;
+}
+
+/* ─── Misc ─── */
+.ta-blurb-item {
+	display: flex;
+	gap: 12px;
+	align-items: flex-start;
+
+	img {
+		width: 86px;
+		height: 60px;
+		object-fit: cover;
+		border-radius: 8px;
+		background: #eceff2;
+		flex-shrink: 0;
+	}
+
+	.ta-blurb-main {
+		flex: 1;
+		min-width: 0;
+	}
+
+	textarea {
+		margin-top: 6px;
+	}
+}
+
+.ta-charcount {
+	font-size: 12px;
+	color: $muted;
+	&.long {
+		color: $red;
+		font-weight: 700;
+	}
+}
+
+.ta-letter {
+	cursor: pointer;
+	&.expanded {
+		background: #f8fafb;
+	}
+	.ta-letter-body {
+		white-space: pre-wrap;
+		margin: 8px 0 4px;
+	}
+}
+
+.ta-drag-handle {
+	cursor: grab;
+	color: $muted;
+	user-select: none;
+	padding: 0 4px;
+}
