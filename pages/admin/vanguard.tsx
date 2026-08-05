@@ -1,5 +1,6 @@
 /** @format */
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import AdminShell, { useAdmin } from "~/components/admin/AdminShell";
 import { monthName } from "~/lib/console/supabase";
@@ -250,6 +251,9 @@ function VanguardManager() {
 									<button className="ta-btn ta-btn-small" onClick={() => setEditing(r)}>
 										Edit
 									</button>{" "}
+									<Link className="ta-btn ta-btn-small" href={`/admin/vanguard/camera?id=${r.id}`}>
+										Camera path
+									</Link>{" "}
 									<button className="ta-btn ta-btn-small ta-btn-ghost-danger" onClick={() => void remove(r)}>
 										Delete
 									</button>

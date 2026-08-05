@@ -1024,3 +1024,44 @@ $muted: #6b7280;
 	user-select: none;
 	text-align: center;
 }
+
+/* ─── Vanguard camera-path editor ─── */
+.ta-cam-layout {
+	display: grid;
+	grid-template-columns: minmax(16rem, 24rem) 1fr;
+	gap: 1.25rem;
+	align-items: start;
+
+	@media screen and (max-width: 900px) {
+		grid-template-columns: 1fr;
+	}
+}
+
+.ta-cam-frame {
+	width: 100%;
+}
+
+.ta-cam-canvas {
+	display: block;
+	background: #101820;
+	border: 1px solid $navy;
+	border-radius: 0.35rem;
+	touch-action: none;
+	cursor: grab;
+
+	&:active {
+		cursor: grabbing;
+	}
+}
+
+.ta-linkish {
+	background: none;
+	border: none;
+	padding: 0;
+	color: $navy;
+	text-decoration: underline;
+	cursor: pointer;
+	font-family: var(--font-sans), sans-serif;
+	font-size: inherit;
+	text-align: left;
+}
