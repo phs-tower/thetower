@@ -37,11 +37,11 @@ interface SpreadRow {
 	camera_path: unknown;
 }
 
-const VIEWPORT_PRESETS = [
-	{ key: "phone", label: "Phone (9:19.5)", ratio: 390 / 844 },
-	{ key: "tablet", label: "Tablet (3:4)", ratio: 3 / 4 },
-	{ key: "square", label: "Square (1:1)", ratio: 1 },
-];
+// The reader is a phone. Playback re-fits with `contain`, so a viewport whose
+// aspect differs from the device only ever shows MORE than was framed — but
+// framing against the shape people actually read on is what makes the preview
+// honest, so this is fixed rather than configurable.
+const VIEWPORT_RATIO = 390 / 844;
 
 const RENDER_WIDTH = 1400; // px raster per page; stops are normalized so this is just quality
 const HOLD_MS = 900; // pause on each stop during preview
@@ -94,7 +94,6 @@ function CameraEditor({ spreadId }: { spreadId: number }) {
 	const [selected, setSelected] = useState<number | null>(null);
 
 	const [camera, setCamera] = useState<VanguardCamera>({ cx: 0, cy: 0, scale: 1, rot: 0 });
-	const [preset, setPreset] = useState(VIEWPORT_PRESETS[0]);
 	const [viewport, setViewport] = useState<Size>({ width: 390, height: 844 });
 	const [playing, setPlaying] = useState(false);
 	const [saveState, setSaveState] = useState<{ busy: boolean; ok: string | null; error: string | null }>({
@@ -157,13 +156,13 @@ function CameraEditor({ spreadId }: { spreadId: number }) {
 		if (!frame) return;
 		const measure = () => {
 			const width = frame.clientWidth;
-			setViewport({ width, height: Math.round(width / preset.ratio) });
+			setViewport({ width, height: Math.round(width / VIEWPORT_RATIO) });
 		};
 		measure();
 		const observer = new ResizeObserver(measure);
 		observer.observe(frame);
 		return () => observer.disconnect();
-	}, [preset, loadState.busy]);
+	}, [loadState.busy]);
 
 	// ─── fit the page when it changes ───────────────────────────────────────
 	const fitPage = useCallback(() => {
@@ -194,7 +193,7 @@ function CameraEditor({ spreadId }: { spreadId: number }) {
 	}, [camera, image, viewport]);
 
 	// ─── gestures ───────────────────────────────────────────────────────────
-	const dragRef = useRef<{ mode: "pan" | "rotate"; x: number; y: number } | null>(null);
+	const dragRef = useRef<{ mode: "pan" | "rotate" | "zoom"; x: number; y: number; anchorX: number; anchorY: number } | null>(null);
 
 	const stopPreview = useCallback(() => {
 		if (animationRef.current !== null) cancelAnimationFrame(animationRef.current);
@@ -202,15 +201,34 @@ function CameraEditor({ spreadId }: { spreadId: number }) {
 		setPlaying(false);
 	}, []);
 
+	/** Scale by [factor], keeping the image point under (sx, sy) pinned there. */
+	const zoomAt = useCallback(
+		(factor: number, sx: number, sy: number) => {
+			if (!image || !viewport.width) return;
+			setCamera(c => {
+				const fitted = Math.min(viewport.width / image.width, viewport.height / image.height);
+				const scale = clamp(c.scale * factor, fitted * 0.4, fitted * 40);
+				const p = transformPoint(invertMatrix(cameraToMatrix(c, viewport)), sx, sy);
+				const cos = Math.cos(c.rot);
+				const sin = Math.sin(c.rot);
+				const ox = sx - viewport.width / 2;
+				const oy = sy - viewport.height / 2;
+				return { ...c, scale, cx: p.x - (ox * cos + oy * sin) / scale, cy: p.y - (-ox * sin + oy * cos) / scale };
+			});
+		},
+		[image, viewport]
+	);
+
 	const onPointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
 		stopPreview();
 		(e.target as HTMLCanvasElement).setPointerCapture(e.pointerId);
 		const rect = e.currentTarget.getBoundingClientRect();
-		dragRef.current = {
-			mode: e.altKey || e.shiftKey || e.button === 2 ? "rotate" : "pan",
-			x: e.clientX - rect.left,
-			y: e.clientY - rect.top,
-		};
+		const x = e.clientX - rect.left;
+		const y = e.clientY - rect.top;
+		// Ctrl/Cmd is tested first: on macOS a Ctrl-click also reports button 2,
+		// which would otherwise be read as the rotate gesture.
+		const mode = e.ctrlKey || e.metaKey ? "zoom" : e.altKey || e.shiftKey || e.button === 2 ? "rotate" : "pan";
+		dragRef.current = { mode, x, y, anchorX: x, anchorY: y };
 	};
 
 	const onPointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
@@ -230,6 +248,9 @@ function CameraEditor({ spreadId }: { spreadId: number }) {
 				// Inverse of the linear part (rotation · uniform scale).
 				return { ...c, cx: c.cx - (dx * cos + dy * sin) / c.scale, cy: c.cy - (-dx * sin + dy * cos) / c.scale };
 			});
+		} else if (drag.mode === "zoom") {
+			// Drag up to zoom in, anchored where the drag began.
+			zoomAt(Math.exp(-dy / 180), drag.anchorX, drag.anchorY);
 		} else {
 			const centreX = viewport.width / 2;
 			const centreY = viewport.height / 2;
@@ -248,25 +269,26 @@ function CameraEditor({ spreadId }: { spreadId: number }) {
 		}
 	};
 
-	const onWheel = (e: React.WheelEvent<HTMLCanvasElement>) => {
-		if (!image) return;
-		stopPreview();
-		const rect = e.currentTarget.getBoundingClientRect();
-		const sx = e.clientX - rect.left;
-		const sy = e.clientY - rect.top;
-		const factor = Math.exp(-e.deltaY / 400);
-		setCamera(c => {
-			const fitted = Math.min(viewport.width / image.width, viewport.height / image.height);
-			const scale = clamp(c.scale * factor, fitted * 0.4, fitted * 40);
-			// Keep the image point under the cursor pinned.
-			const p = transformPoint(invertMatrix(cameraToMatrix(c, viewport)), sx, sy);
-			const cos = Math.cos(c.rot);
-			const sin = Math.sin(c.rot);
-			const ox = sx - viewport.width / 2;
-			const oy = sy - viewport.height / 2;
-			return { ...c, scale, cx: p.x - (ox * cos + oy * sin) / scale, cy: p.y - (-ox * sin + oy * cos) / scale };
-		});
-	};
+	// Zoom has to be a NATIVE non-passive wheel listener. React routes wheel
+	// through a passive listener on the root, so preventDefault() inside a JSX
+	// onWheel handler is ignored and the page scrolls behind the editor while
+	// you are trying to frame a shot.
+	useEffect(() => {
+		const canvas = canvasRef.current;
+		if (!canvas) return;
+
+		const onWheel = (e: WheelEvent) => {
+			e.preventDefault();
+			stopPreview();
+			const rect = canvas.getBoundingClientRect();
+			// deltaMode 1 is lines (Firefox), 2 is pages — normalize to pixels.
+			const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? viewport.height : 1;
+			zoomAt(Math.exp((-e.deltaY * unit) / 400), e.clientX - rect.left, e.clientY - rect.top);
+		};
+
+		canvas.addEventListener("wheel", onWheel, { passive: false });
+		return () => canvas.removeEventListener("wheel", onWheel);
+	}, [zoomAt, stopPreview, viewport.height]);
 
 	// ─── stops ──────────────────────────────────────────────────────────────
 	const currentStops = pages[pageIx] ?? [];
@@ -415,13 +437,12 @@ function CameraEditor({ spreadId }: { spreadId: number }) {
 							onPointerMove={onPointerMove}
 							onPointerUp={endDrag}
 							onPointerCancel={endDrag}
-							onWheel={onWheel}
 							onContextMenu={e => e.preventDefault()}
 						/>
 					</div>
 					<p className="ta-muted ta-small" style={{ marginTop: "0.5rem" }}>
-						Drag to pan · scroll to zoom · <b>Alt/Shift-drag</b> (or right-drag) to rotate. Frame the shot, then capture — the reader
-						will frame exactly this.
+						Drag to pan · scroll or <b>Ctrl-drag</b> to zoom · <b>Alt/Shift-drag</b> (or right-drag) to rotate. Frame the shot, then
+						capture — the reader will frame exactly this.
 					</p>
 				</div>
 
@@ -434,19 +455,6 @@ function CameraEditor({ spreadId }: { spreadId: number }) {
 									{pageCanvases.map((_, ix) => (
 										<option key={ix} value={ix}>
 											Page {ix + 1} ({pages[ix]?.length ?? 0} stops)
-										</option>
-									))}
-								</select>
-							</label>
-							<label style={{ margin: 0, flex: 1 }}>
-								Reader shape
-								<select
-									value={preset.key}
-									onChange={e => setPreset(VIEWPORT_PRESETS.find(p => p.key === e.target.value) ?? VIEWPORT_PRESETS[0])}
-								>
-									{VIEWPORT_PRESETS.map(p => (
-										<option key={p.key} value={p.key}>
-											{p.label}
 										</option>
 									))}
 								</select>
