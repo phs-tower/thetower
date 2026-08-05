@@ -6,6 +6,7 @@ import { useRouter } from "next/router";
 import { createContext, ReactNode, useContext, useEffect, useState } from "react";
 import { Session, SupabaseClient } from "@supabase/supabase-js";
 import { consoleSupabase } from "~/lib/console/supabase";
+import { displayFullDate } from "~/lib/utils";
 
 type EditorRole = "admin" | "editor";
 
@@ -42,7 +43,7 @@ type GateState =
 	| { kind: "noteditor"; email: string }
 	| { kind: "editor"; session: Session; email: string; role: EditorRole };
 
-export default function AdminShell({ title, children }: { title: string; children: ReactNode }) {
+export default function AdminShell({ title, wide, children }: { title: string; wide?: boolean; children: ReactNode }) {
 	const supabase = consoleSupabase();
 	const [gate, setGate] = useState<GateState>({ kind: "loading" });
 
@@ -81,17 +82,17 @@ export default function AdminShell({ title, children }: { title: string; childre
 			<Head>
 				<title>{`${title} | Tower Console`}</title>
 				<meta name="robots" content="noindex, nofollow" />
-				<link rel="preconnect" href="https://fonts.googleapis.com" />
-				<link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-				{/* eslint-disable-next-line @next/next/no-page-custom-font */}
-				<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 			</Head>
-			{gate.kind === "loading" && <CenterCard>Loading…</CenterCard>}
+			{gate.kind === "loading" && (
+				<Gate>
+					<p className="ta-gate-body ta-muted">Loading…</p>
+				</Gate>
+			)}
 			{gate.kind === "signedout" && <Login supabase={supabase} />}
 			{gate.kind === "noteditor" && <NotEditor supabase={supabase} email={gate.email} />}
 			{gate.kind === "editor" && (
 				<AdminContext.Provider value={{ supabase, session: gate.session, email: gate.email, role: gate.role }}>
-					<Chrome title={title} email={gate.email} supabase={supabase}>
+					<Chrome title={title} email={gate.email} supabase={supabase} wide={wide}>
 						{children}
 					</Chrome>
 				</AdminContext.Provider>
@@ -100,10 +101,15 @@ export default function AdminShell({ title, children }: { title: string; childre
 	);
 }
 
-function CenterCard({ children }: { children: ReactNode }) {
+/** The signed-out shell: the paper's own front page, not a product login card. */
+function Gate({ children }: { children: ReactNode }) {
 	return (
-		<div className="ta-center">
-			<div className="ta-card ta-center-card">{children}</div>
+		<div className="ta-gate">
+			<div className="ta-gate-inner">
+				<div className="ta-gate-wordmark">The Tower</div>
+				<div className="ta-gate-rules">Editorial Console</div>
+				{children}
+			</div>
 		</div>
 	);
 }
@@ -124,15 +130,8 @@ function Login({ supabase }: { supabase: SupabaseClient }) {
 	};
 
 	return (
-		<div className="ta-center">
-			<form className="ta-card ta-center-card ta-login" onSubmit={submit}>
-				<div className="ta-login-brand">
-					<span className="ta-login-mark">T</span>
-					<div>
-						<h1>The Tower Console</h1>
-						<p>Editorial board sign-in</p>
-					</div>
-				</div>
+		<Gate>
+			<form className="ta-gate-form" onSubmit={submit}>
 				<label>
 					Email
 					<input type="email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="username" required autoFocus />
@@ -145,28 +144,39 @@ function Login({ supabase }: { supabase: SupabaseClient }) {
 				<button className="ta-btn ta-btn-primary" type="submit" disabled={busy}>
 					{busy ? "Signing in…" : "Sign in"}
 				</button>
-				<p className="ta-muted ta-small">Accounts are created by invitation. Ask a console admin if you need access.</p>
 			</form>
-		</div>
+			<p className="ta-gate-note">Accounts are issued by invitation. Ask a console admin if you need access.</p>
+		</Gate>
 	);
 }
 
 function NotEditor({ supabase, email }: { supabase: SupabaseClient; email: string }) {
 	return (
-		<CenterCard>
-			<h1>Not an editor</h1>
-			<p>
-				You are signed in as <b>{email}</b>, but that account is not on the editor list, so the console is off-limits.
+		<Gate>
+			<p className="ta-gate-body">
+				You are signed in as <b>{email}</b>, but that account is not on the editor list, so the console is closed to it.
 			</p>
-			<p className="ta-muted">If you should have access, ask a console admin to add your email to the editor list.</p>
+			<p className="ta-gate-body ta-muted ta-small">If you should have access, ask a console admin to add your email to the editor list.</p>
 			<button className="ta-btn" onClick={() => supabase.auth.signOut()}>
 				Sign out
 			</button>
-		</CenterCard>
+		</Gate>
 	);
 }
 
-function Chrome({ title, email, supabase, children }: { title: string; email: string; supabase: SupabaseClient; children: ReactNode }) {
+function Chrome({
+	title,
+	email,
+	supabase,
+	wide,
+	children,
+}: {
+	title: string;
+	email: string;
+	supabase: SupabaseClient;
+	wide?: boolean;
+	children: ReactNode;
+}) {
 	const router = useRouter();
 	const [menuOpen, setMenuOpen] = useState(false);
 
@@ -175,15 +185,31 @@ function Chrome({ title, email, supabase, children }: { title: string; email: st
 	}, [router.asPath]);
 
 	return (
-		<div className="ta-chrome">
-			<aside className={`ta-sidebar${menuOpen ? " open" : ""}`}>
-				<Link href="/admin" className="ta-logo">
-					<span className="ta-logo-mark">T</span>
-					<span>
-						Tower <em>Console</em>
-					</span>
+		<>
+			<header className="ta-masthead">
+				<Link href="/admin" className="ta-masthead-logo">
+					{/* eslint-disable-next-line @next/next/no-img-element */}
+					<img src="/assets/tower-short.png" alt="" draggable="false" />
+					<h1>The Tower</h1>
 				</Link>
-				<nav>
+				<span className="ta-masthead-tag">Console</span>
+				<div className="ta-masthead-sides">
+					<p className="ta-masthead-date" suppressHydrationWarning>
+						{displayFullDate().toUpperCase()}
+					</p>
+					<div className="ta-masthead-user">
+						<span className="ta-masthead-email">{email}</span>
+						<button className="ta-btn ta-btn-small" onClick={() => supabase.auth.signOut()}>
+							Sign out
+						</button>
+					</div>
+				</div>
+			</header>
+			<nav className="ta-nav" data-open={menuOpen ? "true" : "false"}>
+				<button className="ta-nav-toggle" aria-expanded={menuOpen} onClick={() => setMenuOpen(!menuOpen)}>
+					{menuOpen ? "✕ Close" : "☰ Sections"}
+				</button>
+				<div className="ta-nav-links">
 					{NAV.map(item => {
 						const active = item.href === "/admin" ? router.pathname === "/admin" : router.pathname.startsWith(item.href);
 						return (
@@ -192,22 +218,12 @@ function Chrome({ title, email, supabase, children }: { title: string; email: st
 							</Link>
 						);
 					})}
-				</nav>
-				<div className="ta-sidebar-foot">
-					<span title={email}>{email}</span>
-					<button onClick={() => supabase.auth.signOut()}>Sign out</button>
 				</div>
-			</aside>
-			<div className="ta-main">
-				<header className="ta-topbar">
-					<button className="ta-menu-btn" aria-label="Menu" onClick={() => setMenuOpen(!menuOpen)}>
-						☰
-					</button>
-					<h1>{title}</h1>
-				</header>
-				<div className="ta-content">{children}</div>
-			</div>
-			{menuOpen && <div className="ta-scrim" onClick={() => setMenuOpen(false)} />}
-		</div>
+			</nav>
+			<main className={`ta-content${wide ? " wide" : ""}`}>
+				<h1 className="ta-page-title">{title}</h1>
+				{children}
+			</main>
+		</>
 	);
 }

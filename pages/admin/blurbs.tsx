@@ -62,9 +62,9 @@ function BlurbItem({ article, onSaved }: { article: ArticleRow; onSaved: (id: nu
 			)}
 			<div className="ta-blurb-main">
 				<div className="ta-row ta-spread">
-					<b>
-						{article.title} <span className="ta-muted">#{article.id}</span>
-					</b>
+					<span className="ta-blurb-title">
+						{article.title} <span className="ta-muted ta-small">#{article.id}</span>
+					</span>
 					<span className="ta-badge gray">
 						{article.category} · {monthName(article.month)} {article.year}
 					</span>

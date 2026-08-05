@@ -138,12 +138,7 @@ export function ArticleContent({ article }: ArticleContentProps) {
 				{showColumnSponsor && (
 					<aside className={articleStyles["article-sponsor"]} aria-label="Article sponsor">
 						<div className={articleStyles["article-sponsor-label"]}>ADVERTISEMENT</div>
-						<a
-							href={articleColumnSponsor.href}
-							target="_blank"
-							rel="noreferrer"
-							className={articleStyles["article-sponsor-image-link"]}
-						>
+						<a href={articleColumnSponsor.href} target="_blank" rel="noreferrer" className={articleStyles["article-sponsor-image-link"]}>
 							<img
 								src={articleColumnSponsor.src}
 								alt={articleColumnSponsor.alt}

@@ -141,7 +141,7 @@ function GenerateYear({
 		);
 
 	return (
-		<div className="ta-card ta-stack" style={{ borderLeft: "4px solid #072636" }}>
+		<div className="ta-card ta-stack" style={{ borderLeft: "4px solid #031025" }}>
 			<b>Generate a school year</b>
 			<p className="ta-muted ta-small" style={{ margin: 0 }}>
 				Weekends are skipped, closure dates are skipped (absence = no school), the rotation advances only on school days, and overrides (half
@@ -316,7 +316,7 @@ function CalendarTab({ dayTypes }: { dayTypes: DayType[] }) {
 					<button className={paint === "NOTE" ? "selected" : ""} onClick={() => setPaint("NOTE")}>
 						✎ Note
 					</button>
-					<button className={paint === "CLEAR" ? "selected" : ""} onClick={() => setPaint("CLEAR")} style={{ color: "#a31621" }}>
+					<button className={paint === "CLEAR" ? "selected" : ""} onClick={() => setPaint("CLEAR")} style={{ color: "#a8133f" }}>
 						✕ No school
 					</button>
 				</div>
@@ -915,7 +915,7 @@ function ScheduleManager() {
 
 export default function SchedulePage() {
 	return (
-		<AdminShell title="Schedule data">
+		<AdminShell title="Schedule data" wide>
 			<ScheduleManager />
 		</AdminShell>
 	);

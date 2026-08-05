@@ -232,7 +232,7 @@ function FormsManager() {
 
 export default function FormsPage() {
 	return (
-		<AdminShell title="Surveys & forms">
+		<AdminShell title="Surveys & forms" wide>
 			<FormsManager />
 		</AdminShell>
 	);

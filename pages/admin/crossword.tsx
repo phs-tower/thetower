@@ -121,8 +121,8 @@ function GridPreview({ entries }: { entries: ClueEntry[] }) {
 				display: "inline-grid",
 				gridTemplateColumns: `repeat(${cols}, 30px)`,
 				gap: 1,
-				background: "#072636",
-				border: "2px solid #072636",
+				background: "#031025",
+				border: "2px solid #031025",
 			}}
 		>
 			{Array.from({ length: rows * cols }, (_, i) => {
@@ -136,7 +136,7 @@ function GridPreview({ entries }: { entries: ClueEntry[] }) {
 						style={{
 							width: 30,
 							height: 30,
-							background: letter ? "#fff" : "#072636",
+							background: letter ? "#fff" : "#031025",
 							position: "relative",
 							display: "flex",
 							alignItems: "center",
@@ -406,7 +406,7 @@ function CrosswordEditor() {
 								</button>
 							</div>
 							{problems.length > 0 && (
-								<div className="ta-card" style={{ borderLeft: "4px solid #a31621" }}>
+								<div className="ta-card" style={{ borderLeft: "4px solid #a8133f" }}>
 									{problems.slice(0, 8).map((p, i) => (
 										<p key={i} className="ta-error" style={{ margin: "2px 0" }}>
 											{p}
@@ -437,7 +437,7 @@ function CrosswordEditor() {
 
 export default function CrosswordPage() {
 	return (
-		<AdminShell title="Crossword uploader">
+		<AdminShell title="Crossword uploader" wide>
 			<CrosswordEditor />
 		</AdminShell>
 	);

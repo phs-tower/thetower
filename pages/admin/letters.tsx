@@ -145,7 +145,7 @@ function LettersInbox() {
 
 export default function LettersPage() {
 	return (
-		<AdminShell title="Letters to the editor">
+		<AdminShell title="Letters to the editor" wide>
 			<LettersInbox />
 		</AdminShell>
 	);

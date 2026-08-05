@@ -265,7 +265,7 @@ function VanguardManager() {
 
 export default function VanguardPage() {
 	return (
-		<AdminShell title="Vanguard spreads">
+		<AdminShell title="Vanguard spreads" wide>
 			<VanguardManager />
 		</AdminShell>
 	);

@@ -154,7 +154,7 @@ function PushComposer() {
 						Review &amp; send…
 					</button>
 				) : (
-					<div className="ta-card" style={{ borderLeft: "4px solid #a31621" }}>
+					<div className="ta-card" style={{ borderLeft: "4px solid #a8133f" }}>
 						<p style={{ marginTop: 0 }}>
 							<b>This sends to EVERY device with the app installed.</b> There is no undo.
 						</p>

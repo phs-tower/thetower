@@ -108,7 +108,7 @@ function SnowDay() {
 
 	return (
 		<div className="ta-card ta-snow-card">
-			<h2>❄️ Snow day / delay</h2>
+			<h2>Snow day &amp; delayed opening</h2>
 			<p className="ta-muted ta-small">
 				&ldquo;Closed&rdquo; deletes the day&rsquo;s schedule row (no row = no school). The app picks changes up on its next refresh (it
 				caches ~12h — send a push so people actually find out).
@@ -201,7 +201,7 @@ function SnowPush({ offer, onDone, email }: { offer: { title: string; message: s
 	};
 
 	return (
-		<div className="ta-stack" style={{ marginTop: 12, borderTop: "1px solid #dde3e8", paddingTop: 12 }}>
+		<div className="ta-stack" style={{ marginTop: 12, borderTop: "1px solid gainsboro", paddingTop: 12 }}>
 			<b>Notify everyone?</b>
 			<label>
 				Title
@@ -263,9 +263,9 @@ function Stats() {
 	return (
 		<div className="ta-grid-cards">
 			{cards.map(card => (
-				<Link key={card.href} href={card.href} className="ta-card">
-					<div style={{ fontSize: 30, fontWeight: 800, color: "#072636" }}>{card.value ?? "—"}</div>
-					<div className="ta-muted">{card.label}</div>
+				<Link key={card.href} href={card.href} className="ta-card ta-stat">
+					<span className="ta-stat-num">{card.value ?? "—"}</span>
+					<span className="ta-stat-label">{card.label}</span>
 				</Link>
 			))}
 		</div>

@@ -236,7 +236,7 @@ function BlockCard({
 							value={block.text}
 							placeholder="This Week at PHS"
 							onChange={e => onChange({ ...block, text: e.target.value })}
-							style={{ fontWeight: 700, color: "#072636" }}
+							style={{ fontWeight: 700, color: "#031025" }}
 						/>
 					</>
 				)}
