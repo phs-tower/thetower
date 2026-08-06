@@ -26,14 +26,14 @@ import {
 	type VanguardStop,
 } from "./vanguard-camera.ts";
 
-const VIEWPORT: Size = { width: 390, height: 844 }; // phone-shaped, like the reader
+// Phone-shaped like the reader — LANDSCAPE, because Vanguard is read with the
+// device turned over. The math is aspect-agnostic, but testing the real shape
+// is what keeps the author tool and the Flutter reader honest with each other.
+const VIEWPORT: Size = { width: 844, height: 390 };
 const IMAGE_WIDTH = 1600;
 
 function closeTo(actual: number, expected: number, tolerance = 1e-9, label = "") {
-	assert.ok(
-		Math.abs(actual - expected) <= tolerance,
-		`${label} expected ${expected}, got ${actual} (delta ${Math.abs(actual - expected)})`
-	);
+	assert.ok(Math.abs(actual - expected) <= tolerance, `${label} expected ${expected}, got ${actual} (delta ${Math.abs(actual - expected)})`);
 }
 
 function assertStopsEqual(actual: VanguardStop, expected: VanguardStop, tolerance = 1e-9) {
@@ -163,11 +163,7 @@ test("cameraMoveDuration stays within its clamp", () => {
 });
 
 test("parseCameraPath accepts bare lists and {stops:[...]} wrappers", () => {
-	const parsed = parseCameraPath([
-		[{ cx: 0.1, cy: 0.2, hw: 0.3, hh: 0.4, rot: 0.5 }],
-		{ stops: [{ cx: 1, cy: 2, hw: 3, hh: 4, rot: 5 }] },
-		[],
-	]);
+	const parsed = parseCameraPath([[{ cx: 0.1, cy: 0.2, hw: 0.3, hh: 0.4, rot: 0.5 }], { stops: [{ cx: 1, cy: 2, hw: 3, hh: 4, rot: 5 }] }, []]);
 	assert.equal(parsed.length, 3);
 	assertStopsEqual(parsed[0][0], { cx: 0.1, cy: 0.2, hw: 0.3, hh: 0.4, rot: 0.5 });
 	assertStopsEqual(parsed[1][0], { cx: 1, cy: 2, hw: 3, hh: 4, rot: 5 });

@@ -37,11 +37,18 @@ interface SpreadRow {
 	camera_path: unknown;
 }
 
-// The reader is a phone. Playback re-fits with `contain`, so a viewport whose
-// aspect differs from the device only ever shows MORE than was framed — but
-// framing against the shape people actually read on is what makes the preview
-// honest, so this is fixed rather than configurable.
-const VIEWPORT_RATIO = 390 / 844;
+// The reader is a phone held SIDEWAYS — Vanguard asks you to turn the device
+// over, so its viewport is landscape (844x390), not portrait. Playback re-fits
+// with `contain`, so a viewport whose aspect differs from the device only ever
+// shows MORE than was framed: authoring in a portrait frame silently gave every
+// stop a portrait aspect, and the reader then padded it out sideways. Framing
+// against the shape people actually read on is what makes the preview honest,
+// so this is fixed rather than configurable.
+const VIEWPORT_RATIO = 844 / 390;
+
+// Don't let the landscape frame grow so wide that it runs off the bottom of a
+// short window; past this the frame shrinks and stays centred.
+const VIEWPORT_MAX_HEIGHT_FRACTION = 0.62;
 
 const RENDER_WIDTH = 1400; // px raster per page; stops are normalized so this is just quality
 const HOLD_MS = 900; // pause on each stop during preview
@@ -94,7 +101,7 @@ function CameraEditor({ spreadId }: { spreadId: number }) {
 	const [selected, setSelected] = useState<number | null>(null);
 
 	const [camera, setCamera] = useState<VanguardCamera>({ cx: 0, cy: 0, scale: 1, rot: 0 });
-	const [viewport, setViewport] = useState<Size>({ width: 390, height: 844 });
+	const [viewport, setViewport] = useState<Size>({ width: 844, height: 390 });
 	const [playing, setPlaying] = useState(false);
 	const [saveState, setSaveState] = useState<{ busy: boolean; ok: string | null; error: string | null }>({
 		busy: false,
@@ -141,7 +148,9 @@ function CameraEditor({ spreadId }: { spreadId: number }) {
 				if (cancelled) return;
 				setLoadState({
 					busy: false,
-					error: `${e instanceof Error ? e.message : String(e)} — if this is a CORS error, the PDF's storage bucket must allow browser reads.`,
+					error: `${
+						e instanceof Error ? e.message : String(e)
+					} — if this is a CORS error, the PDF's storage bucket must allow browser reads.`,
 				});
 			}
 		})();
@@ -155,13 +164,25 @@ function CameraEditor({ spreadId }: { spreadId: number }) {
 		const frame = frameRef.current;
 		if (!frame) return;
 		const measure = () => {
-			const width = frame.clientWidth;
-			setViewport({ width, height: Math.round(width / VIEWPORT_RATIO) });
+			let width = frame.clientWidth;
+			let height = Math.round(width / VIEWPORT_RATIO);
+			// A landscape frame is limited by window HEIGHT, not the column width,
+			// so give the height a ceiling and back the width out of it.
+			const ceiling = Math.max(220, Math.round(window.innerHeight * VIEWPORT_MAX_HEIGHT_FRACTION));
+			if (height > ceiling) {
+				height = ceiling;
+				width = Math.round(height * VIEWPORT_RATIO);
+			}
+			setViewport({ width, height });
 		};
 		measure();
 		const observer = new ResizeObserver(measure);
 		observer.observe(frame);
-		return () => observer.disconnect();
+		window.addEventListener("resize", measure);
+		return () => {
+			observer.disconnect();
+			window.removeEventListener("resize", measure);
+		};
 	}, [loadState.busy]);
 
 	// ─── fit the page when it changes ───────────────────────────────────────
@@ -441,8 +462,9 @@ function CameraEditor({ spreadId }: { spreadId: number }) {
 						/>
 					</div>
 					<p className="ta-muted ta-small" style={{ marginTop: "0.5rem" }}>
-						Drag to pan · scroll or <b>Ctrl-drag</b> to zoom · <b>Alt/Shift-drag</b> (or right-drag) to rotate. Frame the shot, then
-						capture — the reader will frame exactly this.
+						This frame is a phone <b>turned sideways</b> ({viewport.width}×{viewport.height}), the way Vanguard is read. Drag to pan ·
+						scroll or <b>Ctrl-drag</b> to zoom · <b>Alt/Shift-drag</b> (or right-drag) to rotate. Frame the shot, then capture — the
+						reader will frame exactly this.
 					</p>
 				</div>
 
@@ -451,7 +473,13 @@ function CameraEditor({ spreadId }: { spreadId: number }) {
 						<div className="ta-row">
 							<label style={{ margin: 0, flex: 1 }}>
 								Page
-								<select value={pageIx} onChange={e => { setPageIx(Number(e.target.value)); setSelected(null); }}>
+								<select
+									value={pageIx}
+									onChange={e => {
+										setPageIx(Number(e.target.value));
+										setSelected(null);
+									}}
+								>
 									{pageCanvases.map((_, ix) => (
 										<option key={ix} value={ix}>
 											Page {ix + 1} ({pages[ix]?.length ?? 0} stops)
@@ -509,7 +537,12 @@ function CameraEditor({ spreadId }: { spreadId: number }) {
 											</button>
 										</td>
 										<td>
-											<button className="ta-btn ta-btn-small" onClick={() => move(ix, -1)} disabled={ix === 0} title="Move earlier">
+											<button
+												className="ta-btn ta-btn-small"
+												onClick={() => move(ix, -1)}
+												disabled={ix === 0}
+												title="Move earlier"
+											>
 												▲
 											</button>{" "}
 											<button
@@ -520,7 +553,11 @@ function CameraEditor({ spreadId }: { spreadId: number }) {
 											>
 												▼
 											</button>{" "}
-											<button className="ta-btn ta-btn-small" onClick={() => captureHere(ix)} title="Replace with the current view">
+											<button
+												className="ta-btn ta-btn-small"
+												onClick={() => captureHere(ix)}
+												title="Replace with the current view"
+											>
 												Re-capture
 											</button>{" "}
 											<button
@@ -559,7 +596,11 @@ function CameraEditor({ spreadId }: { spreadId: number }) {
 					))}
 
 					<div className="ta-row">
-						<button className="ta-btn ta-btn-primary" onClick={() => void save()} disabled={saveState.busy || !dirty || validation.errors.length > 0}>
+						<button
+							className="ta-btn ta-btn-primary"
+							onClick={() => void save()}
+							disabled={saveState.busy || !dirty || validation.errors.length > 0}
+						>
 							{saveState.busy ? "Saving…" : dirty ? "Save camera path" : "No changes to save"}
 						</button>
 						{saveState.ok && <span className="ta-ok">{saveState.ok}</span>}

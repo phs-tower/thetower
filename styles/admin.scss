@@ -1026,9 +1026,11 @@ $muted: #6b7280;
 }
 
 /* ─── Vanguard camera-path editor ─── */
+/* The preview frame is LANDSCAPE (a phone turned sideways, as Vanguard is
+   read), so the canvas takes the wide column and the controls the narrow one. */
 .ta-cam-layout {
 	display: grid;
-	grid-template-columns: minmax(16rem, 24rem) 1fr;
+	grid-template-columns: 1fr minmax(16rem, 22rem);
 	gap: 1.25rem;
 	align-items: start;
 
@@ -1043,6 +1045,7 @@ $muted: #6b7280;
 
 .ta-cam-canvas {
 	display: block;
+	margin-inline: auto;
 	background: #101820;
 	border: 1px solid $navy;
 	border-radius: 0.35rem;
