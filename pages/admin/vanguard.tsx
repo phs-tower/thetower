@@ -6,7 +6,7 @@ import AdminShell, { useAdmin } from "~/components/admin/AdminShell";
 import { monthName } from "~/lib/console/supabase";
 
 // Vanguard "spreads" (the reader calls them issues): a print-page PDF plus an
-// optional camera_path — a JSON list of pages, each a list of stops
+// optional camera_path, a JSON list of pages, each a list of stops
 // {cx, cy, hw, hh, rot} (or {"stops": [...]} wrappers), authored by a tool in
 // the app repo and pasted here. Spreads work fine without one (free pinch-zoom).
 //
@@ -77,13 +77,13 @@ function SpreadForm({ row, onDone }: { row: SpreadRow | null; onDone: () => void
 				cameraPath = v.value;
 			}
 			const finalSrc = await uploadPdf();
-			if (!/^https?:\/\//.test(finalSrc)) throw new Error("A PDF is required — upload a file or paste a URL.");
+			if (!/^https?:\/\//.test(finalSrc)) throw new Error("A PDF is required. Upload a file or paste a URL.");
 
 			const payload = { title: title.trim(), month, year, category: "vanguard", src: finalSrc, camera_path: cameraPath };
 			if (row) {
 				const { error, data } = await supabase.from("spreads").update(payload).eq("id", row.id).select("id");
 				if (error) throw error;
-				if (!data?.length) throw new Error("Save was blocked — are you signed in as an editor?");
+				if (!data?.length) throw new Error("Save was blocked. Are you signed in as an editor?");
 			} else {
 				const { error } = await supabase.from("spreads").insert(payload);
 				if (error) throw error;
@@ -132,7 +132,7 @@ function SpreadForm({ row, onDone }: { row: SpreadRow | null; onDone: () => void
 				</label>
 			</div>
 			<label style={{ margin: 0 }}>
-				PDF — upload a file (stored in the private spreads bucket with a 10-year signed link) or paste an existing URL
+				PDF: upload a file (stored in the private spreads bucket with a 10-year signed link) or paste an existing URL
 				<input type="file" accept="application/pdf" onChange={e => setFile(e.target.files?.[0] ?? null)} style={{ marginTop: 4 }} />
 			</label>
 			{!file && <input type="url" value={src} placeholder="https://…/spreads/…pdf" onChange={e => setSrc(e.target.value)} />}
@@ -142,7 +142,7 @@ function SpreadForm({ row, onDone }: { row: SpreadRow | null; onDone: () => void
 				</p>
 			)}
 			<label style={{ margin: 0 }}>
-				Guided camera path (optional) — paste JSON from the authoring tool
+				Guided camera path (optional): paste JSON from the authoring tool
 				<textarea
 					rows={5}
 					value={cameraText}

@@ -6,7 +6,7 @@ import { monthName, SEND_PUSH_URL } from "~/lib/console/supabase";
 
 // Composes a OneSignal push to EVERY device via the send-push Edge Function
 // (which holds the REST key and re-verifies that the caller is an editor).
-// article_id rides in additionalData — the app deep-links the article from it.
+// article_id rides in additionalData, and the app deep-links the article from it.
 
 interface PushLogRow {
 	id: number;
@@ -71,7 +71,7 @@ function PushComposer() {
 		try {
 			const { data: sessionData } = await supabase.auth.getSession();
 			const token = sessionData.session?.access_token;
-			if (!token) throw new Error("Session expired — sign in again.");
+			if (!token) throw new Error("Session expired. Sign in again.");
 			const res = await fetch(SEND_PUSH_URL, {
 				method: "POST",
 				headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -79,7 +79,7 @@ function PushComposer() {
 			});
 			const body = await res.json().catch(() => ({}));
 			if (!res.ok)
-				throw new Error(body.error ? `${body.error}${body.detail ? ` — ${JSON.stringify(body.detail)}` : ""}` : `HTTP ${res.status}`);
+				throw new Error(body.error ? `${body.error}${body.detail ? `: ${JSON.stringify(body.detail)}` : ""}` : `HTTP ${res.status}`);
 			setMsg({ ok: `Sent${typeof body.recipients === "number" ? ` to ~${body.recipients} devices` : ""}.` });
 			setTitle("");
 			setMessage("");
@@ -113,7 +113,7 @@ function PushComposer() {
 				</label>
 				<div className="ta-picker">
 					<label style={{ margin: 0 }}>
-						Link an article (optional — the app opens it when the notification is tapped)
+						Link an article (optional: the app opens it when the notification is tapped)
 						<input
 							type="search"
 							value={article ? `#${article.id} ${article.title}` : articleTerm}
@@ -170,7 +170,7 @@ function PushComposer() {
 						</p>
 						<div className="ta-row">
 							<button className="ta-btn ta-btn-danger" disabled={busy} onClick={() => void send()}>
-								{busy ? "Sending…" : "Yes — send to everyone"}
+								{busy ? "Sending…" : "Yes, send to everyone"}
 							</button>
 							<button className="ta-btn" disabled={busy} onClick={() => setConfirming(false)}>
 								Back
@@ -204,8 +204,8 @@ function PushComposer() {
 										{l.article_id ? ` · ↳ article #${l.article_id}` : ""}
 									</div>
 								</td>
-								<td className="ta-muted ta-small">{l.sent_by ?? "—"}</td>
-								<td>{l.recipients ?? "—"}</td>
+								<td className="ta-muted ta-small">{l.sent_by ?? "-"}</td>
+								<td>{l.recipients ?? "-"}</td>
 							</tr>
 						))}
 					</tbody>

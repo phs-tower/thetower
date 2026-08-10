@@ -10,7 +10,7 @@ import { monthName } from "~/lib/console/supabase";
 //   Divider
 //   Text("Header")         centered navy section header
 // The app fetches the latest PUBLISHED row (year desc, month desc). This
-// editor makes the layout reviewable at a glance — a joke header once shipped
+// editor makes the layout reviewable at a glance. A joke header once shipped
 // to the app from this table.
 
 type Block =
@@ -227,7 +227,7 @@ function BlockCard({
 						<ArticlePicker onPick={a => !block.ids.includes(a.id) && onChange({ ...block, ids: [...block.ids, a.id] })} />
 					</>
 				)}
-				{block.kind === "divider" && <span className="ta-layout-kind">— Divider —</span>}
+				{block.kind === "divider" && <span className="ta-layout-kind">Divider</span>}
 				{block.kind === "text" && (
 					<>
 						<span className="ta-layout-kind">Section header</span>
@@ -378,7 +378,7 @@ function LayoutEditor() {
 					.eq("id", selectedId)
 					.select("id");
 				if (error) throw error;
-				if (!data?.length) throw new Error("Save was blocked (no rows updated) — are you signed in as an editor?");
+				if (!data?.length) throw new Error("Save was blocked (no rows updated). Are you signed in as an editor?");
 				await loadRows();
 			}
 			setMsg({ ok: "Saved." });
@@ -422,7 +422,7 @@ function LayoutEditor() {
 					</option>
 					{rows.map(r => (
 						<option key={r.id} value={r.id}>
-							{monthName(r.month)} {r.year} — #{r.id}
+							{monthName(r.month)} {r.year} · #{r.id}
 							{r.published ? " · published" : ""}
 							{r.id === liveRowId ? " · LIVE IN APP" : ""}
 						</option>
@@ -492,7 +492,7 @@ function LayoutEditor() {
 										onDelete={() => setBlocks(prev => prev.filter(x => x.key !== b.key))}
 									/>
 								))}
-								{blocks.length === 0 && <p className="ta-muted">Empty layout — add blocks below.</p>}
+								{blocks.length === 0 && <p className="ta-muted">Empty layout. Add blocks below.</p>}
 							</div>
 							<div className="ta-row">
 								<button className="ta-btn" onClick={() => addBlock("large")}>
@@ -518,10 +518,10 @@ function LayoutEditor() {
 					)}
 
 					{missingIds.length > 0 && (
-						<p className="ta-error">Unknown article ids: {missingIds.join(", ")} — they don&rsquo;t exist in the article table.</p>
+						<p className="ta-error">Unknown article ids: {missingIds.join(", ")}. They don&rsquo;t exist in the article table.</p>
 					)}
 					{duplicates.size > 0 && (
-						<p className="ta-error">Duplicate article ids: {Array.from(duplicates).join(", ")} — each article may appear once.</p>
+						<p className="ta-error">Duplicate article ids: {Array.from(duplicates).join(", ")}. Each article may appear once.</p>
 					)}
 
 					<div className="ta-row">

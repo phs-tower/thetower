@@ -57,7 +57,7 @@ function SnowDay() {
 		const prev = row;
 		try {
 			if (action === "close") {
-				// Absence of a school_day row means NO SCHOOL — closing IS deleting.
+				// Absence of a school_day row means NO SCHOOL, so closing IS deleting.
 				const { error: err } = await supabase.from("school_day").delete().eq("day", day);
 				if (err) throw err;
 				setNote(`${prettyDate(day)} is now marked CLOSED (no school).`);
@@ -111,7 +111,7 @@ function SnowDay() {
 			<h2>Snow day &amp; delayed opening</h2>
 			<p className="ta-muted ta-small">
 				&ldquo;Closed&rdquo; deletes the day&rsquo;s schedule row (no row = no school). The app picks changes up on its next refresh (it
-				caches ~12h — send a push so people actually find out).
+				caches ~12h, so send a push so people actually find out).
 			</p>
 			<div className="ta-snow-days">
 				{[
@@ -130,7 +130,7 @@ function SnowDay() {
 				) : row ? (
 					<b>
 						{row.type_code}
-						{row.note ? ` — ${row.note}` : ""}
+						{row.note ? `: ${row.note}` : ""}
 					</b>
 				) : (
 					<b>No school scheduled</b>
@@ -142,7 +142,7 @@ function SnowDay() {
 					disabled={busy || row === "loading" || row === null}
 					onClick={() => apply("close")}
 				>
-					Closed — no school
+					Closed (no school)
 				</button>
 				<button
 					className="ta-btn ta-btn-primary ta-btn-big"
@@ -264,7 +264,7 @@ function Stats() {
 		<div className="ta-grid-cards">
 			{cards.map(card => (
 				<Link key={card.href} href={card.href} className="ta-card ta-stat">
-					<span className="ta-stat-num">{card.value ?? "—"}</span>
+					<span className="ta-stat-num">{card.value ?? "-"}</span>
 					<span className="ta-stat-label">{card.label}</span>
 				</Link>
 			))}

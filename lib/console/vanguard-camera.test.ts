@@ -4,7 +4,7 @@
 //   npm run test:camera
 //
 // The property that matters for parity: a stop captured in the web author tool
-// must replay in the Flutter reader to the exact view it was captured from —
+// must replay in the Flutter reader to the exact view it was captured from:
 // captureStop(cameraForStop(s)) === s.
 
 import test from "node:test";
@@ -86,7 +86,7 @@ test("the quarter-turn fix cancels across a capture/replay cycle", () => {
 });
 
 test("hw/hh swap: the stored horizontal extent is fitted to viewport height", () => {
-	// Guards trap 3 — if someone "fixes" the swap in cameraForStop this fails.
+	// Guards trap 3: if someone "fixes" the swap in cameraForStop this fails.
 	const stop: VanguardStop = { cx: 0.5, cy: 0.5, hw: 0.1, hh: 0.2, rot: 0 };
 	const camera = cameraForStop(VIEWPORT, IMAGE_WIDTH, stop);
 	const expected = Math.min(VIEWPORT.width / (2 * stop.hh * IMAGE_WIDTH), VIEWPORT.height / (2 * stop.hw * IMAGE_WIDTH));

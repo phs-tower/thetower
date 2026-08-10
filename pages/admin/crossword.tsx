@@ -5,7 +5,7 @@ import AdminShell, { useAdmin } from "~/components/admin/AdminShell";
 
 // crossword.clues is a JSON STRING (text column):
 //   { "across": { "1": {clue, answer, row, col}, … }, "down": { … } }
-// CRITICAL app constraint: clue keys are parsed as integers — a non-numeric
+// CRITICAL app constraint: clue keys are parsed as integers, and a non-numeric
 // key crashes the app, so saving is blocked unless every key is numeric.
 
 interface CrosswordRow {
@@ -64,7 +64,7 @@ function validate(entries: ClueEntry[]): string[] {
 	const cells = new Map<string, { letter: string; from: string }>();
 	for (const e of entries) {
 		const label = `${e.dir} ${e.number || "?"}`;
-		if (!/^\d+$/.test(e.number.trim())) problems.push(`${label}: clue number "${e.number}" is not numeric — this would CRASH the app.`);
+		if (!/^\d+$/.test(e.number.trim())) problems.push(`${label}: clue number "${e.number}" is not numeric. This would CRASH the app.`);
 		const dupKey = `${e.dir}:${e.number.trim()}`;
 		if (seen.has(dupKey)) problems.push(`${label}: duplicate clue number.`);
 		seen.add(dupKey);
@@ -111,7 +111,7 @@ function GridPreview({ entries }: { entries: ClueEntry[] }) {
 	if (rows > 30 || cols > 30)
 		return (
 			<p className="ta-error">
-				Grid is {rows}×{cols} — that looks wrong (a row/col is probably mistyped).
+				Grid is {rows}×{cols}, which looks wrong (a row/col is probably mistyped).
 			</p>
 		);
 
@@ -186,7 +186,7 @@ function CrosswordEditor() {
 			setEntries([]);
 			setJsonText(row.clues);
 			setJsonMode(true);
-			setMsg({ err: "Stored clues JSON didn't parse — fix it in JSON mode." });
+			setMsg({ err: "Stored clues JSON didn't parse. Fix it in JSON mode." });
 		}
 		setSelected(row.id);
 		setMeta({ date: row.date, title: row.title ?? "", author: row.author });
@@ -227,7 +227,7 @@ function CrosswordEditor() {
 				const parsed = JSON.parse(jsonText); // throws if invalid
 				for (const dir of ["across", "down"]) {
 					for (const key of Object.keys(parsed?.[dir] ?? {})) {
-						if (!/^\d+$/.test(key)) throw new Error(`Clue key "${key}" in ${dir} is not numeric — this would crash the app.`);
+						if (!/^\d+$/.test(key)) throw new Error(`Clue key "${key}" in ${dir} is not numeric. This would crash the app.`);
 					}
 				}
 				cluesJson = jsonText;
@@ -246,7 +246,7 @@ function CrosswordEditor() {
 			} else {
 				const { error, data } = await supabase.from("crossword").update(payload).eq("id", selected).select("id");
 				if (error) throw error;
-				if (!data?.length) throw new Error("Save was blocked — are you signed in as an editor?");
+				if (!data?.length) throw new Error("Save was blocked. Are you signed in as an editor?");
 			}
 			await load();
 			setMsg({ ok: "Saved." });
@@ -278,7 +278,7 @@ function CrosswordEditor() {
 					</option>
 					{list.map(r => (
 						<option key={r.id} value={r.id}>
-							{r.date} — {r.title || `Crossword #${r.id}`} ({r.author})
+							{r.date} · {r.title || `Crossword #${r.id}`} ({r.author})
 						</option>
 					))}
 					<option value="new">+ New crossword…</option>

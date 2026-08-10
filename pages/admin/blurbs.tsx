@@ -42,7 +42,7 @@ function BlurbItem({ article, onSaved }: { article: ArticleRow; onSaved: (id: nu
 			return;
 		}
 		if (!data || data.length === 0) {
-			setError("Save was blocked (no rows updated) — are you still signed in as an editor?");
+			setError("Save was blocked (no rows updated). Are you still signed in as an editor?");
 			return;
 		}
 		onSaved(article.id, value.trim());
@@ -81,7 +81,7 @@ function BlurbItem({ article, onSaved }: { article: ArticleRow; onSaved: (id: nu
 				/>
 				<div className="ta-row ta-spread" style={{ marginTop: 6 }}>
 					<span className={`ta-charcount${count > 260 ? " long" : ""}`}>
-						{count} chars — {GUIDE}
+						{count} chars. {GUIDE}
 					</span>
 					<span className="ta-row">
 						{savedFlash && <span className="ta-ok">Saved ✓</span>}

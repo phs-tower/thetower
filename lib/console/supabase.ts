@@ -3,7 +3,7 @@
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { SUPABASE_URL } from "~/lib/storage";
 
-// The anon key is public by design — it ships inside the mobile app. RLS is
+// The anon key is public by design; it ships inside the mobile app. RLS is
 // the only security boundary; the console gains write access solely because a
 // signed-in editor's JWT satisfies public.is_editor() in the write policies.
 const SUPABASE_ANON_KEY =

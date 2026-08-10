@@ -38,7 +38,7 @@ interface SpreadRow {
 }
 
 // The reader is a phone. Playback re-fits with `contain`, so a viewport whose
-// aspect differs from the device only ever shows MORE than was framed — but
+// aspect differs from the device only ever shows MORE than was framed, but
 // framing against the shape people actually read on is what makes the preview
 // honest, so this is fixed rather than configurable.
 const VIEWPORT_RATIO = 390 / 844;
@@ -141,7 +141,7 @@ function CameraEditor({ spreadId }: { spreadId: number }) {
 				if (cancelled) return;
 				setLoadState({
 					busy: false,
-					error: `${e instanceof Error ? e.message : String(e)} — if this is a CORS error, the PDF's storage bucket must allow browser reads.`,
+					error: `${e instanceof Error ? e.message : String(e)}. If this is a CORS error, the PDF's storage bucket must allow browser reads.`,
 				});
 			}
 		})();
@@ -281,7 +281,7 @@ function CameraEditor({ spreadId }: { spreadId: number }) {
 			e.preventDefault();
 			stopPreview();
 			const rect = canvas.getBoundingClientRect();
-			// deltaMode 1 is lines (Firefox), 2 is pages — normalize to pixels.
+			// deltaMode 1 is lines (Firefox), 2 is pages; normalize to pixels.
 			const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? viewport.height : 1;
 			zoomAt(Math.exp((-e.deltaY * unit) / 400), e.clientX - rect.left, e.clientY - rect.top);
 		};
@@ -309,7 +309,7 @@ function CameraEditor({ spreadId }: { spreadId: number }) {
 			Math.abs(replay.scale - camera.scale) * image.width,
 			Math.abs(replay.rot - camera.rot) * image.width
 		);
-		setRoundTrip(drift < 0.01 ? "Round-trip verified — replays exactly here." : `⚠ Round-trip drifted by ${drift.toFixed(3)}px.`);
+		setRoundTrip(drift < 0.01 ? "Round-trip verified: replays exactly here." : `⚠ Round-trip drifted by ${drift.toFixed(3)}px.`);
 
 		if (replaceIx === undefined) {
 			setStops(stops => [...stops, stop]);
@@ -399,7 +399,7 @@ function CameraEditor({ spreadId }: { spreadId: number }) {
 			const payload = trimmed.length ? serializeCameraPath(trimmed) : null;
 			const { error, data } = await supabase.from("spreads").update({ camera_path: payload }).eq("id", spreadId).select("id");
 			if (error) throw error;
-			if (!data?.length) throw new Error("Save was blocked — are you still signed in as an editor?");
+			if (!data?.length) throw new Error("Save was blocked. Are you still signed in as an editor?");
 			setOriginalJson(currentJson);
 			setSaveState({ busy: false, ok: "Saved.", error: null });
 		} catch (e) {
@@ -442,7 +442,7 @@ function CameraEditor({ spreadId }: { spreadId: number }) {
 					</div>
 					<p className="ta-muted ta-small" style={{ marginTop: "0.5rem" }}>
 						Drag to pan · scroll or <b>Ctrl-drag</b> to zoom · <b>Alt/Shift-drag</b> (or right-drag) to rotate. Frame the shot, then
-						capture — the reader will frame exactly this.
+						capture. The reader will frame exactly this.
 					</p>
 				</div>
 
@@ -461,7 +461,7 @@ function CameraEditor({ spreadId }: { spreadId: number }) {
 							</label>
 						</div>
 						<label style={{ margin: 0 }}>
-							Rotation — {degrees(camera.rot).toFixed(1)}°
+							Rotation: {degrees(camera.rot).toFixed(1)}°
 							<input
 								type="range"
 								min={-180}
@@ -538,7 +538,7 @@ function CameraEditor({ spreadId }: { spreadId: number }) {
 								{currentStops.length === 0 && (
 									<tr>
 										<td colSpan={3} className="ta-muted ta-small">
-											No stops on this page yet — frame a shot and capture it. A page with no stops is valid; the reader just
+											No stops on this page yet. Frame a shot and capture it. A page with no stops is valid; the reader just
 											passes over it.
 										</td>
 									</tr>

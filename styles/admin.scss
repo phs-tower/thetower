@@ -42,7 +42,7 @@ $muted: #6b7280;
 		color: inherit;
 	}
 
-	/* The site sets a global `span { color:#8b8b8b }` — opt back out of it. */
+	/* The site sets a global `span { color:#8b8b8b }`; opt back out of it. */
 	span {
 		color: inherit;
 		font-family: inherit;
@@ -532,7 +532,7 @@ $muted: #6b7280;
 }
 
 /* Secondary text. The site's body copy is 1.25rem, so this sits at ~84% of
-   it — clearly subordinate but still comfortable to read. */
+   it, clearly subordinate but still comfortable to read. */
 .ta-small {
 	font-size: 1.05rem;
 }

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import AdminShell, { useAdmin } from "~/components/admin/AdminShell";
 
 // Letters arrive from the app (INSERT-open to signed-in readers). The app's
-// account-deletion flow nulls author_name/email/id on old letters — those
+// account-deletion flow nulls author_name/email/id on old letters, so those
 // render as "(account deleted)".
 
 type LetterStatus = "new" | "reviewed" | "archived";
@@ -64,7 +64,7 @@ function LettersInbox() {
 		setError(null);
 		const { error: err, data } = await supabase.from("letter").update({ status }).eq("id", id).select("id");
 		if (err || !data?.length) {
-			setError(err?.message ?? "Update was blocked — are you signed in as an editor?");
+			setError(err?.message ?? "Update was blocked. Are you signed in as an editor?");
 			return;
 		}
 		setLetters(prev => prev.map(l => (l.id === id ? { ...l, status } : l)));
@@ -100,7 +100,7 @@ function LettersInbox() {
 							const from = l.author_name || l.author_email ? `${l.author_name ?? "(no name)"}` : "(account deleted)";
 							return (
 								<tr key={l.id} className={`ta-letter${isOpen ? " expanded" : ""}`} onClick={() => setExpanded(isOpen ? null : l.id)}>
-									<td className="ta-muted ta-small">{l.created_at ? new Date(l.created_at).toLocaleDateString() : "—"}</td>
+									<td className="ta-muted ta-small">{l.created_at ? new Date(l.created_at).toLocaleDateString() : "-"}</td>
 									<td>
 										{from}
 										{l.author_email && <div className="ta-muted ta-small">{l.author_email}</div>}

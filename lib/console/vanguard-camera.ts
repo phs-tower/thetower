@@ -1,10 +1,10 @@
 /** @format */
 
-// Vanguard guided-camera math — a LITERAL port of the app repo's
+// Vanguard guided-camera math: a LITERAL port of the app repo's
 // lib/vanguard/camera.dart. The web author tool and the Flutter reader must
 // agree exactly, so this file mirrors that Dart file line for line rather than
 // re-deriving anything. If the Dart changes, change this to match; do not
-// "clean up" the conventions below — all three are load-bearing:
+// "clean up" the conventions below; all three are load-bearing:
 //
 //   1. Everything is normalized by the rendered image WIDTH, including cy and
 //      hh. Not width-for-x / height-for-y. One shared unit keeps rotation true.
@@ -181,8 +181,8 @@ function isFiniteNumber(value: unknown): value is number {
 }
 
 /**
- * Parse a stored camera_path. Accepts both page shapes the app accepts — a
- * bare list of stops, or a {"stops": [...]} wrapper — and returns pages of
+ * Parse a stored camera_path. Accepts both page shapes the app accepts: a
+ * bare list of stops, or a {"stops": [...]} wrapper, and returns pages of
  * stops. Anything unparseable becomes an empty page rather than throwing, so a
  * half-broken row can still be opened and repaired in the editor.
  */
@@ -222,7 +222,7 @@ export function validateCameraPath(pages: VanguardStop[][], pdfPageCount: number
 	}
 
 	pages.forEach((page, pageIx) => {
-		if (page.length === 0) warnings.push(`Page ${pageIx + 1} has no stops — the reader will skip straight past it.`);
+		if (page.length === 0) warnings.push(`Page ${pageIx + 1} has no stops. The reader will skip straight past it.`);
 		page.forEach((s, stopIx) => {
 			const label = `Page ${pageIx + 1}, stop ${stopIx + 1}`;
 			for (const key of ["cx", "cy", "hw", "hh", "rot"] as const) {

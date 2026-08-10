@@ -62,7 +62,7 @@ function FormsManager() {
 			// eslint-disable-next-line no-new
 			new URL(draft.url.trim());
 		} catch {
-			setError("That URL doesn't look valid — include https://");
+			setError("That URL doesn't look valid. Include https://");
 			return;
 		}
 		const maxOrder = forms.reduce((max, f) => Math.max(max, f.sort_order), 0);
@@ -168,7 +168,7 @@ function FormsManager() {
 									<input
 										type="text"
 										defaultValue={f.description ?? ""}
-										placeholder="—"
+										placeholder="-"
 										onBlur={e =>
 											(e.target.value || null) !== f.description && void update(f.id, { description: e.target.value || null })
 										}

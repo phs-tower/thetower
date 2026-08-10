@@ -9,7 +9,7 @@ import AdminShell, { useAdmin } from "~/components/admin/AdminShell";
 //   * period_time: one row per block in clock order; a period that doesn't
 //     meet on a day type has no row; period IS NULL rows are Lunch/Advisory
 //     and the app shows them.
-//   * teacher: NEVER deleted (enrollment FKs restrict) — toggle active.
+//   * teacher: NEVER deleted (enrollment FKs restrict); toggle active instead.
 //   * term: S1/S2 only. Full-year courses are two enrollments; no FY term.
 // The app caches this data ~12h.
 
@@ -162,7 +162,7 @@ function GenerateYear({
 				</label>
 			</div>
 			<label style={{ margin: 0 }}>
-				Closures — one per line: 2026-11-05 or 2026-12-24..2027-01-01 (# comments ok)
+				Closures, one per line: 2026-11-05 or 2026-12-24..2027-01-01 (# comments ok)
 				<textarea
 					rows={4}
 					value={closures}
@@ -171,12 +171,12 @@ function GenerateYear({
 				/>
 			</label>
 			<label style={{ margin: 0 }}>
-				Half-day / delay overrides — one per line: 2026-11-25=HALF|Early dismissal
+				Half-day / delay overrides, one per line: 2026-11-25=HALF|Early dismissal
 				<textarea
 					rows={3}
 					value={overrides}
 					onChange={e => setOverrides(e.target.value)}
-					placeholder={"2026-11-25=HALF|Early dismissal — Thanksgiving"}
+					placeholder={"2026-11-25=HALF|Early dismissal for Thanksgiving"}
 				/>
 			</label>
 			<div className="ta-row">
@@ -185,7 +185,7 @@ function GenerateYear({
 				</button>
 				{preview && (
 					<button className="ta-btn ta-btn-danger" disabled={busy} onClick={() => onApply(preview, first, last)}>
-						{busy ? "Applying…" : `Apply — replaces ${first} → ${last} with ${preview.length} school days`}
+						{busy ? "Applying…" : `Apply: replaces ${first} → ${last} with ${preview.length} school days`}
 					</button>
 				)}
 				<button className="ta-btn" onClick={() => setOpen(false)}>
@@ -250,7 +250,7 @@ function CalendarTab({ dayTypes }: { dayTypes: DayType[] }) {
 				});
 			} else if (paint === "NOTE") {
 				if (!existing) {
-					setError("Pick a day type first — notes attach to an existing school day.");
+					setError("Pick a day type first. Notes attach to an existing school day.");
 					return;
 				}
 				const note = window.prompt(`Note for ${iso} (empty clears):`, existing.note ?? "");
@@ -322,7 +322,7 @@ function CalendarTab({ dayTypes }: { dayTypes: DayType[] }) {
 				</div>
 			</div>
 			<p className="ta-muted ta-small" style={{ margin: 0 }}>
-				Pick a paint, then click dates. &ldquo;No school&rdquo; deletes the row — absence of a row IS the no-school state. Dot = has a note
+				Pick a paint, then click dates. &ldquo;No school&rdquo; deletes the row. Absence of a row IS the no-school state. Dot = has a note
 				(hover to read).
 			</p>
 			<GenerateYear dayTypes={dayTypes} onApply={applyGenerated} busy={busy} />
@@ -361,7 +361,7 @@ function CalendarTab({ dayTypes }: { dayTypes: DayType[] }) {
 									return (
 										<button key={iso} className={cls.join(" ")} title={row?.note ?? undefined} onClick={() => void clickDay(iso)}>
 											<span className="d">{Number(iso.slice(8))}</span>
-											<span className="t">{row ? row.type_code : "—"}</span>
+											<span className="t">{row ? row.type_code : "-"}</span>
 										</button>
 									);
 								})}
@@ -463,12 +463,12 @@ function BellsTab({ dayTypes }: { dayTypes: DayType[] }) {
 				<select value={typeCode} onChange={e => setTypeCode(e.target.value)} style={{ maxWidth: 220 }}>
 					{dayTypes.map(t => (
 						<option key={t.code} value={t.code}>
-							{t.code} — {t.label}
+							{t.code}: {t.label}
 						</option>
 					))}
 				</select>
 				<span className="ta-muted ta-small">
-					One row per block in clock order. Blank period = non-class block (Lunch/Advisory) — the app shows those, don&rsquo;t drop them.
+					One row per block in clock order. Blank period = non-class block (Lunch/Advisory). The app shows those, so don&rsquo;t drop them.
 				</span>
 			</div>
 			{error && <p className="ta-error">{error}</p>}
@@ -497,7 +497,7 @@ function BellsTab({ dayTypes }: { dayTypes: DayType[] }) {
 									<input
 										type="number"
 										defaultValue={r.period ?? ""}
-										placeholder="—"
+										placeholder="-"
 										onBlur={e => {
 											const v = e.target.value.trim() === "" ? null : Number(e.target.value);
 											if (v !== r.period) void update(r, { period: v });
@@ -541,7 +541,7 @@ function BellsTab({ dayTypes }: { dayTypes: DayType[] }) {
 							<td>
 								<input
 									type="number"
-									placeholder="—"
+									placeholder="-"
 									value={draft.period}
 									onChange={e => setDraft({ ...draft, period: e.target.value })}
 								/>
@@ -637,7 +637,7 @@ function TeachersTab() {
 					<input type="checkbox" checked={showInactive} onChange={e => setShowInactive(e.target.checked)} style={{ width: "auto" }} />
 					Show inactive
 				</label>
-				<span className="ta-muted ta-small">Teachers are never deleted (student schedules reference them) — deactivate instead.</span>
+				<span className="ta-muted ta-small">Teachers are never deleted (student schedules reference them). Deactivate instead.</span>
 			</div>
 			{error && <p className="ta-error">{error}</p>}
 			<div className="ta-table-wrap">
@@ -671,7 +671,7 @@ function TeachersTab() {
 									<input
 										type="text"
 										defaultValue={t.department ?? ""}
-										placeholder="—"
+										placeholder="-"
 										onBlur={e =>
 											(e.target.value || null) !== t.department && void update(t.id, { department: e.target.value || null })
 										}
@@ -775,7 +775,7 @@ function TermsTab({ dayTypes, reloadDayTypes }: { dayTypes: DayType[]; reloadDay
 		<div className="ta-stack">
 			<h3 style={{ fontSize: 15 }}>Terms</h3>
 			<p className="ta-muted ta-small" style={{ margin: 0 }}>
-				S1/S2 only — do NOT add a full-year term; the app stores full-year courses as one enrollment per semester. Term dates drive which
+				S1/S2 only. Do NOT add a full-year term; the app stores full-year courses as one enrollment per semester. Term dates drive which
 				semester &ldquo;now&rdquo; is.
 			</p>
 			{error && <p className="ta-error">{error}</p>}
