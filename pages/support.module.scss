@@ -1,0 +1,23 @@
+/** @format */
+
+.support {
+	max-width: 80ch;
+	margin-inline: auto;
+	padding-bottom: 4rem;
+	text-align: center;
+
+	h1 {
+		border-bottom: 3px solid gainsboro;
+		padding-bottom: 0.5rem;
+		margin-bottom: 1.5rem;
+	}
+
+	p {
+		line-height: 1.6;
+	}
+
+	a[href^="mailto:"] {
+		text-decoration: underline;
+		word-break: break-word;
+	}
+}
