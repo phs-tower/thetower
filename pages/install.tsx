@@ -31,7 +31,7 @@ export default function Install() {
 
 				<p className={styles.body}>
 					We&apos;re putting the finishing touches on an app that brings every story, print issue, and crossword to your phone. Check back
-					here soon — the download link will live on this page.
+					here soon!
 				</p>
 
 				{APP_LINK ? (
