@@ -78,8 +78,7 @@ function PushComposer() {
 				body: JSON.stringify({ title: title.trim(), message: message.trim(), article_id: article?.id ?? null }),
 			});
 			const body = await res.json().catch(() => ({}));
-			if (!res.ok)
-				throw new Error(body.error ? `${body.error}${body.detail ? `: ${JSON.stringify(body.detail)}` : ""}` : `HTTP ${res.status}`);
+			if (!res.ok) throw new Error(body.error ? `${body.error}${body.detail ? `: ${JSON.stringify(body.detail)}` : ""}` : `HTTP ${res.status}`);
 			setMsg({ ok: `Sent${typeof body.recipients === "number" ? ` to ~${body.recipients} devices` : ""}.` });
 			setTitle("");
 			setMessage("");
