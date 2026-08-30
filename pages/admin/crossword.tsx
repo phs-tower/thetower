@@ -1,12 +1,31 @@
 /** @format */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AdminShell, { useAdmin } from "~/components/admin/AdminShell";
 
 // crossword.clues is a JSON STRING (text column):
-//   { "across": { "1": {clue, answer, row, col}, … }, "down": { … } }
+//   { "across": { "1": {clue, answer, row, col}, ... }, "down": { ... } }
 // CRITICAL app constraint: clue keys are parsed as integers, and a non-numeric
-// key crashes the app, so saving is blocked unless every key is numeric.
+// key crashes the app. The builder only ever writes numbers it computed itself
+// from the grid, so a bad key can no longer be typed in by hand.
+
+import {
+	BLACK,
+	buildCluesJson,
+	clueKey,
+	computeEntries,
+	gridFromClues,
+	isBlack,
+	makeGrid,
+	MAX_SIZE,
+	MIN_SIZE,
+	orphanCells,
+	type Dir,
+	type Entry,
+	type Grid,
+} from "~/lib/console/crossword-grid";
+
+type Step = "size" | "blocks" | "letters";
 
 interface CrosswordRow {
 	id: number;
@@ -16,154 +35,159 @@ interface CrosswordRow {
 	clues: string;
 }
 
-interface ClueEntry {
-	key: string; // react key
-	dir: "across" | "down";
-	number: string;
-	clue: string;
-	answer: string;
-	row: number;
-	col: number;
-}
+// ─── the grid ────────────────────────────────────────────────────────────────
 
-let ck = 0;
-const nextCk = () => `c${++ck}`;
-
-function cluesToEntries(cluesJson: string): ClueEntry[] {
-	const parsed = JSON.parse(cluesJson);
-	const out: ClueEntry[] = [];
-	for (const dir of ["across", "down"] as const) {
-		const map = parsed?.[dir] ?? {};
-		for (const number of Object.keys(map)) {
-			const c = map[number] ?? {};
-			out.push({
-				key: nextCk(),
-				dir,
-				number,
-				clue: String(c.clue ?? ""),
-				answer: String(c.answer ?? ""),
-				row: Number(c.row ?? 0),
-				col: Number(c.col ?? 0),
-			});
-		}
-	}
-	return out.sort((a, b) => (a.dir === b.dir ? Number(a.number) - Number(b.number) : a.dir === "across" ? -1 : 1));
-}
-
-function entriesToClues(entries: ClueEntry[]): string {
-	const result: Record<string, Record<string, { clue: string; answer: string; row: number; col: number }>> = { across: {}, down: {} };
-	for (const e of entries) {
-		result[e.dir][e.number.trim()] = { clue: e.clue, answer: e.answer.toUpperCase(), row: e.row, col: e.col };
-	}
-	return JSON.stringify(result, null, 2);
-}
-
-function validate(entries: ClueEntry[]): string[] {
-	const problems: string[] = [];
-	const seen = new Set<string>();
-	const cells = new Map<string, { letter: string; from: string }>();
-	for (const e of entries) {
-		const label = `${e.dir} ${e.number || "?"}`;
-		if (!/^\d+$/.test(e.number.trim())) problems.push(`${label}: clue number "${e.number}" is not numeric. This would CRASH the app.`);
-		const dupKey = `${e.dir}:${e.number.trim()}`;
-		if (seen.has(dupKey)) problems.push(`${label}: duplicate clue number.`);
-		seen.add(dupKey);
-		if (!e.clue.trim()) problems.push(`${label}: empty clue.`);
-		if (!/^[A-Za-z]+$/.test(e.answer)) problems.push(`${label}: answer "${e.answer}" must be letters only.`);
-		if (e.row < 0 || e.col < 0 || !Number.isInteger(e.row) || !Number.isInteger(e.col))
-			problems.push(`${label}: row/col must be non-negative integers.`);
-		// letter grid conflicts
-		const letters = e.answer.toUpperCase().split("");
-		letters.forEach((letter, i) => {
-			const r = e.dir === "across" ? e.row : e.row + i;
-			const c = e.dir === "across" ? e.col + i : e.col;
-			const at = cells.get(`${r},${c}`);
-			if (at && at.letter !== letter)
-				problems.push(`${label}: letter ${i + 1} ("${letter}") collides with ${at.from} ("${at.letter}") at row ${r}, col ${c}.`);
-			else cells.set(`${r},${c}`, { letter, from: label });
-		});
-	}
-	return problems;
-}
-
-function GridPreview({ entries }: { entries: ClueEntry[] }) {
-	const { grid, numbers, rows, cols } = useMemo(() => {
-		const cellMap = new Map<string, string>();
-		const numberMap = new Map<string, string>();
-		let maxR = 0;
-		let maxC = 0;
-		for (const e of entries) {
-			if (!/^[A-Za-z]+$/.test(e.answer)) continue;
-			const letters = e.answer.toUpperCase().split("");
-			letters.forEach((letter, i) => {
-				const r = e.dir === "across" ? e.row : e.row + i;
-				const c = e.dir === "across" ? e.col + i : e.col;
-				cellMap.set(`${r},${c}`, letter);
-				maxR = Math.max(maxR, r);
-				maxC = Math.max(maxC, c);
-			});
-			if (!numberMap.has(`${e.row},${e.col}`)) numberMap.set(`${e.row},${e.col}`, e.number);
-		}
-		return { grid: cellMap, numbers: numberMap, rows: maxR + 1, cols: maxC + 1 };
-	}, [entries]);
-
-	if (grid.size === 0) return <p className="ta-muted">Add clues to preview the grid.</p>;
-	if (rows > 30 || cols > 30)
-		return (
-			<p className="ta-error">
-				Grid is {rows}×{cols}, which looks wrong (a row/col is probably mistyped).
-			</p>
-		);
-
+function GridEditor({
+	grid,
+	numbers,
+	mode,
+	selected,
+	highlight,
+	onCellClick,
+	onKeyDown,
+	gridRef,
+}: {
+	grid: Grid;
+	numbers: Map<string, number>;
+	mode: "blocks" | "letters";
+	selected: { r: number; c: number } | null;
+	highlight: Set<string>;
+	onCellClick: (r: number, c: number) => void;
+	onKeyDown: (e: React.KeyboardEvent) => void;
+	gridRef: React.RefObject<HTMLDivElement>;
+}) {
+	const cols = grid[0]?.length ?? 0;
 	return (
 		<div
-			style={{
-				display: "inline-grid",
-				gridTemplateColumns: `repeat(${cols}, 30px)`,
-				gap: 1,
-				background: "#031025",
-				border: "2px solid #031025",
-			}}
+			className="ta-xw-grid"
+			ref={gridRef}
+			tabIndex={0}
+			onKeyDown={onKeyDown}
+			style={{ gridTemplateColumns: `repeat(${cols}, var(--xw-cell))` }}
+			aria-label={mode === "blocks" ? "Click squares to make them black" : "Type letters into the grid"}
 		>
-			{Array.from({ length: rows * cols }, (_, i) => {
-				const r = Math.floor(i / cols);
-				const c = i % cols;
-				const letter = grid.get(`${r},${c}`);
-				const num = numbers.get(`${r},${c}`);
-				return (
-					<div
-						key={i}
-						style={{
-							width: 30,
-							height: 30,
-							background: letter ? "#fff" : "#031025",
-							position: "relative",
-							display: "flex",
-							alignItems: "center",
-							justifyContent: "center",
-							fontWeight: 700,
-							fontSize: 14,
-						}}
-					>
-						{num && <span style={{ position: "absolute", top: 0, left: 2, fontSize: 8, fontWeight: 600 }}>{num}</span>}
-						{letter}
-					</div>
-				);
-			})}
+			{grid.map((rowCells, r) =>
+				rowCells.map((cell, c) => {
+					const black = cell === BLACK;
+					const isSel = selected?.r === r && selected?.c === c;
+					const inWord = highlight.has(`${r},${c}`);
+					const number = numbers.get(`${r},${c}`);
+					return (
+						<div
+							key={`${r},${c}`}
+							className={`ta-xw-cell${black ? " black" : ""}${isSel ? " selected" : ""}${inWord && !isSel ? " in-word" : ""}`}
+							onMouseDown={e => {
+								e.preventDefault();
+								onCellClick(r, c);
+							}}
+						>
+							{!black && number !== undefined && <span className="ta-xw-num">{number}</span>}
+							{!black && <span className="ta-xw-letter">{cell}</span>}
+						</div>
+					);
+				})
+			)}
 		</div>
 	);
 }
 
+// ─── the clue dialog ─────────────────────────────────────────────────────────
+
+function ClueDialog({
+	entries,
+	clues,
+	onChange,
+	onClose,
+	onSave,
+	busy,
+	error,
+}: {
+	entries: Entry[];
+	clues: Record<string, string>;
+	onChange: (key: string, value: string) => void;
+	onClose: () => void;
+	onSave: () => void;
+	busy: boolean;
+	error: string | null;
+}) {
+	const written = entries.filter(e => (clues[clueKey(e.dir, e.row, e.col)] ?? "").trim()).length;
+
+	const section = (dir: Dir) => {
+		const list = entries.filter(e => e.dir === dir);
+		return (
+			<div className="ta-xw-cluecol">
+				<h3>{dir === "across" ? "Across" : "Down"}</h3>
+				{list.length === 0 && <p className="ta-muted ta-small">No {dir} entries.</p>}
+				{list.map(e => {
+					const key = clueKey(e.dir, e.row, e.col);
+					return (
+						<label key={key} className="ta-xw-clue">
+							<span className="ta-xw-clue-head">
+								<b>{e.number}</b> <code>{e.answer}</code>
+							</span>
+							<input
+								type="text"
+								value={clues[key] ?? ""}
+								placeholder={`Clue for ${e.answer}`}
+								onChange={ev => onChange(key, ev.target.value)}
+							/>
+						</label>
+					);
+				})}
+			</div>
+		);
+	};
+
+	return (
+		<div className="ta-xw-scrim" onMouseDown={onClose}>
+			<div className="ta-xw-dialog" onMouseDown={e => e.stopPropagation()}>
+				<div className="ta-row ta-spread">
+					<h2>Write the clues</h2>
+					<span className="ta-badge">
+						{written} of {entries.length} written
+					</span>
+				</div>
+				<div className="ta-xw-clues">
+					{section("across")}
+					{section("down")}
+				</div>
+				{error && <p className="ta-error">{error}</p>}
+				<div className="ta-row">
+					<button className="ta-btn ta-btn-primary" onClick={onSave} disabled={busy}>
+						{busy ? "Saving…" : "Save crossword"}
+					</button>
+					<button className="ta-btn" onClick={onClose} disabled={busy}>
+						Back to the grid
+					</button>
+				</div>
+			</div>
+		</div>
+	);
+}
+
+// ─── the builder ─────────────────────────────────────────────────────────────
+
 function CrosswordEditor() {
 	const { supabase } = useAdmin();
+	const gridRef = useRef<HTMLDivElement>(null);
+
 	const [list, setList] = useState<CrosswordRow[]>([]);
-	const [selected, setSelected] = useState<number | "new" | null>(null);
+	const [selectedRow, setSelectedRow] = useState<number | "new" | null>(null);
 	const [meta, setMeta] = useState({ date: "", title: "", author: "" });
-	const [entries, setEntries] = useState<ClueEntry[]>([]);
-	const [jsonMode, setJsonMode] = useState(false);
-	const [jsonText, setJsonText] = useState("");
+
+	const [step, setStep] = useState<Step>("size");
+	const [size, setSize] = useState({ rows: 5, cols: 5 });
+	const [grid, setGrid] = useState<Grid>(() => makeGrid(5, 5));
+	const [clues, setClues] = useState<Record<string, string>>({});
+	const [symmetry, setSymmetry] = useState(true);
+
+	const [cursor, setCursor] = useState<{ r: number; c: number } | null>(null);
+	const [dir, setDir] = useState<Dir>("across");
+	const [showClues, setShowClues] = useState(false);
+
 	const [busy, setBusy] = useState(false);
 	const [msg, setMsg] = useState<{ ok?: string; err?: string }>({});
+	const [repairJson, setRepairJson] = useState<string | null>(null);
 
 	const load = useCallback(async () => {
 		const { data, error } = await supabase.from("crossword").select("id, date, title, author, clues").order("date", { ascending: false });
@@ -178,43 +202,149 @@ function CrosswordEditor() {
 		void load();
 	}, [load]);
 
-	const open = (row: CrosswordRow) => {
-		try {
-			setEntries(cluesToEntries(row.clues));
-			setJsonText(row.clues);
-		} catch {
-			setEntries([]);
-			setJsonText(row.clues);
-			setJsonMode(true);
-			setMsg({ err: "Stored clues JSON didn't parse. Fix it in JSON mode." });
-		}
-		setSelected(row.id);
+	const { entries, numbers } = useMemo(() => computeEntries(grid), [grid]);
+	const orphans = useMemo(() => orphanCells(grid, entries), [grid, entries]);
+	const blanks = useMemo(() => grid.flat().filter(cell => cell === "").length, [grid]);
+	const missingClues = entries.filter(e => !(clues[clueKey(e.dir, e.row, e.col)] ?? "").trim());
+
+	const openRow = (row: CrosswordRow) => {
+		setSelectedRow(row.id);
 		setMeta({ date: row.date, title: row.title ?? "", author: row.author });
 		setMsg({});
+		setRepairJson(null);
+		setCursor(null);
+		setShowClues(false);
+		try {
+			const rebuilt = gridFromClues(row.clues);
+			setGrid(rebuilt.grid);
+			setClues(rebuilt.clues);
+			setSize({ rows: rebuilt.grid.length, cols: rebuilt.grid[0]?.length ?? 0 });
+			setStep("letters");
+		} catch (e) {
+			// Only reachable for a row written before this builder existed, or one
+			// hand-edited into a shape the grid cannot represent.
+			setRepairJson(row.clues);
+			setMsg({ err: `This crossword could not be opened in the grid: ${e instanceof Error ? e.message : e}` });
+		}
 	};
 
 	const startNew = () => {
-		setSelected("new");
+		setSelectedRow("new");
 		setMeta({ date: new Date().toISOString().slice(0, 10), title: "", author: "" });
-		setEntries([]);
-		setJsonText('{\n  "across": {},\n  "down": {}\n}');
+		setSize({ rows: 5, cols: 5 });
+		setGrid(makeGrid(5, 5));
+		setClues({});
+		setCursor(null);
+		setStep("size");
 		setMsg({});
+		setRepairJson(null);
+		setShowClues(false);
 	};
 
-	const problems = useMemo(() => validate(entries), [entries]);
+	const applySize = () => {
+		const rows = Math.min(MAX_SIZE, Math.max(MIN_SIZE, Math.round(size.rows) || MIN_SIZE));
+		const cols = Math.min(MAX_SIZE, Math.max(MIN_SIZE, Math.round(size.cols) || MIN_SIZE));
+		setSize({ rows, cols });
+		setGrid(prev => makeGrid(rows, cols, prev));
+		setCursor(null);
+		setStep("blocks");
+	};
 
-	const switchMode = (toJson: boolean) => {
-		if (toJson === jsonMode) return;
-		if (toJson) {
-			setJsonText(entriesToClues(entries));
-			setJsonMode(true);
-		} else {
-			try {
-				setEntries(cluesToEntries(jsonText));
-				setJsonMode(false);
-			} catch (e) {
-				setMsg({ err: `JSON doesn't parse: ${e instanceof Error ? e.message : e}` });
+	const toggleBlack = (r: number, c: number) => {
+		setGrid(prev => {
+			const next = prev.map(row => [...row]);
+			const becomingBlack = next[r][c] !== BLACK;
+			next[r][c] = becomingBlack ? BLACK : "";
+			if (symmetry) {
+				// Crosswords are conventionally symmetric under a 180 degree turn.
+				const sr = prev.length - 1 - r;
+				const sc = (prev[0]?.length ?? 0) - 1 - c;
+				if ((sr !== r || sc !== c) && next[sr] && next[sr][sc] !== undefined) next[sr][sc] = becomingBlack ? BLACK : "";
 			}
+			return next;
+		});
+	};
+
+	const wordCells = useMemo(() => {
+		const set = new Set<string>();
+		if (!cursor || isBlack(grid, cursor.r, cursor.c)) return set;
+		if (dir === "across") {
+			let c = cursor.c;
+			while (!isBlack(grid, cursor.r, c - 1)) c--;
+			for (; !isBlack(grid, cursor.r, c); c++) set.add(`${cursor.r},${c}`);
+		} else {
+			let r = cursor.r;
+			while (!isBlack(grid, r - 1, cursor.c)) r--;
+			for (; !isBlack(grid, r, cursor.c); r++) set.add(`${r},${cursor.c}`);
+		}
+		return set;
+	}, [cursor, dir, grid]);
+
+	const onCellClick = (r: number, c: number) => {
+		gridRef.current?.focus();
+		if (step === "blocks") {
+			toggleBlack(r, c);
+			return;
+		}
+		if (isBlack(grid, r, c)) return;
+		if (cursor && cursor.r === r && cursor.c === c) setDir(d => (d === "across" ? "down" : "across"));
+		else setCursor({ r, c });
+	};
+
+	const advance = (r: number, c: number, back: boolean) => {
+		const d = back ? -1 : 1;
+		return dir === "across" ? { r, c: c + d } : { r: r + d, c };
+	};
+
+	const onKeyDown = (e: React.KeyboardEvent) => {
+		if (step !== "letters" || !cursor) return;
+		const { r, c } = cursor;
+		const rows = grid.length;
+		const cols = grid[0]?.length ?? 0;
+		const inside = (p: { r: number; c: number }) => p.r >= 0 && p.c >= 0 && p.r < rows && p.c < cols;
+
+		if (e.key === " ") {
+			e.preventDefault();
+			setDir(d => (d === "across" ? "down" : "across"));
+			return;
+		}
+		if (e.key.startsWith("Arrow")) {
+			e.preventDefault();
+			const delta =
+				e.key === "ArrowLeft"
+					? { r: 0, c: -1 }
+					: e.key === "ArrowRight"
+					? { r: 0, c: 1 }
+					: e.key === "ArrowUp"
+					? { r: -1, c: 0 }
+					: { r: 1, c: 0 };
+			const next = { r: r + delta.r, c: c + delta.c };
+			if (inside(next)) setCursor(next);
+			return;
+		}
+		if (e.key === "Backspace" || e.key === "Delete") {
+			e.preventDefault();
+			const back = advance(r, c, true);
+			const clearBehind = !grid[r][c] && inside(back) && !isBlack(grid, back.r, back.c);
+			setGrid(prev => {
+				const next = prev.map(row => [...row]);
+				if (next[r][c]) next[r][c] = "";
+				else if (clearBehind) next[back.r][back.c] = "";
+				return next;
+			});
+			if (clearBehind) setCursor(back);
+			return;
+		}
+		if (/^[a-zA-Z]$/.test(e.key)) {
+			e.preventDefault();
+			const letter = e.key.toUpperCase();
+			setGrid(prev => {
+				const next = prev.map(row => [...row]);
+				next[r][c] = letter;
+				return next;
+			});
+			const forward = advance(r, c, false);
+			if (inside(forward) && !isBlack(grid, forward.r, forward.c)) setCursor(forward);
 		}
 	};
 
@@ -222,56 +352,53 @@ function CrosswordEditor() {
 		setBusy(true);
 		setMsg({});
 		try {
-			let cluesJson: string;
-			if (jsonMode) {
-				const parsed = JSON.parse(jsonText); // throws if invalid
-				for (const dir of ["across", "down"]) {
-					for (const key of Object.keys(parsed?.[dir] ?? {})) {
-						if (!/^\d+$/.test(key)) throw new Error(`Clue key "${key}" in ${dir} is not numeric. This would crash the app.`);
-					}
-				}
-				cluesJson = jsonText;
-			} else {
-				if (problems.length) throw new Error("Fix the validation problems first.");
-				if (entries.length === 0) throw new Error("No clues yet.");
-				cluesJson = entriesToClues(entries);
-			}
 			if (!meta.date) throw new Error("A publish date is required (the archive is dated).");
 			if (!meta.author.trim()) throw new Error("Author is required.");
+			if (!entries.length) throw new Error("The grid has no entries yet.");
+			if (blanks > 0) throw new Error(`${blanks} square${blanks === 1 ? " is" : "s are"} still empty.`);
+			if (orphans.length) throw new Error(`A white square at row ${orphans[0].r + 1}, column ${orphans[0].c + 1} is not part of any word.`);
+			if (missingClues.length) throw new Error(`${missingClues.length} clue${missingClues.length === 1 ? "" : "s"} still need writing.`);
 
-			const payload = { date: meta.date, title: meta.title.trim() || null, author: meta.author.trim(), clues: cluesJson };
-			if (selected === "new") {
+			const payload = {
+				date: meta.date,
+				title: meta.title.trim() || null,
+				author: meta.author.trim(),
+				clues: buildCluesJson(entries, clues),
+			};
+			if (selectedRow === "new") {
 				const { error } = await supabase.from("crossword").insert(payload);
 				if (error) throw error;
 			} else {
-				const { error, data } = await supabase.from("crossword").update(payload).eq("id", selected).select("id");
+				const { error, data } = await supabase.from("crossword").update(payload).eq("id", selectedRow).select("id");
 				if (error) throw error;
 				if (!data?.length) throw new Error("Save was blocked. Are you signed in as an editor?");
 			}
 			await load();
+			setShowClues(false);
 			setMsg({ ok: "Saved." });
-			if (selected === "new") setSelected(null);
+			if (selectedRow === "new") setSelectedRow(null);
 		} catch (e) {
 			setMsg({ err: e instanceof Error ? e.message : String(e) });
 		}
 		setBusy(false);
 	};
 
-	const patchEntry = (key: string, patch: Partial<ClueEntry>) => setEntries(prev => prev.map(e => (e.key === key ? { ...e, ...patch } : e)));
+	const gridReady = entries.length > 0 && blanks === 0 && orphans.length === 0;
+	const started = grid.flat().some(Boolean);
 
 	return (
 		<div className="ta-stack">
 			<div className="ta-toolbar">
 				<select
-					value={selected === null ? "" : selected}
+					value={selectedRow === null ? "" : selectedRow}
 					onChange={e => {
 						if (e.target.value === "new") startNew();
 						else {
 							const row = list.find(r => r.id === Number(e.target.value));
-							if (row) open(row);
+							if (row) openRow(row);
 						}
 					}}
-					style={{ maxWidth: 360 }}
+					style={{ maxWidth: "22rem" }}
 				>
 					<option value="" disabled>
 						Pick a crossword…
@@ -285,150 +412,205 @@ function CrosswordEditor() {
 				</select>
 			</div>
 
-			{selected !== null && (
+			{repairJson !== null && (
+				<div className="ta-card ta-stack">
+					<b>Stored clues, for repair</b>
+					<p className="ta-muted ta-small">
+						The builder could not lay this one out on a grid, so nothing has been changed. The raw JSON is below.
+					</p>
+					{msg.err && <p className="ta-error">{msg.err}</p>}
+					<pre className="ta-code">{repairJson}</pre>
+				</div>
+			)}
+
+			{selectedRow !== null && repairJson === null && (
 				<>
 					<div className="ta-card ta-row">
 						<label style={{ margin: 0 }}>
 							Publish date
 							<input type="date" value={meta.date} onChange={e => setMeta({ ...meta, date: e.target.value })} />
 						</label>
-						<label style={{ margin: 0, minWidth: 220 }}>
+						<label style={{ margin: 0, minWidth: "14rem" }}>
 							Title
-							<input
-								type="text"
-								value={meta.title}
-								placeholder="(optional)"
-								onChange={e => setMeta({ ...meta, title: e.target.value })}
-							/>
+							<input type="text" value={meta.title} placeholder="(optional)" onChange={e => setMeta({ ...meta, title: e.target.value })} />
 						</label>
-						<label style={{ margin: 0, minWidth: 200 }}>
+						<label style={{ margin: 0, minWidth: "12rem" }}>
 							Author
 							<input type="text" value={meta.author} onChange={e => setMeta({ ...meta, author: e.target.value })} />
 						</label>
 					</div>
 
 					<div className="ta-tabs">
-						<button className={!jsonMode ? "active" : ""} onClick={() => switchMode(false)}>
-							Clue editor
+						<button className={step === "size" ? "active" : ""} onClick={() => setStep("size")}>
+							1. Size
 						</button>
-						<button className={jsonMode ? "active" : ""} onClick={() => switchMode(true)}>
-							Raw JSON
+						<button className={step === "blocks" ? "active" : ""} onClick={() => setStep("blocks")}>
+							2. Black squares
+						</button>
+						<button className={step === "letters" ? "active" : ""} onClick={() => setStep("letters")}>
+							3. Letters
+						</button>
+						<button className={showClues ? "active" : ""} onClick={() => setShowClues(true)} disabled={!gridReady}>
+							4. Clues
 						</button>
 					</div>
 
-					{jsonMode ? (
-						<textarea rows={16} value={jsonText} onChange={e => setJsonText(e.target.value)} style={{ fontFamily: "monospace" }} />
-					) : (
-						<>
-							<div className="ta-table-wrap">
-								<table className="ta-table">
-									<thead>
-										<tr>
-											<th style={{ width: 100 }}>Dir</th>
-											<th style={{ width: 70 }}>No.</th>
-											<th>Clue</th>
-											<th style={{ width: 140 }}>Answer</th>
-											<th style={{ width: 70 }}>Row</th>
-											<th style={{ width: 70 }}>Col</th>
-											<th style={{ width: 60 }} />
-										</tr>
-									</thead>
-									<tbody>
-										{entries.map(e => (
-											<tr key={e.key}>
-												<td>
-													<select
-														value={e.dir}
-														onChange={ev => patchEntry(e.key, { dir: ev.target.value as "across" | "down" })}
-													>
-														<option value="across">Across</option>
-														<option value="down">Down</option>
-													</select>
-												</td>
-												<td>
-													<input
-														type="text"
-														value={e.number}
-														onChange={ev => patchEntry(e.key, { number: ev.target.value })}
-													/>
-												</td>
-												<td>
-													<input type="text" value={e.clue} onChange={ev => patchEntry(e.key, { clue: ev.target.value })} />
-												</td>
-												<td>
-													<input
-														type="text"
-														value={e.answer}
-														style={{ textTransform: "uppercase", fontFamily: "monospace" }}
-														onChange={ev => patchEntry(e.key, { answer: ev.target.value })}
-													/>
-												</td>
-												<td>
-													<input
-														type="number"
-														value={e.row}
-														min={0}
-														onChange={ev => patchEntry(e.key, { row: Number(ev.target.value) })}
-													/>
-												</td>
-												<td>
-													<input
-														type="number"
-														value={e.col}
-														min={0}
-														onChange={ev => patchEntry(e.key, { col: Number(ev.target.value) })}
-													/>
-												</td>
-												<td>
-													<button
-														className="ta-btn ta-btn-small ta-btn-ghost-danger"
-														onClick={() => setEntries(prev => prev.filter(x => x.key !== e.key))}
-													>
-														✕
-													</button>
-												</td>
-											</tr>
-										))}
-									</tbody>
-								</table>
+					{step === "size" && (
+						<div className="ta-card ta-stack" style={{ maxWidth: "34rem" }}>
+							<b>How big is the puzzle?</b>
+							<div className="ta-row">
+								<label style={{ margin: 0, maxWidth: "7rem" }}>
+									Rows
+									<input
+										type="number"
+										min={MIN_SIZE}
+										max={MAX_SIZE}
+										value={size.rows}
+										onChange={e => setSize({ ...size, rows: Number(e.target.value) })}
+									/>
+								</label>
+								<label style={{ margin: 0, maxWidth: "7rem" }}>
+									Columns
+									<input
+										type="number"
+										min={MIN_SIZE}
+										max={MAX_SIZE}
+										value={size.cols}
+										onChange={e => setSize({ ...size, cols: Number(e.target.value) })}
+									/>
+								</label>
+								<span className="ta-muted ta-small">
+									{MIN_SIZE} to {MAX_SIZE} each way.
+								</span>
+							</div>
+							<div className="ta-row">
+								{[
+									[5, 5],
+									[7, 7],
+									[11, 11],
+									[15, 15],
+								].map(([r, c]) => (
+									<button key={`${r}x${c}`} className="ta-btn ta-btn-small" onClick={() => setSize({ rows: r, cols: c })}>
+										{r}x{c}
+									</button>
+								))}
 							</div>
 							<div>
-								<button
-									className="ta-btn"
-									onClick={() =>
-										setEntries(prev => [
-											...prev,
-											{ key: nextCk(), dir: "across", number: "", clue: "", answer: "", row: 0, col: 0 },
-										])
-									}
-								>
-									+ Add clue
+								<button className="ta-btn ta-btn-primary" onClick={applySize}>
+									{started ? "Resize grid" : "Create grid"}
 								</button>
 							</div>
-							{problems.length > 0 && (
-								<div className="ta-card" style={{ borderLeft: "4px solid #a8133f" }}>
-									{problems.slice(0, 8).map((p, i) => (
-										<p key={i} className="ta-error" style={{ margin: "2px 0" }}>
-											{p}
-										</p>
-									))}
-									{problems.length > 8 && <p className="ta-muted">…and {problems.length - 8} more.</p>}
-								</div>
-							)}
-							<div>
-								<h3 style={{ fontSize: 14, marginBottom: 6 }}>Grid preview</h3>
-								<GridPreview entries={entries} />
-							</div>
-						</>
+							{started && <p className="ta-muted ta-small">Resizing keeps whatever already fits inside the new shape.</p>}
+						</div>
 					)}
 
-					<div className="ta-row">
-						<button className="ta-btn ta-btn-primary" disabled={busy || (!jsonMode && problems.length > 0)} onClick={() => void save()}>
-							{busy ? "Saving…" : selected === "new" ? "Publish crossword" : "Save changes"}
-						</button>
-						{msg.ok && <span className="ta-ok">{msg.ok}</span>}
-						{msg.err && <span className="ta-error">{msg.err}</span>}
-					</div>
+					{(step === "blocks" || step === "letters") && (
+						<div className="ta-xw-layout">
+							<div>
+								<GridEditor
+									grid={grid}
+									numbers={numbers}
+									mode={step}
+									selected={step === "letters" ? cursor : null}
+									highlight={step === "letters" ? wordCells : new Set()}
+									onCellClick={onCellClick}
+									onKeyDown={onKeyDown}
+									gridRef={gridRef}
+								/>
+							</div>
+
+							<div className="ta-stack">
+								{step === "blocks" ? (
+									<div className="ta-card ta-stack">
+										<b>Click squares to black them out</b>
+										<p className="ta-muted ta-small">
+											Numbering updates as you go. Every white square has to belong to a word at least two squares long.
+										</p>
+										<label style={{ margin: 0, display: "flex", alignItems: "center", gap: "0.4rem" }}>
+											<input
+												type="checkbox"
+												checked={symmetry}
+												onChange={e => setSymmetry(e.target.checked)}
+												style={{ width: "auto" }}
+											/>
+											Mirror each square (180 degree symmetry)
+										</label>
+										<div className="ta-row">
+											<button className="ta-btn" onClick={() => setGrid(makeGrid(size.rows, size.cols))}>
+												Clear all
+											</button>
+											<button className="ta-btn ta-btn-primary" onClick={() => setStep("letters")}>
+												Next: fill in letters
+											</button>
+										</div>
+									</div>
+								) : (
+									<div className="ta-card ta-stack">
+										<b>Type the answers</b>
+										<p className="ta-muted ta-small">
+											Click a square and type. Clicking the same square again switches between across and down, as does the space
+											bar. Arrow keys move, backspace clears.
+										</p>
+										<p style={{ margin: 0 }}>
+											Direction: <b>{dir === "across" ? "Across" : "Down"}</b> ·{" "}
+											{blanks > 0 ? (
+												<span className="ta-muted">
+													{blanks} square{blanks === 1 ? "" : "s"} left
+												</span>
+											) : (
+												<span className="ta-ok">grid complete</span>
+											)}
+										</p>
+										<div className="ta-row">
+											<button className="ta-btn" onClick={() => setStep("blocks")}>
+												Back to black squares
+											</button>
+											<button className="ta-btn ta-btn-primary" onClick={() => setShowClues(true)} disabled={!gridReady}>
+												Next: write the clues
+											</button>
+										</div>
+									</div>
+								)}
+
+								<div className="ta-card">
+									<b>
+										{entries.length} entr{entries.length === 1 ? "y" : "ies"}
+									</b>
+									<p className="ta-muted ta-small" style={{ margin: 0 }}>
+										{entries.filter(e => e.dir === "across").length} across, {entries.filter(e => e.dir === "down").length} down
+									</p>
+								</div>
+
+								{orphans.length > 0 && (
+									<p className="ta-error">
+										{orphans.length} white square{orphans.length === 1 ? "" : "s"} belong to no word (first at row {orphans[0].r + 1},
+										column {orphans[0].c + 1}). The app would drop {orphans.length === 1 ? "it" : "them"}.
+									</p>
+								)}
+								{msg.ok && <p className="ta-ok">{msg.ok}</p>}
+								{msg.err && !showClues && <p className="ta-error">{msg.err}</p>}
+							</div>
+						</div>
+					)}
+
+					{showClues && (
+						<ClueDialog
+							entries={entries}
+							clues={clues}
+							onChange={(key, value) => setClues(prev => ({ ...prev, [key]: value }))}
+							onClose={() => setShowClues(false)}
+							onSave={() => void save()}
+							busy={busy}
+							error={msg.err ?? null}
+						/>
+					)}
+
+					{gridReady && (
+						<details>
+							<summary className="ta-muted ta-small">Show the JSON that will be saved</summary>
+							<pre className="ta-code">{buildCluesJson(entries, clues)}</pre>
+						</details>
+					)}
 				</>
 			)}
 		</div>
@@ -437,7 +619,7 @@ function CrosswordEditor() {
 
 export default function CrosswordPage() {
 	return (
-		<AdminShell title="Crossword uploader" wide>
+		<AdminShell title="Crossword builder" wide>
 			<CrosswordEditor />
 		</AdminShell>
 	);

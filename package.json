@@ -13,7 +13,8 @@
 		"test:camera": "node --experimental-strip-types --test lib/console/vanguard-camera.test.ts",
 		"lint": "next lint --fix && prettier --write \"**/*.{ts,tsx}\"",
 		"postinstall": "prisma generate",
-		"prepare": "husky install"
+		"prepare": "husky install",
+		"test": "node --experimental-strip-types --test lib/console/vanguard-camera.test.ts lib/console/crossword-grid.test.ts"
 	},
 	"dependencies": {
 		"@prisma/client": "^5.22.0",
