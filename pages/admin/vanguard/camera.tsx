@@ -463,8 +463,8 @@ function CameraEditor({ spreadId }: { spreadId: number }) {
 					</div>
 					<p className="ta-muted ta-small" style={{ marginTop: "0.5rem" }}>
 						This frame is a phone <b>turned sideways</b> ({viewport.width}×{viewport.height}), the way Vanguard is read. Drag to pan ·
-						scroll or <b>Ctrl-drag</b> to zoom · <b>Alt/Shift-drag</b> (or right-drag) to rotate. Frame the shot, then capture. The
-						reader will frame exactly this.
+						scroll or <b>Ctrl-drag</b> to zoom · <b>Alt/Shift-drag</b> (or right-drag) to rotate. Frame the shot, then capture. The reader
+						will frame exactly this.
 					</p>
 				</div>
 
