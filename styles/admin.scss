@@ -1497,3 +1497,25 @@ input.ta-live-num {
 	color: #7c2d12;
 	font-size: 0.92rem;
 }
+
+/* A scoreboard the app will not draw: the numbers stay on screen, and stay
+   readable, so it is obvious they were kept rather than cleared. */
+.ta-live-scoreboard.ta-live-dimmed {
+	opacity: 0.55;
+	filter: grayscale(0.4);
+}
+
+/* .ta-live-inline-check on its own loses to the console's global
+   `.ta-root label { display: block }`, which stacked every inline checkbox
+   above its own words. Naming the element wins the cascade. */
+.ta-root label.ta-live-inline-check {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+	margin-bottom: 0;
+
+	input {
+		margin: 0;
+		width: auto;
+	}
+}

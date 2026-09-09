@@ -49,11 +49,12 @@ interface BroadcastRow {
 	youtube_id: string | null;
 	score_phs: number | null;
 	score_opponent: number | null;
+	show_score: boolean;
 	note: string;
 	published: boolean;
 }
 
-const COLUMNS = "id, sport, level, opponent, home, venue, starts_at, status, youtube_id, score_phs, score_opponent, note, published";
+const COLUMNS = "id, sport, level, opponent, home, venue, starts_at, status, youtube_id, score_phs, score_opponent, show_score, note, published";
 
 const STATUS_BADGE: Record<string, { label: string; tone: string }> = {
 	live: { label: "● Live", tone: "red" },
@@ -70,6 +71,10 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 function scoreText(row: BroadcastRow): string {
+	// With the scoreboard off a reader sees the matchup line and no numbers,
+	// so the console must not print one either, or the two disagree about what
+	// is on screen. The stored values are kept, and stay visible in the panel.
+	if (!row.show_score) return "Not shown";
 	if (row.score_phs === null || row.score_opponent === null) return "—";
 	return `${row.score_phs} – ${row.score_opponent}`;
 }
@@ -135,6 +140,8 @@ function LiveConsole() {
 			note: "",
 			video: "",
 			published: false,
+			// Carry the scoreboard choice over: a rematch is scored the same way.
+			showScore: row.show_score,
 		});
 		announceRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
 	}, []);
@@ -488,6 +495,7 @@ function ScorePanel({
 	const scoring = sportScoring(row.sport);
 	const unit = scoreUnitLabel(row.sport);
 	const hasScore = row.score_phs !== null || row.score_opponent !== null;
+	const off = !row.show_score;
 
 	const write = (phs: number | null, opponent: number | null, note?: string) => {
 		const next = normalizeScorePair({ phs, opponent });
@@ -519,6 +527,30 @@ function ScorePanel({
 		<div className="ta-live-section ta-live-score-section">
 			<h3>Score{unit ? ` · ${unit}` : ""}</h3>
 
+			<label className="ta-live-inline-check">
+				<input
+					type="checkbox"
+					checked={row.show_score}
+					onChange={e => {
+						// An independent write: the score columns are never touched here.
+						// Empty score columns already mean "nobody has typed anything yet",
+						// which is a different thing from "there is no score to keep", and
+						// an editor has to be able to take a number down without losing it.
+						setNotice(null);
+						void run(
+							{ show_score: e.target.checked },
+							e.target.checked
+								? undefined
+								: "Scoreboard hidden. The score below is kept, not deleted. Turn this back on to show it again."
+						);
+					}}
+				/>{" "}
+				Show scoreboard
+			</label>
+			<p className="ta-muted ta-small">
+				Off shows the video and the fixture only. Any score already entered is kept and hidden, not deleted.
+			</p>
+
 			{/* Cross country is the sum of the top five finishers' places and golf
 			    is strokes: 23 beats 36. The app prints the two numbers with nothing
 			    saying which way round it is, so a reader takes the smaller one for
@@ -536,24 +568,24 @@ function ScorePanel({
 				</p>
 			)}
 
-			<div className="ta-live-scoreboard">
+			<div className={`ta-live-scoreboard${off ? " ta-live-dimmed" : ""}`}>
 				{[
 					{ side: "phs" as const, label: "PHS", value: row.score_phs },
 					{ side: "opponent" as const, label: row.opponent || "Opponent", value: row.score_opponent },
 				].map(team => (
 					<div key={team.side} className="ta-live-side">
 						<div className="ta-live-side-name">{team.label}</div>
-						<ScoreNumber value={team.value} onCommit={next => typed(team.side, next)} />
+						<ScoreNumber value={team.value} disabled={off} onCommit={next => typed(team.side, next)} />
 						{unit && <div className="ta-live-side-unit">{unit}</div>}
 						<div className="ta-live-steps">
-							<button className="ta-btn ta-live-step" onClick={() => bump(team.side, -1)}>
+							<button className="ta-btn ta-live-step" disabled={off} onClick={() => bump(team.side, -1)}>
 								−1
 							</button>
-							<button className="ta-btn ta-live-step" onClick={() => bump(team.side, 1)}>
+							<button className="ta-btn ta-live-step" disabled={off} onClick={() => bump(team.side, 1)}>
 								+1
 							</button>
 							{scoring.steps.map(step => (
-								<button key={step} className="ta-btn ta-btn-primary ta-live-step" onClick={() => bump(team.side, step)}>
+								<button key={step} className="ta-btn ta-btn-primary ta-live-step" disabled={off} onClick={() => bump(team.side, step)}>
 									+{step}
 								</button>
 							))}
@@ -564,7 +596,7 @@ function ScorePanel({
 			<div className="ta-row">
 				<button
 					className="ta-btn ta-btn-small"
-					disabled={!hasScore}
+					disabled={!hasScore || off}
 					onClick={() => {
 						setNotice(null);
 						write(null, null, "Score cleared — the app will show this game with no score at all.");
@@ -587,7 +619,15 @@ function ScorePanel({
  * leaves a half-typed number in the database if the editor looks up at the
  * field mid-correction. Typed edits land on Enter or on leaving the box.
  */
-function ScoreNumber({ value, onCommit }: { value: number | null; onCommit: (next: number | null) => void }) {
+function ScoreNumber({
+	value,
+	onCommit,
+	disabled,
+}: {
+	value: number | null;
+	onCommit: (next: number | null) => void;
+	disabled?: boolean;
+}) {
 	const [text, setText] = useState(value === null ? "" : String(value));
 
 	// A tap on +7 changes `value` under us; the box has to follow it.
@@ -616,6 +656,7 @@ function ScoreNumber({ value, onCommit }: { value: number | null; onCommit: (nex
 			min={0}
 			inputMode="numeric"
 			value={text}
+			disabled={disabled}
 			placeholder="–"
 			onChange={e => setText(e.target.value)}
 			onBlur={commit}
@@ -928,6 +969,7 @@ interface Draft {
 	note: string;
 	video: string;
 	published: boolean;
+	showScore: boolean;
 }
 
 function blankDraft(): Draft {
@@ -943,6 +985,8 @@ function blankDraft(): Draft {
 		note: "",
 		video: "",
 		published: true,
+		// Matches the column default, so a new game behaves like every existing one.
+		showScore: true,
 	};
 }
 
@@ -1061,6 +1105,7 @@ function Announce({
 			youtube_id: video,
 			note: draft.note.trim(),
 			published: draft.published,
+			show_score: draft.showScore,
 		});
 		setBusy(false);
 		if (err) {
@@ -1133,11 +1178,15 @@ function Announce({
 					</div>
 				)}
 				{videoBad && <p className="ta-error">That is not a YouTube link or video id.</p>}
+				{!draft.showScore && <div className="ta-muted ta-small">No scoreboard: readers see the video and this line only.</div>}
 			</div>
 
 			<div className="ta-row">
 				<label className="ta-live-inline-check">
 					<input type="checkbox" checked={draft.published} onChange={e => set("published", e.target.checked)} /> Publish it now
+				</label>
+				<label className="ta-live-inline-check">
+					<input type="checkbox" checked={draft.showScore} onChange={e => set("showScore", e.target.checked)} /> Show scoreboard
 				</label>
 				<button className="ta-btn ta-btn-primary" disabled={busy} onClick={() => void submit()}>
 					{busy ? "Announcing…" : "Announce game"}
