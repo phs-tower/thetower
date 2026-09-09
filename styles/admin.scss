@@ -1226,3 +1226,274 @@ $muted: #6b7280;
 		}
 	}
 }
+
+/* ─── Live broadcasts ────────────────────────────────────────────────────────
+   Designed for one hand, on a phone, at a field, in the cold: big targets, no
+   nested menus, and the score the biggest thing on the screen. */
+
+.ta-live-onair {
+	border: 1px solid $red;
+	border-top: 4px solid $red;
+
+	h2 {
+		display: flex;
+		align-items: center;
+		gap: 0.6rem;
+		margin-top: 0;
+	}
+
+	&.quiet {
+		border-color: $rule;
+		border-top-color: $navy;
+	}
+}
+
+.ta-live-onair-row {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+	flex-wrap: wrap;
+	padding: 0.6rem 0;
+	border-top: 1px solid $rule;
+
+	&:first-child {
+		border-top: none;
+	}
+
+	> div:first-child {
+		flex: 1 1 14rem;
+	}
+}
+
+.ta-live-onair-score {
+	font-family: var(--font-sans), sans-serif;
+	font-size: 1.6rem;
+	font-variant-numeric: tabular-nums;
+	color: $navy;
+	white-space: nowrap;
+}
+
+.ta-live-matchup {
+	font-size: 1.05rem;
+	font-weight: 600;
+}
+
+.ta-live-struck {
+	text-decoration: line-through;
+}
+
+.ta-live-group {
+	@include label-caps;
+	font-size: 0.85rem;
+	color: $muted;
+	border-bottom: 2px solid #000;
+	padding-bottom: 0.3rem;
+	margin: 0.5rem 0 0;
+}
+
+.ta-live-panel {
+	border: 1px solid $navy;
+	border-top: 4px solid $navy;
+}
+
+.ta-live-savebar {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	flex-wrap: wrap;
+	margin: 0.75rem 0;
+	padding: 0.5rem 0.7rem;
+	background: #f6f8fa;
+	border: 1px solid $rule;
+	border-radius: 0.3rem;
+	min-height: 2.4rem;
+}
+
+.ta-live-section {
+	border-top: 1px solid $rule;
+	padding-top: 0.9rem;
+	margin-top: 0.9rem;
+
+	h3 {
+		@include label-caps;
+		font-size: 0.78rem;
+		color: $muted;
+		margin: 0 0 0.6rem;
+	}
+
+	> label {
+		display: block;
+		max-width: 32rem;
+		margin-bottom: 0.6rem;
+
+		input,
+		select {
+			width: 100%;
+		}
+	}
+
+	p.ta-small {
+		margin: 0.5rem 0 0;
+	}
+}
+
+/* The score is the control that gets used most, so it gets the most room. */
+.ta-live-score-section {
+	background: #fbfcfd;
+}
+
+.ta-live-scoreboard {
+	display: flex;
+	gap: 1rem;
+	flex-wrap: wrap;
+	margin-bottom: 0.75rem;
+}
+
+.ta-live-side {
+	flex: 1 1 15rem;
+	border: 1px solid $rule;
+	border-radius: 0.4rem;
+	padding: 0.7rem;
+	background: #fff;
+	text-align: center;
+}
+
+.ta-live-side-name {
+	@include label-caps;
+	font-size: 0.78rem;
+	color: $navy;
+	margin-bottom: 0.3rem;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+input.ta-live-num {
+	width: 100%;
+	text-align: center;
+	font-family: var(--font-sans), sans-serif;
+	font-size: 3.2rem;
+	line-height: 1.1;
+	font-variant-numeric: tabular-nums;
+	color: $navy;
+	border: none;
+	border-bottom: 2px solid $rule;
+	border-radius: 0;
+	padding: 0.1rem 0;
+	background: transparent;
+
+	&:focus {
+		outline: none;
+		border-bottom-color: $navy;
+	}
+
+	/* The spinner arrows are a mis-tap waiting to happen at a football game. */
+	-moz-appearance: textfield;
+
+	&::-webkit-outer-spin-button,
+	&::-webkit-inner-spin-button {
+		-webkit-appearance: none;
+		margin: 0;
+	}
+}
+
+.ta-live-steps {
+	display: flex;
+	gap: 0.4rem;
+	justify-content: center;
+	flex-wrap: wrap;
+	margin-top: 0.6rem;
+}
+
+.ta-btn.ta-live-step {
+	min-width: 3.6rem;
+	min-height: 3rem;
+	font-size: 1rem;
+}
+
+.ta-live-video {
+	display: flex;
+	gap: 0.8rem;
+	align-items: flex-start;
+	margin-bottom: 0.6rem;
+}
+
+.ta-live-thumb {
+	width: 160px;
+	max-width: 40%;
+	border: 1px solid $rule;
+	border-radius: 0.25rem;
+	background: #eee;
+}
+
+.ta-live-kickoff-now {
+	font-size: 1.15rem;
+	margin: 0 0 0.6rem;
+}
+
+.ta-live-noteprompt {
+	margin-top: 0.8rem;
+	padding: 0.7rem;
+	border: 1px solid $red;
+	border-radius: 0.3rem;
+	background: #fff7f9;
+
+	input[type="text"] {
+		width: 100%;
+		max-width: 32rem;
+		margin-bottom: 0.5rem;
+	}
+}
+
+.ta-live-form {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+	gap: 0.75rem 1rem;
+	margin: 0.75rem 0;
+
+	label {
+		display: block;
+		margin: 0;
+
+		input,
+		select {
+			width: 100%;
+		}
+	}
+}
+
+.ta-live-preview {
+	border-left: 3px solid $navy;
+	padding: 0.5rem 0.75rem;
+	background: #f6f8fa;
+	margin-bottom: 0.75rem;
+}
+
+.ta-live-inline-check {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+	margin: 0;
+
+	input {
+		margin: 0;
+	}
+}
+
+.ta-live-side-unit {
+	@include label-caps;
+	font-size: 0.68rem;
+	color: $muted;
+	margin-top: 0.15rem;
+}
+
+.ta-live-warn {
+	margin: 0 0 0.75rem;
+	padding: 0.55rem 0.7rem;
+	border: 1px solid #b45309;
+	border-left-width: 4px;
+	border-radius: 0.3rem;
+	background: #fffbeb;
+	color: #7c2d12;
+	font-size: 0.92rem;
+}

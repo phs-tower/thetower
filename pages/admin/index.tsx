@@ -231,21 +231,25 @@ function SnowPush({ offer, onDone, email }: { offer: { title: string; message: s
 
 function Stats() {
 	const { supabase } = useAdmin();
-	const [stats, setStats] = useState<{ missingBlurbs?: number; newLetters?: number; teachers?: number }>({});
+	const [stats, setStats] = useState<{ missingBlurbs?: number; newLetters?: number; teachers?: number; onAir?: number }>({});
 
 	useEffect(() => {
 		let cancelled = false;
 		const load = async () => {
-			const [blurbs, letters, teachers] = await Promise.all([
+			const [blurbs, letters, teachers, onAir] = await Promise.all([
 				supabase.from("article").select("id", { count: "exact", head: true }).eq("published", true).or('blurb.is.null,blurb.eq.""'),
 				supabase.from("letter").select("id", { count: "exact", head: true }).eq("status", "new"),
 				supabase.from("teacher").select("id", { count: "exact", head: true }).eq("active", true),
+				// A game is live because a person said so, so this is a count of
+				// what somebody put on the air and has not yet ended.
+				supabase.from("broadcast").select("id", { count: "exact", head: true }).eq("status", "live"),
 			]);
 			if (cancelled) return;
 			setStats({
 				missingBlurbs: blurbs.count ?? undefined,
 				newLetters: letters.count ?? undefined,
 				teachers: teachers.count ?? undefined,
+				onAir: onAir.count ?? undefined,
 			});
 		};
 		void load();
@@ -255,6 +259,7 @@ function Stats() {
 	}, [supabase]);
 
 	const cards = [
+		{ href: "/admin/live", label: "Games on the air right now", value: stats.onAir },
 		{ href: "/admin/blurbs", label: "Published articles missing a blurb", value: stats.missingBlurbs },
 		{ href: "/admin/letters", label: "New letters to the editor", value: stats.newLetters },
 		{ href: "/admin/schedule", label: "Active teachers in the picker", value: stats.teachers },

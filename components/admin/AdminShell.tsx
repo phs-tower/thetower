@@ -32,6 +32,7 @@ const NAV = [
 	{ href: "/admin/layout", label: "App layout" },
 	{ href: "/admin/schedule", label: "Schedule" },
 	{ href: "/admin/forms", label: "Forms" },
+	{ href: "/admin/live", label: "Live" },
 	{ href: "/admin/crossword", label: "Crosswords" },
 	{ href: "/admin/vanguard", label: "Vanguard" },
 	{ href: "/admin/push", label: "Push" },
