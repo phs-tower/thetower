@@ -32,51 +32,6 @@ interface Props {
 	showIssueDate?: boolean;
 }
 
-// Utility: Extract photographer name from contentInfo
-function getPhotographerName(contentInfo?: string | null): string | null {
-	if (!contentInfo) return null;
-
-	const firstLine = contentInfo.split("\n")[0];
-	if (!firstLine.includes(":")) return null;
-
-	const [label, value] = firstLine.split(":");
-	const lower = label.trim().toLowerCase();
-
-	if (lower.includes("photo") || lower.includes("image") || lower.includes("graphic")) {
-		return value.trim().split(/\s+/).slice(0, 2).join(" ");
-	}
-
-	return null;
-}
-
-function buildPreviewText(content: string, length: number) {
-	const cleaned = content
-		.replace(/<[^>]*>/g, " ")
-		.replace(/\s+/g, " ")
-		.trim();
-	if (!cleaned) return "";
-	if (cleaned.length <= length) return cleaned;
-	return shortenText(cleaned, length);
-}
-
-function getPreviewImageSizes(style: Props["style"], size: Props["size"], shrinkThumb: boolean) {
-	if (shrinkThumb) return "(max-width: 900px) 45vw, 180px";
-
-	if (style === "box") {
-		if (size === "featured") return "(max-width: 1000px) 100vw, 58vw";
-		if (size === "large") return "(max-width: 1000px) 100vw, 24vw";
-		if (size === "small") return "(max-width: 1000px) 100vw, 18vw";
-	}
-
-	if (style === "row") {
-		if (size === "category-list") return "(max-width: 900px) 100vw, 34vw";
-		if (size === "small") return "(max-width: 900px) 42vw, 16vw";
-		if (size === "large" || size === "featured") return "(max-width: 900px) 100vw, 40vw";
-	}
-
-	return "(max-width: 900px) 100vw, 33vw";
-}
-
 export default function ArticlePreview({
 	article,
 	category,
@@ -100,52 +55,34 @@ export default function ArticlePreview({
 
 	if (!article) return <></>;
 
-	let charlen = 0;
-	if (style === "box") {
-		// BOX STYLE
-		switch (size) {
-			case "featured":
-				charlen = 240;
-				break;
-
-			case "large":
-				charlen = 200;
-				break;
-			// case "medium":
-			// 	charlen = 100;
-			// 	break;
-			// case "small":
-			// 	break;
-
-			case "category-list":
-				charlen = 200;
-		}
-	} else {
-		// ROW STYLE
-		switch (size) {
-			case "featured":
-				charlen = 250;
-				break;
-
-			case "large":
-				charlen = 250;
-				break;
-			case "category-list":
-				charlen = 220;
-				break;
-			// case "medium":
-			// 	charlen = 150;
-			// 	break;
-			// case "small":
-			// 	break;
-		}
+	const previewLength = (
+		style === "box"
+			? { featured: 240, large: 200, "category-list": 200, medium: 0, small: 0 }
+			: { featured: 250, large: 250, "category-list": 220, medium: 0, small: 0 }
+	)[size];
+	const hasArticleImage = Boolean(article.img?.includes("."));
+	const isFeatured = size === "featured";
+	let previewText = "";
+	if (showPreviewText && previewLength > 0 && article.content) {
+		previewText = article.content
+			.replace(/<[^>]*>/g, " ")
+			.replace(/\s+/g, " ")
+			.trim();
+		if (previewText.length > previewLength) previewText = shortenText(previewText, previewLength);
 	}
 
-	let showimg = "";
-	if (!article.img?.includes(".")) showimg = "noimg"; // article.img = "/assets/white-tower.png";
-	const previewText = showPreviewText && charlen > 0 && article.content ? buildPreviewText(article.content, charlen) : "";
-	const imageSizes = getPreviewImageSizes(style, size, shrinkThumb);
-	const priority = style === "box" && size === "featured";
+	let imageSizes = "(max-width: 900px) 100vw, 33vw";
+	if (shrinkThumb) {
+		imageSizes = "(max-width: 900px) 45vw, 180px";
+	} else if (style === "box") {
+		if (isFeatured) imageSizes = "(max-width: 1000px) 100vw, 58vw";
+		else if (size === "large") imageSizes = "(max-width: 1000px) 100vw, 24vw";
+		else if (size === "small") imageSizes = "(max-width: 1000px) 100vw, 18vw";
+	} else {
+		if (size === "category-list") imageSizes = "(max-width: 900px) 100vw, 34vw";
+		else if (size === "small") imageSizes = "(max-width: 900px) 42vw, 16vw";
+		else if (size === "large" || isFeatured) imageSizes = "(max-width: 900px) 100vw, 40vw";
+	}
 	const href =
 		article.href ??
 		`/articles/${article.year}/${article.month}/${article.category}/${article.title.replaceAll(" ", "-").replaceAll(/[^0-9a-z\-]/gi, "")}-${
@@ -153,7 +90,7 @@ export default function ArticlePreview({
 		}`;
 
 	return (
-		<div className={"article-preview " + style + " " + size + " " + showimg}>
+		<div className={`article-preview ${style} ${size} ${hasArticleImage ? "" : "noimg"}`}>
 			<style jsx>{`
 				.article-preview a:hover {
 					text-decoration: underline;
@@ -461,74 +398,32 @@ export default function ArticlePreview({
 				}
 			`}</style>
 			<div className={size + "-preview"}>
-				{/* <div className="img-wrapper">
-					{!article.img?.includes(".") ? <></> : <img src={article.img} className={size}></img>}
-				</div> */}
 				<div className="img-wrapper">
 					{" "}
-					{article.img?.includes(".") ? (
-						<Image
-							className={`preview-image${imageLoaded ? " is-loaded" : ""}`}
-							src={article.img}
-							width={1000}
-							height={1000}
-							alt="Image"
-							sizes={imageSizes}
-							priority={priority}
-							onLoad={() => setImageLoaded(true)}
-							style={
-								shrinkThumb
-									? {
-											width: "auto",
-											height: "auto",
-											maxWidth: "180px",
-											maxHeight: "120px",
-											objectFit: "contain",
-									  }
-									: {
-											width: "100%",
-											height: size == "featured" ? "100%" : thumbHeight ?? "16rem",
-											maxWidth: size == "featured" ? "100%" : "100%",
-											maxHeight: size == "featured" ? "100%" : typeof thumbHeight !== "undefined" ? thumbHeight : "16rem",
-											marginLeft: size == "featured" ? "1%" : "0",
-											marginRight: size == "featured" ? "7%" : "0",
-											objectFit: fit,
-									  }
-							}
-						/>
-					) : (
-						<Image
-							className={`preview-image${imageLoaded ? " is-loaded" : ""}`}
-							src="/assets/white-tower.png"
-							width={309}
-							height={721}
-							alt="Image"
-							sizes={imageSizes}
-							priority={priority}
-							onLoad={() => setImageLoaded(true)}
-							style={
-								shrinkThumb
-									? {
-											width: "auto",
-											height: "auto",
-											maxWidth: "180px",
-											maxHeight: "120px",
-											objectFit: "contain",
-											backgroundColor: "black",
-									  }
-									: {
-											width: "100%",
-											height: size == "featured" ? "100%" : typeof thumbHeight !== "undefined" ? thumbHeight : "16rem",
-											maxWidth: size == "featured" ? "100%" : "100%",
-											maxHeight: size == "featured" ? "100%" : typeof thumbHeight !== "undefined" ? thumbHeight : "16rem",
-											marginLeft: size == "featured" ? "1%" : "0",
-											marginRight: size == "featured" ? "7%" : "0",
-											objectFit: fit,
-											backgroundColor: "black",
-									  }
-							}
-						/>
-					)}
+					<Image
+						className={`preview-image${imageLoaded ? " is-loaded" : ""}`}
+						src={hasArticleImage ? article.img! : "/assets/white-tower.png"}
+						width={hasArticleImage ? 1000 : 309}
+						height={hasArticleImage ? 1000 : 721}
+						alt="Image"
+						sizes={imageSizes}
+						priority={style === "box" && isFeatured}
+						onLoad={() => setImageLoaded(true)}
+						style={{
+							...(shrinkThumb
+								? { width: "auto", height: "auto", maxWidth: "180px", maxHeight: "120px", objectFit: "contain" }
+								: {
+										width: "100%",
+										height: isFeatured ? "100%" : thumbHeight ?? "16rem",
+										maxWidth: "100%",
+										maxHeight: isFeatured ? "100%" : thumbHeight ?? "16rem",
+										marginLeft: isFeatured ? "1%" : "0",
+										marginRight: isFeatured ? "7%" : "0",
+										objectFit: fit,
+								  }),
+							...(!hasArticleImage ? { backgroundColor: "black" } : {}),
+						}}
+					/>
 				</div>
 				{noteBelowImage ? <div className="note-below-image">{noteBelowImage}</div> : null}
 				{previewText && previewTextBelowImage ? <section className="preview-text preview-text-below-image">{previewText}</section> : null}
@@ -552,7 +447,6 @@ export default function ArticlePreview({
 						{article.authors?.map((author, index) => (
 							<Fragment key={index}>
 								{" "}
-								{/* Use a unique identifier if available, otherwise fallback to index */}
 								<CreditLink author={author} />
 								{index < article.authors.length - 1 && <span style={{ marginLeft: "5px", marginRight: "5px" }}> • </span>}
 							</Fragment>

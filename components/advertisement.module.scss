@@ -1,0 +1,56 @@
+/** @format */
+
+.box {
+	border: 1px solid #cfcfcf;
+	background: #f8f8f8;
+	box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+
+	a.imageLink {
+		display: block;
+		padding: 0.45rem;
+		background: #f8f8f8;
+
+		&:hover {
+			opacity: 1;
+		}
+	}
+
+	img {
+		width: 100%;
+		height: auto;
+		display: block;
+	}
+}
+
+.label {
+	padding: 0.45rem 0.7rem;
+	background: #111;
+	color: #fff;
+	font-family: var(--font-sans);
+	font-size: 0.72rem;
+	font-weight: 700;
+	letter-spacing: 0.13em;
+	text-align: center;
+}
+
+.caption {
+	padding: 0 0.7rem 0.7rem;
+}
+
+a.captionLink {
+	display: block;
+	margin-top: 0.15rem;
+	font-family: var(--font-sans);
+	font-size: 0.92rem;
+	line-height: 1.35;
+	color: #2d2d2d;
+	text-align: center;
+	text-decoration: none;
+	transition: color 0.18s ease;
+
+	&:hover,
+	&:focus-visible {
+		color: #1f63d5;
+		opacity: 1;
+	}
+}
