@@ -1,6 +1,7 @@
 /** @format */
 
 import Head from "next/head";
+import Link from "next/link";
 import { GetStaticProps } from "next";
 import CrosswordArchiveSection, { CrosswordSummary } from "~/components/crosswordarchive.client";
 import CrosswordGame from "~/components/crossword.client";
@@ -42,6 +43,11 @@ export default function Game({ puzzleInput, archiveCrosswords }: Props) {
 				<meta property="og:title" content={metaTitle} />
 				<meta property="og:description" content={`Play "${puzzleInput.title}" by ${puzzleInput.author} and browse past Tower crosswords.`} />
 			</Head>
+			<div style={{ padding: "1rem 1rem 0" }}>
+				<Link href="/games/crossword/create" style={{ fontWeight: 700, textDecoration: "none" }}>
+					Create a 5x5 crossword
+				</Link>
+			</div>
 			<CrosswordGame key={puzzleInput.date} puzzleInput={puzzleInput} showArchiveTeaser={false} showSubscribePromo={false} />
 			<CrosswordArchiveSection
 				initialCrosswords={archiveCrosswords}
