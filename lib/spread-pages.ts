@@ -6,6 +6,7 @@ import { createCanvas } from "canvas";
 import * as pdfjsServer from "../node_modules/react-pdf/node_modules/pdfjs-dist/legacy/build/pdf.mjs";
 import { WorkerMessageHandler } from "../node_modules/react-pdf/node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs";
 import { getSpreadPageImageUrl, parseSpreadSource } from "./utils";
+import { ensurePdfJsServerGraphics } from "./pdfjs-server-graphics";
 
 let pdfjsReady = false;
 
@@ -34,6 +35,7 @@ class NodeCanvasFactory {
 }
 
 function getPdfJsServer() {
+	ensurePdfJsServerGraphics();
 	if (!pdfjsReady) {
 		const globalScope = globalThis as typeof globalThis & {
 			pdfjsWorker?: {

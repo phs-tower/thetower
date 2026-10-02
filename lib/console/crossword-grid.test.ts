@@ -8,16 +8,7 @@
 
 import test from "node:test";
 import assert from "node:assert/strict";
-import {
-	BLACK,
-	buildCluesJson,
-	clueKey,
-	computeEntries,
-	gridFromClues,
-	makeGrid,
-	orphanCells,
-	type Grid,
-} from "./crossword-grid.ts";
+import { BLACK, buildCluesJson, clueKey, computeEntries, gridFromClues, makeGrid, orphanCells, type Grid } from "./crossword-grid.ts";
 
 /** "CAT/ARE/BED" as a 3x3 grid; "#" marks a black square. */
 function gridOf(...rows: string[]): Grid {

@@ -547,9 +547,7 @@ function ScorePanel({
 				/>{" "}
 				Show scoreboard
 			</label>
-			<p className="ta-muted ta-small">
-				Off shows the video and the fixture only. Any score already entered is kept and hidden, not deleted.
-			</p>
+			<p className="ta-muted ta-small">Off shows the video and the fixture only. Any score already entered is kept and hidden, not deleted.</p>
 
 			{/* Cross country is the sum of the top five finishers' places and golf
 			    is strokes: 23 beats 36. The app prints the two numbers with nothing
@@ -585,7 +583,12 @@ function ScorePanel({
 								+1
 							</button>
 							{scoring.steps.map(step => (
-								<button key={step} className="ta-btn ta-btn-primary ta-live-step" disabled={off} onClick={() => bump(team.side, step)}>
+								<button
+									key={step}
+									className="ta-btn ta-btn-primary ta-live-step"
+									disabled={off}
+									onClick={() => bump(team.side, step)}
+								>
 									+{step}
 								</button>
 							))}
@@ -619,15 +622,7 @@ function ScorePanel({
  * leaves a half-typed number in the database if the editor looks up at the
  * field mid-correction. Typed edits land on Enter or on leaving the box.
  */
-function ScoreNumber({
-	value,
-	onCommit,
-	disabled,
-}: {
-	value: number | null;
-	onCommit: (next: number | null) => void;
-	disabled?: boolean;
-}) {
+function ScoreNumber({ value, onCommit, disabled }: { value: number | null; onCommit: (next: number | null) => void; disabled?: boolean }) {
 	const [text, setText] = useState(value === null ? "" : String(value));
 
 	// A tap on +7 changes `value` under us; the box has to follow it.
