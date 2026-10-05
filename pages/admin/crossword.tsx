@@ -432,7 +432,12 @@ function CrosswordEditor() {
 						</label>
 						<label style={{ margin: 0, minWidth: "14rem" }}>
 							Title
-							<input type="text" value={meta.title} placeholder="(optional)" onChange={e => setMeta({ ...meta, title: e.target.value })} />
+							<input
+								type="text"
+								value={meta.title}
+								placeholder="(optional)"
+								onChange={e => setMeta({ ...meta, title: e.target.value })}
+							/>
 						</label>
 						<label style={{ margin: 0, minWidth: "12rem" }}>
 							Author
@@ -548,8 +553,8 @@ function CrosswordEditor() {
 									<div className="ta-card ta-stack">
 										<b>Type the answers</b>
 										<p className="ta-muted ta-small">
-											Click a square and type. Clicking the same square again switches between across and down, as does the space
-											bar. Arrow keys move, backspace clears.
+											Click a square and type. Clicking the same square again switches between across and down, as does the
+											space bar. Arrow keys move, backspace clears.
 										</p>
 										<p style={{ margin: 0 }}>
 											Direction: <b>{dir === "across" ? "Across" : "Down"}</b> ·{" "}
@@ -583,8 +588,8 @@ function CrosswordEditor() {
 
 								{orphans.length > 0 && (
 									<p className="ta-error">
-										{orphans.length} white square{orphans.length === 1 ? "" : "s"} belong to no word (first at row {orphans[0].r + 1},
-										column {orphans[0].c + 1}). The app would drop {orphans.length === 1 ? "it" : "them"}.
+										{orphans.length} white square{orphans.length === 1 ? "" : "s"} belong to no word (first at row{" "}
+										{orphans[0].r + 1}, column {orphans[0].c + 1}). The app would drop {orphans.length === 1 ? "it" : "them"}.
 									</p>
 								)}
 								{msg.ok && <p className="ta-ok">{msg.ok}</p>}

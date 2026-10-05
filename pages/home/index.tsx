@@ -2,22 +2,22 @@
 
 import { article, spreads } from "@prisma/client";
 import Head from "next/head";
-import Link from "next/link";
 import Image from "next/image";
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { FiArrowDown } from "react-icons/fi";
+import { useEffect, useRef, useState, type ComponentType, type CSSProperties } from "react";
 import ArticlePreview from "~/components/preview.client";
-import Video from "~/components/video.client";
-import Podcast from "~/components/podcast.client";
+import Advertisement from "~/components/advertisement";
 import { getFrontpageArticles, getIdOfNewest, getRecommendedSubcategoryArticle, getSpreadsByCategory } from "~/lib/queries";
 import SubBanner from "~/components/subbanner.client";
 import { SectionContainer, VanguardContainer } from "~/components/sectioncontainer.client";
 import { getLatestArchiveIssueInfo, getTowerVolumeNumber } from "~/lib/utils";
+import { APP_STORE_URL } from "~/lib/app-links";
 
-import sponsorStyles from "./sponsor.module.scss";
+const DownloadArrow = FiArrowDown as ComponentType<{ size?: number }>;
 
 export async function getStaticProps() {
 	const latestIssue = getLatestArchiveIssueInfo();
-	const [articles, vang, featuredVanguardArticle] = await Promise.all([
+	const [articles, vanguardSpreads, featuredVanguardArticle] = await Promise.all([
 		getFrontpageArticles(),
 		getSpreadsByCategory("vanguard", 1, await getIdOfNewest("spreads", "vanguard"), 0),
 		getRecommendedSubcategoryArticle("vanguard", "articles"),
@@ -26,7 +26,7 @@ export async function getStaticProps() {
 	return {
 		props: {
 			articles,
-			vang,
+			vanguardSpreads,
 			featuredVanguardArticle,
 			volumeLabel: latestIssue ? `Vol. ${getTowerVolumeNumber(latestIssue.year)}` : null,
 		},
@@ -36,12 +36,12 @@ export async function getStaticProps() {
 
 interface Props {
 	articles: { [name: string]: article[] };
-	vang: spreads[];
+	vanguardSpreads: spreads[];
 	featuredVanguardArticle: article | null;
 	volumeLabel: string | null;
 }
 
-export default function FrontPage({ articles, vang, featuredVanguardArticle, volumeLabel }: Props) {
+export default function FrontPage({ articles, vanguardSpreads, featuredVanguardArticle, volumeLabel }: Props) {
 	const leftBottomArticle = featuredVanguardArticle ?? articles["opinions"][1];
 	const leftTopArticleId = articles["opinions"][0]?.id ?? null;
 	const rightTopArticleId = articles["sports"][0]?.id ?? null;
@@ -121,6 +121,126 @@ export default function FrontPage({ articles, vang, featuredVanguardArticle, vol
 				<meta property="og:description" content="The Tower is Princeton High School's newspaper club." />
 			</Head>
 			<style jsx>{`
+				.app-announcement {
+					display: flex;
+					align-items: center;
+					gap: 1rem;
+					margin: 0 0 2rem;
+				}
+				.app-announcement::before,
+				.app-announcement::after {
+					content: "";
+					flex: 1;
+					height: 1px;
+					background: var(--accent);
+				}
+				.app-announcement a {
+					display: flex;
+					justify-content: center;
+					align-items: center;
+					gap: 0.75rem;
+					padding: 0.8rem 1.5rem;
+					background: var(--accent);
+					color: white;
+					text-align: left;
+					font-family: var(--font-sans);
+					border-radius: 4px;
+					opacity: 1;
+					transition: background-color 180ms ease;
+				}
+				.app-mark {
+					display: flex;
+					flex-shrink: 0;
+					align-items: center;
+					padding-right: 0.85rem;
+					border-right: 1px solid #ffffff40;
+				}
+				.app-copy {
+					display: flex;
+					flex-direction: column;
+					align-items: flex-start;
+					gap: 0.25rem;
+				}
+				.app-announcement strong,
+				.app-announcement span {
+					font-family: inherit;
+					font-size: 1rem;
+					font-weight: 400;
+					line-height: 1.5;
+					color: inherit;
+				}
+				.app-announcement strong {
+					font-family: var(--font-sans-bold);
+					font-size: 0.75rem;
+					letter-spacing: 0.1em;
+					line-height: 1;
+					padding: 0.25rem 0.4rem;
+					background: #dce8f8;
+					color: var(--accent);
+					border-radius: 2px;
+				}
+				.app-copy > span {
+					font-size: 1.125rem;
+				}
+				.app-label {
+					display: flex;
+					align-items: center;
+					gap: 0.5rem;
+				}
+				.app-label span {
+					font-size: 0.875rem;
+					letter-spacing: 0.025em;
+				}
+				.app-announcement .app-arrow {
+					display: flex;
+					align-items: center;
+					justify-content: center;
+					width: 2rem;
+					height: 2rem;
+					margin-left: 0.5rem;
+					border: 1px solid #ffffff60;
+					border-radius: 50%;
+					flex-shrink: 0;
+					transition: transform 180ms ease;
+				}
+				.app-announcement a:hover {
+					background: var(--accent-dark);
+					opacity: 1;
+				}
+				.app-announcement a:hover .app-arrow {
+					transform: translateY(2px);
+				}
+				@media (prefers-reduced-motion: reduce) {
+					.app-announcement a,
+					.app-announcement .app-arrow {
+						transition: none;
+					}
+					.app-announcement a:hover .app-arrow {
+						transform: none;
+					}
+				}
+				.app-announcement a:focus-visible {
+					outline: 2px solid var(--accent);
+					outline-offset: 4px;
+				}
+				@media (max-width: 600px) {
+					.app-announcement {
+						gap: 0.5rem;
+						margin-bottom: 1.5rem;
+					}
+					.app-announcement a {
+						padding: 0.65rem 0.75rem;
+						gap: 0.6rem;
+					}
+					.app-copy > span {
+						font-size: 1rem;
+					}
+					.app-announcement .app-arrow {
+						margin-left: 0;
+						width: 1.75rem;
+						height: 1.75rem;
+					}
+				}
 				:global(.mosaic .triple.home-hero) {
 					display: grid;
 					grid-template-columns: 0.7fr 1.6fr 0.7fr;
@@ -201,6 +321,18 @@ export default function FrontPage({ articles, vang, featuredVanguardArticle, vol
 					height: var(--dynamic-image-height, 16rem) !important;
 					max-height: var(--dynamic-image-height, 16rem) !important;
 				}
+				.home-leaderboard {
+					display: flex;
+					justify-content: center;
+					margin: 1.5rem 0 2rem;
+					padding: 1.25rem 0;
+					border-top: 1px solid gainsboro;
+					border-bottom: 1px solid var(--accent-dark);
+				}
+				.home-leaderboard :global(aside) {
+					box-sizing: border-box;
+					width: min(100%, calc(728px + 0.9rem + 2px));
+				}
 				.mobile-issue {
 					display: none;
 				}
@@ -259,6 +391,23 @@ export default function FrontPage({ articles, vang, featuredVanguardArticle, vol
 					}
 				}
 			`}</style>
+			<div className="app-announcement">
+				<a href={APP_STORE_URL} aria-label="New: Download our PHS Tower app on the App Store">
+					<div className="app-mark">
+						<Image src="/assets/tower-short.png" alt="" width={30} height={44} style={{ objectFit: "contain" }} />
+					</div>
+					<div className="app-copy">
+						<div className="app-label">
+							<strong>NEW</strong>
+							<span>PHS Tower</span>
+						</div>
+						<span>Download our app</span>
+					</div>
+					<span className="app-arrow" aria-hidden="true">
+						<DownloadArrow size={18} />
+					</span>
+				</a>
+			</div>
 			<div className="mosaic">
 				<div className="triple home-hero">
 					<div className="hero-side hero-left-column">
@@ -314,9 +463,15 @@ export default function FrontPage({ articles, vang, featuredVanguardArticle, vol
 					))}
 				</div>
 			</div>
-			<br />
-			<hr />
-			<br />
+			<div className="home-leaderboard">
+				<Advertisement
+					href="https://www.jfcswheels4meals.org/"
+					src="/assets/jfcs-wheels-heels-2026-leaderboard.png"
+					width={1365}
+					height={169}
+					alt="JFCS Wheels & Heels for Meals, October 11, 2026 at Mercer County Community College"
+				/>
+			</div>
 			<SectionContainer category="NEWS & FEATURES" desc="The latest stories on PHS and its community." articles={articles["news-features"]} />
 			<hr />
 			<br />
@@ -325,28 +480,6 @@ export default function FrontPage({ articles, vang, featuredVanguardArticle, vol
 				desc="Opinions of the student body, from school policies to global issues."
 				articles={articles["opinions"]}
 			/>
-			{/* <div className="dark-banner">
-				<div id="dark-banner-content">
-					<hr />
-					<div style={{ display: "flex", marginLeft: "5vw", marginRight: "5vw", gap: "1rem" }}>
-						<Image src="/assets/white-tower.png" width={309} height={721} alt="Tower logo" style={{ width: "15rem", height: "auto" }} />
-						<div>
-							<h2 style={{ marginTop: "1.5rem", marginBottom: "1.5rem", textAlign: "left" }}>
-								The Tower is Princeton High School&apos;s student-run newspaper.
-							</h2>
-							<p style={{ textAlign: "left", fontSize: "1.5rem" }}>
-								Since 1928, the Tower has been reporting on the inner workings of PHS, the district, and the cultural and athletic
-								events that affect the student body.
-								<br /> <br />
-								Each year, the staff produces eight issues to be distributed. Subscribe to have the latest stories delivered to your
-								door.
-							</p>
-						</div>
-					</div>
-					<hr />
-				</div>
-			</div> */}
-			{/* ^^ this is just... bland? like it pollutes the page and makes it rly uninteresting (maybe its filling in for the page being kinda boring? idk tho :shrug:) */}
 			<br />
 			<hr />
 			<br />
@@ -356,44 +489,8 @@ export default function FrontPage({ articles, vang, featuredVanguardArticle, vol
 			<SectionContainer category="SPORTS" desc="Updates on PHS games, tales of sports history, and more." articles={articles["sports"]} />
 			<hr />
 			<br />
-			<VanguardContainer desc="The most creative section, with the format changing each issue." spreads={vang} />
+			<VanguardContainer desc="The most creative section, with the format changing each issue." spreads={vanguardSpreads} />
 			<SubBanner title="Consider subscribing to The Tower." />
-		</div>
-	);
-}
-
-function SponsorBanner() {
-	return (
-		<div className={sponsorStyles.banner}>
-			<h1 style={{ marginTop: "2.5rem", fontSize: "clamp(1.2rem, 4vw, 2rem)" }}> Thank you to our sponsors for supporting us!</h1>
-			<div className={sponsorStyles["sponsor-list"]}>
-				<Link href="https://milkncookies.online/">
-					<Image src="/assets/milk-cookies.png" width={2500} height={2500} alt="Milk & Cookies" />
-				</Link>
-				{/* Add other sponsors here once we get them */}
-			</div>
-			<i>
-				Interested in sponsoring? Contact <Link href="mailto:phstowersenioreditors@gmail.com">phstowersenioreditors@gmail.com</Link> for more
-				info
-			</i>
-		</div>
-	);
-}
-
-export function Multimedia() {
-	return (
-		<div className="multimedia">
-			<div>
-				<section className="category">
-					<em>
-						<Link href={"/category/multimedia"}>
-							<span style={{ margin: "0px", fontFamily: "Open Sans" }}>Multimedia</span>
-						</Link>
-					</em>
-				</section>
-				<Video link="GDDGmRkkS5A" title="Soccer Practice with Nick Matese" />
-				<Podcast link="1187999" />
-			</div>
 		</div>
 	);
 }

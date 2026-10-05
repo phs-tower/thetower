@@ -15,6 +15,7 @@ import PhotoCredit from "~/components/photocredit";
 import Link from "next/link";
 import { PdfPageThumbnail } from "~/components/pdfspreadfallback.client";
 import { articleColumnSponsor } from "~/lib/article-column-sponsor";
+import Advertisement from "~/components/advertisement";
 import { ParsedUrlQuery } from "querystring";
 
 import articleStyles from "./article.module.scss";
@@ -135,31 +136,7 @@ export function ArticleContent({ article }: ArticleContentProps) {
 					</div>
 				)}
 
-				{showColumnSponsor && (
-					<aside className={articleStyles["article-sponsor"]} aria-label="Article sponsor">
-						<div className={articleStyles["article-sponsor-label"]}>ADVERTISEMENT</div>
-						<a href={articleColumnSponsor.href} target="_blank" rel="noreferrer" className={articleStyles["article-sponsor-image-link"]}>
-							<img
-								src={articleColumnSponsor.src}
-								alt={articleColumnSponsor.alt}
-								width={articleColumnSponsor.width}
-								height={articleColumnSponsor.height}
-								loading="lazy"
-								decoding="async"
-							/>
-						</a>
-						<div className={articleStyles["article-sponsor-caption"]}>
-							<a
-								href={articleColumnSponsor.href}
-								target="_blank"
-								rel="noreferrer"
-								className={articleStyles["article-sponsor-caption-link"]}
-							>
-								{articleColumnSponsor.caption}
-							</a>
-						</div>
-					</aside>
-				)}
+				{showColumnSponsor && <Advertisement {...articleColumnSponsor} className={articleStyles["article-sponsor"]} />}
 			</div>
 		</section>
 	);

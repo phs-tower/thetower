@@ -208,9 +208,9 @@ export default function Subscribe({ articles }: Props) {
 
 					<p>
 						In the nearly hundred years since its founding in 1928, <em>The Tower</em> has chronicled the story of Princeton High School —
-						the big headlines, the quiet uncertainty, the student voices, and all of the moments that continue to make this community a
-						home for us. Every issue is written, edited, and designed by students who care deeply about what happens here, and who believe
-						that our school’s story is best told by the people living it.
+						the big headlines containing student voices and all of the moments that continue to make this community a home for us. Every
+						issue is written and designed by students who care deeply about what happens here, and who believe that our school’s story is
+						best told by the people living it.
 					</p>
 
 					<p>
@@ -220,22 +220,23 @@ export default function Subscribe({ articles }: Props) {
 					</p>
 
 					<p>
-						By subscribing, you support students who learn to write with a sense of posterity—who speak with the confidence to influence
-						what happens next, and who learn to listen and reflect closely on the world around them. You&apos;ll also receive all eight of
-						our monthly print issues delivered straight to your door — a year&apos;s worth of our school&apos;s story, arriving one
-						chapter at a time.
+						By subscribing, you support students who learn to write with the confidence to influence the world in the future, and who
+						choose to reflect closely on the things happening around them. You&apos;ll also receive all eight of our monthly print issues
+						delivered straight to your door — a year&apos;s worth of our school&apos;s story, coming at you one chapter at a time.
 					</p>
 
 					<p>
 						If that sounds like something you want to be part of, and something that seems right to you, we’d be honored, and would love
-						to help you learn about our school through stories and experiences. You can subscribe by paying online, by check, or in cash —
-						whatever is easiest for you.
+						to help you learn about our school through stories and experiences. You can subscribe by paying online, by check, or in cash
+						(whatever is easiest for you).
 					</p>
 
 					<p className="signature">
-						With appreciation,
-						<br />
-						The Editorial Board of <em>The Tower</em>
+						<em>
+							With appreciation,
+							<br />
+							The Editorial Board of The Tower
+						</em>
 					</p>
 
 					<p className="price-note">2025-2026 Subscription: $30/year for 8 monthly issues</p>

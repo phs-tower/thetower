@@ -193,6 +193,38 @@ footer {
 	width: 90vw;
 	margin-left: 5vw;
 
+	.footer-utility-links {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem 1.5rem;
+		list-style: none;
+		margin: 1rem 0 0;
+		padding: 0;
+		font-family: var(--font-sans);
+		font-size: 0.95rem;
+
+		+ hr {
+			margin-top: 0.5rem;
+		}
+
+		a {
+			display: inline-block;
+			padding-block: 0.35rem;
+			color: var(--accent);
+			text-decoration: underline;
+			text-underline-offset: 3px;
+
+			&:hover {
+				color: #28649b;
+			}
+
+			&:focus-visible {
+				outline: 2px solid var(--accent);
+				outline-offset: 3px;
+			}
+		}
+	}
+
 	hr {
 		align-self: center;
 		background-color: #ccc;

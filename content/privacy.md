@@ -1,17 +1,22 @@
 # Privacy Policy: The Tower (PHS Tower app)
 
-**Version 3.0**\
-**Effective date:** August 10, 2026\
-**Last updated:** August 10, 2026
+**Version 3.1**\
+**Effective date:** September 17, 2026\
+**Last updated:** September 17, 2026
 
 This Privacy Policy describes how *The Tower*, the student newspaper of Princeton
 High School ("The Tower," "we," "us," or "our"), handles information in the
-**PHS Tower** mobile app for iOS and Android (the "app").
+**PHS Tower** mobile app for iOS and Android (the "app"), and for print
+subscriptions offered through the app and our website.
 
 The app is published under the bundle/application ID `com.towerphs.phstower`.
 
 If you have any questions about this policy, email
 **phstowersenioreditors@gmail.com**.
+
+> **What changed in version 3.1.** We added information about optional print
+> subscriptions, external checkout and forms, and subscriber contact and mailing
+> details. These records are separate from the app’s on-device account.
 
 > **What changed in version 3.0.** Version 2.0 described an app with no sign-in
 > at all. Signing in is back, on completely different terms, and the class
@@ -35,13 +40,14 @@ If you have any questions about this policy, email
   the class schedule.
 - **If you do sign in, your account lives on your phone, not on our servers.**
   We keep no copy of it and no record that you signed in.
-- **We hold no record of you.** No table in our database is keyed to a reader.
-  There is no row anywhere with your name on it.
+- **The app does not create a server-side reader account.** If you choose to
+  submit a form or subscribe to the print edition, The Tower receives the
+  information you provide, separately from your on-device app account.
 - The app is free, contains **no advertising**, and contains **no third-party
   analytics, tracking, or advertising SDKs**.
 - We do not request access to your **location, camera, microphone, photo
   library, contacts, calendar, health data, or files**.
-- We **do not sell or rent personal information**. We have almost none to sell.
+- We **do not sell or rent personal information**.
 - **Your class schedule never leaves your phone**, and the app never learns
   where you are in the building.
 
@@ -147,15 +153,15 @@ request. This happens with:
 - **Google**, for any Google Form shown in the app, and
 - **OneSignal**, as described above.
 
-We do not use this technical information to identify individual readers, and we
-could not connect it to a name if we tried: we do not have your name.
+We do not use this technical information to identify individual readers or
+link it to subscription details or form submissions.
 
 ### 2.7 Information we do **not** collect
 
 The app never asks for a location permission and contains no location-tracking
-code. It does not collect or request: an account or identity of any kind, GPS or
+code. It does not collect or request GPS or
 device location, camera or microphone access, your photos, your contacts, your
-calendar, health or fitness data, financial or payment information, browsing
+calendar, health or fitness data, card details entered at external checkout, browsing
 history outside the app, or device identifiers used for advertising (IDFA /
 Android Advertising ID). The app displays no ads and contains no ad SDK.
 
@@ -169,6 +175,33 @@ identify you, and we do not receive any more precise location than that.
 > control that pans and zooms the page image. It does not use your device's
 > physical camera, and the app never requests camera permission.
 
+### 2.8 Optional print subscriptions
+
+Subscribing is optional and pays for printed issues delivered to your address;
+it does not unlock articles or other features in the app. Subscription links
+open **Ludus** for online payment or **Google Forms** for check or cash
+arrangements in your browser, outside the app.
+
+The Tower receives the information you choose to provide, including your
+**name, contact information, and mailing address**, so staff can arrange your
+subscription, send your printed issues, and contact you about delivery. These
+records are separate from your on-device app account and class schedule. The
+app does not automatically attach your app account or schedule to the links.
+
+Online payment details are entered with the external checkout service; the app
+does not collect or store your card details. Ludus and Google handle information
+submitted through their services under their own privacy policies:
+[Ludus](https://hello.ludus.com/privacy) and
+[Google](https://policies.google.com/privacy).
+
+Tower staff handling subscriptions use the details you submit to manage print
+delivery. Your name and mailing address are used for shipping labels and the
+postal or delivery service that sends your issues. Contact
+**towerbusiness@gmail.com** to ask about your subscription information or
+request access, correction, or deletion. Removing the app or its on-device
+account does not cancel a print subscription or delete records held separately
+by The Tower or the external providers.
+
 ---
 
 ## 3. How we use information
@@ -177,6 +210,7 @@ We use the information described above only to:
 
 - show you the newspaper and let you save, search, and share articles;
 - send notifications you have opted into;
+- arrange print deliveries and contact subscribers about their subscriptions;
 - keep the app secure, diagnose crashes and bugs, and prevent abuse; and
 - comply with the law and with school district policy.
 
@@ -193,7 +227,8 @@ only to the extent needed:
 | Provider | What it handles | Its privacy policy |
 | --- | --- | --- |
 | **Supabase, Inc.** | Article database, images/PDFs | https://supabase.com/privacy |
-| **Google LLC** (Forms, Fonts) | Embedded forms, fonts | https://policies.google.com/privacy |
+| **Google LLC** (Forms, Fonts) | Editorial and subscription forms, fonts | https://policies.google.com/privacy |
+| **Ludus Technologies Inc.** | External print-subscription checkout | https://hello.ludus.com/privacy |
 | **OneSignal, Inc.** | Push notification delivery | https://onesignal.com/privacy_policy |
 | **Apple Inc. / Google LLC** (app stores) | App distribution and push transport | Apple / Google policies |
 
@@ -214,8 +249,9 @@ normal newsroom operations.
 
 ## 5. Data retention
 
-- **Reader records:** none exist, so there is nothing to retain.
-- **Letters and form submissions** are held in *The Tower*'s Google account as
+- **App reader accounts:** we do not keep server-side accounts. Print-subscription
+  records and voluntary form submissions are separate from the app account.
+- **Letters and editorial form submissions** are held in *The Tower*'s Google account as
   part of the newspaper's editorial record. Published material remains
   published.
 - **Push notification records** are kept while your device stays subscribed.
@@ -247,8 +283,7 @@ You can, at any time:
 - **Delete on-device data**: uninstall the app.
 - **Ask us anything about your information** by emailing
   **phstowersenioreditors@gmail.com**. We will respond within a reasonable
-  period, normally within 30 days. For most requests the answer will be that we
-  are not holding anything of yours.
+  period, normally within 30 days.
 
 Deleting your account takes effect immediately and needs no request to us,
 because the account is on your phone rather than on our servers. For the same
@@ -293,16 +328,18 @@ identifiers, and no location data.
 Traffic between the app and our servers uses standard HTTPS/TLS encryption. The
 app can only **read** from our database; it has no ability to write to it.
 Access to submitted letters is limited to Tower editors and advisers.
+Subscription details are handled separately by the staff managing print
+subscriptions and the external services used for checkout, forms, and delivery.
 
-No system is perfectly secure, and we cannot guarantee absolute security, which
-is precisely why the app holds no student information in the first place. There
-is no store of reader data here for a breach to expose.
+No system is perfectly secure, and we cannot guarantee absolute security.
+Keeping app accounts on-device does not mean subscription records or voluntary
+form submissions do not exist.
 
 ---
 
 ## 9. Where your information is processed
 
-Our service providers (Supabase, Google, OneSignal) operate servers in the
+Our service providers (Supabase, Google, OneSignal, and Ludus) operate servers in the
 United States and may process and store information there and in other
 countries. If you use the app from outside the United States, you understand
 that your information will be transferred to and processed in the United States.

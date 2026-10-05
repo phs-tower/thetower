@@ -4,13 +4,13 @@ import type { AppProps, NextWebVitalsMetric } from "next/app";
 import Head from "next/head";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
-import type { FormEvent, MouseEvent } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import "~/styles/styles.scss";
 import "~/styles/admin.scss";
 import styles from "~/lib/styles";
 import { useRouter } from "next/router";
 import { socialLinks } from "~/lib/constants";
+import { APP_STORE_URL } from "~/lib/app-links";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/react";
 import { warmSearchIndex } from "~/lib/search-client";
@@ -30,9 +30,41 @@ type Subsection = {
 	href: string;
 };
 
-function buildStaffMenuItems(years: number[]) {
-	return years.map(year => ({ name: `${year} Staff`, href: `/about/${year}` }));
-}
+// The header and footer share section names and destinations.
+const siteSections: { name: string; href: string; subsections?: Subsection[]; inFooter?: boolean }[] = [
+	{
+		name: "NEWS & FEATURES",
+		href: "/category/news-features",
+		inFooter: true,
+		subsections: [{ name: "PHS Profiles", href: "/category/news-features/phs-profiles" }],
+	},
+	{ name: "MULTIMEDIA", href: "/category/multimedia" },
+	{
+		name: "OPINIONS",
+		href: "/category/opinions",
+		inFooter: true,
+		subsections: [
+			{ name: "Editorials", href: "/category/opinions/editorials" },
+			{ name: "Cheers & Jeers", href: "/category/opinions/cheers-jeers" },
+		],
+	},
+	{ name: "VANGUARD", href: "/category/vanguard", inFooter: true, subsections: [{ name: "Articles", href: "/category/vanguard/articles" }] },
+	{
+		name: "ARTS & ENTERTAINMENT",
+		href: "/category/arts-entertainment",
+		inFooter: true,
+		subsections: [{ name: "Student Artists", href: "/category/arts-entertainment/student-artists" }],
+	},
+	{
+		name: "SPORTS",
+		href: "/category/sports",
+		inFooter: true,
+		subsections: [{ name: "Student Athletes", href: "/category/sports/student-athletes" }],
+	},
+	{ name: "CROSSWORDS", href: "/games/crossword" },
+	{ name: "ABOUT", href: "/about" },
+	{ name: "ARCHIVES", href: "/archives" },
+];
 
 function SectionLink({ href, name: section, subsections }: { href: string; name: string; subsections?: Subsection[] }) {
 	const [open, setOpen] = useState(false);
@@ -75,29 +107,28 @@ export function Nav() {
 	useEffect(() => {
 		if (staffMenuItems.length > 0) return;
 		let cancelled = false;
-		const refreshStaffYears = async () => {
+		void (async () => {
 			try {
 				const cached = sessionStorage.getItem(STAFF_YEARS_CACHE_KEY);
 				if (cached) {
 					const years = JSON.parse(cached) as number[];
 					if (!cancelled && Array.isArray(years) && years.length > 0) {
-						setAboutSubsections(buildStaffMenuItems(years));
+						setAboutSubsections(years.map(year => ({ name: `${year} Staff`, href: `/about/${year}` })));
 						return;
 					}
 				}
 
-				const res = await fetch("/api/staff-years");
-				if (!res.ok) return;
-				const payload = (await res.json()) as { years?: number[] };
+				const response = await fetch("/api/staff-years");
+				if (!response.ok) return;
+				const payload = (await response.json()) as { years?: number[] };
 				if (!cancelled && Array.isArray(payload.years)) {
 					sessionStorage.setItem(STAFF_YEARS_CACHE_KEY, JSON.stringify(payload.years));
-					setAboutSubsections(buildStaffMenuItems(payload.years));
+					setAboutSubsections(payload.years.map(year => ({ name: `${year} Staff`, href: `/about/${year}` })));
 				}
 			} catch {
 				/* noop */
 			}
-		};
-		refreshStaffYears();
+		})();
 		return () => {
 			cancelled = true;
 		};
@@ -107,34 +138,14 @@ export function Nav() {
 		<nav>
 			<Masthead />
 			<div id="links">
-				<SectionLink
-					href="/category/news-features"
-					name="NEWS & FEATURES"
-					subsections={[{ name: "PHS Profiles", href: "/category/news-features/phs-profiles" }]}
-				/>
-				<SectionLink href="/category/multimedia" name="MULTIMEDIA" />
-				<SectionLink
-					href="/category/opinions"
-					name="OPINIONS"
-					subsections={[
-						{ name: "Editorials", href: "/category/opinions/editorials" },
-						{ name: "Cheers & Jeers", href: "/category/opinions/cheers-jeers" },
-					]}
-				/>
-				<SectionLink href="/category/vanguard" name="VANGUARD" subsections={[{ name: "Articles", href: "/category/vanguard/articles" }]} />
-				<SectionLink
-					href="/category/arts-entertainment"
-					name="ARTS & ENTERTAINMENT"
-					subsections={[{ name: "Student Artists", href: "/category/arts-entertainment/student-artists" }]}
-				/>
-				<SectionLink
-					href="/category/sports"
-					name="SPORTS"
-					subsections={[{ name: "Student Athletes", href: "/category/sports/student-athletes" }]}
-				/>
-				<SectionLink href="/games/crossword" name="CROSSWORDS" />
-				<SectionLink href="/about" name="ABOUT" subsections={aboutSubsections} />
-				<SectionLink href="/archives" name="ARCHIVES" />
+				{siteSections.map(section => (
+					<SectionLink
+						key={section.href}
+						href={section.href}
+						name={section.name}
+						subsections={section.href === "/about" ? aboutSubsections : section.subsections}
+					/>
+				))}
 			</div>
 		</nav>
 	);
@@ -143,25 +154,8 @@ export function Nav() {
 function Masthead() {
 	const [issue, setIssue] = useState({ month: 2, year: 2022 });
 	const [menuOpen, setMenuOpen] = useState(false);
-	const [menuX, setMenuX] = useState(false);
 	const router = useRouter();
 	const searchInputRef = useRef<HTMLInputElement>(null);
-
-	const submitSearch = (e?: FormEvent<HTMLFormElement>) => {
-		e?.preventDefault();
-		const q = encodeURIComponent(searchInputRef.current?.value || "");
-		router.push(`/search/${q}`);
-	};
-
-	async function pdfExists(month: number, year: number) {
-		const url = `https://yusjougmsdnhcsksadaw.supabase.co/storage/v1/object/public/prints/${month}-${year}.pdf`;
-		try {
-			const res = await fetch(url, { method: "HEAD" });
-			return res.ok;
-		} catch (err) {
-			return false;
-		}
-	}
 
 	const pdfLink = `https://yusjougmsdnhcsksadaw.supabase.co/storage/v1/object/public/prints/${issue.month}-${issue.year}.pdf`;
 
@@ -175,7 +169,7 @@ function Masthead() {
 
 	useEffect(() => {
 		let cancelled = false;
-		const getIssue = async () => {
+		void (async () => {
 			try {
 				const cached = sessionStorage.getItem(PRINT_ISSUE_CACHE_KEY);
 				if (cached) {
@@ -192,30 +186,31 @@ function Masthead() {
 			let month = new Date().getMonth() + 1;
 			let year = new Date().getFullYear();
 
-			if (await pdfExists(month, year)) {
-				if (!cancelled) {
-					sessionStorage.setItem(PRINT_ISSUE_CACHE_KEY, JSON.stringify({ month, year, expiry: Date.now() + 6 * 60 * 60 * 1000 }));
-					setIssue({ month, year });
+			// Check this month and the previous twelve months, newest first.
+			for (let monthsBack = 0; monthsBack <= 12; monthsBack++) {
+				let issueExists = false;
+				try {
+					const response = await fetch(`https://yusjougmsdnhcsksadaw.supabase.co/storage/v1/object/public/prints/${month}-${year}.pdf`, {
+						method: "HEAD",
+					});
+					issueExists = response.ok;
+				} catch {
+					// An unavailable PDF should not prevent checking earlier issues.
 				}
-				return;
-			}
-
-			for (let i = 0; i < 12; i++) {
+				if (issueExists) {
+					if (!cancelled) {
+						sessionStorage.setItem(PRINT_ISSUE_CACHE_KEY, JSON.stringify({ month, year, expiry: Date.now() + 6 * 60 * 60 * 1000 }));
+						setIssue({ month, year });
+					}
+					return;
+				}
 				month--;
 				if (month === 0) {
 					month = 12;
 					year--;
 				}
-				if (!(await pdfExists(month, year))) continue;
-				if (!cancelled) {
-					sessionStorage.setItem(PRINT_ISSUE_CACHE_KEY, JSON.stringify({ month, year, expiry: Date.now() + 6 * 60 * 60 * 1000 }));
-					setIssue({ month, year });
-				}
-				return;
 			}
-		};
-
-		void getIssue();
+		})();
 		return () => {
 			cancelled = true;
 		};
@@ -225,20 +220,10 @@ function Masthead() {
 		setMenuOpen(false);
 	}, [router.asPath]);
 
-	useEffect(() => {
-		const timeout = window.setTimeout(() => {
-			setMenuX(menuOpen);
-		}, 100);
-
-		return () => window.clearTimeout(timeout);
-	}, [menuOpen]);
-
 	// Clear global search box when navigating away from search
 	useEffect(() => {
-		const path = router.asPath || "";
-		// Clear when not on the search page so the box doesn't persist
-		if (!path.startsWith("/search")) {
-			if (searchInputRef.current) searchInputRef.current.value = "";
+		if (!router.asPath.startsWith("/search") && searchInputRef.current) {
+			searchInputRef.current.value = "";
 		}
 	}, [router.asPath]);
 
@@ -275,7 +260,16 @@ function Masthead() {
 					<button className="subscribe" onClick={() => router.push("/subscribe")}>
 						<span>Subscribe</span>
 					</button>
-					<form className="search-box" role="search" autoComplete="off" onSubmit={submitSearch}>
+					<form
+						className="search-box"
+						role="search"
+						autoComplete="off"
+						onSubmit={event => {
+							event.preventDefault();
+							const searchQuery = encodeURIComponent(searchInputRef.current?.value || "");
+							router.push(`/search/${searchQuery}`);
+						}}
+					>
 						<input
 							ref={searchInputRef}
 							type="search"
@@ -354,7 +348,6 @@ export default function App({ Component, pageProps }: AppProps) {
 				<title>Home | The Tower</title>
 				<meta name="viewport" content="width=device-width, initial-scale=1" />
 			</Head>
-			{/* <Banner /> */}
 			<Nav />
 			<PromoPopup />
 			<main className="content" data-route-pending={routePending ? "true" : "false"}>
@@ -392,58 +385,33 @@ function Footer() {
 				</Link>
 			</div>
 			<div className="bottom">
-				<div>
-					<b>
-						<Link style={{ fontFamily: styles.font.serifHeader }} href="/category/news-features">
-							NEWS & FEATURES
-						</Link>
-						<br />
-					</b>
-					<Link href="/category/news-features/phs-profiles">PHS Profiles</Link>
-					<br />
-				</div>
-				<div>
-					<b>
-						<Link style={{ fontFamily: styles.font.serifHeader }} href="/category/opinions">
-							OPINIONS
-						</Link>
-						<br />
-					</b>
-					<Link href="/category/opinions/editorials">Editorials</Link>
-					<br />
-					<Link href="/category/opinions/cheers-jeers">Cheers & Jeers</Link>
-					<br />
-				</div>
-				<div>
-					<b>
-						<Link style={{ fontFamily: styles.font.serifHeader }} href="/category/vanguard">
-							VANGUARD
-						</Link>
-						<br />
-					</b>
-					<Link href="/category/vanguard/articles">Articles</Link>
-					<br />
-				</div>
-				<div>
-					<b>
-						<Link style={{ fontFamily: styles.font.serifHeader }} href="/category/arts-entertainment">
-							ARTS & ENTERTAINMENT
-						</Link>
-						<br />
-					</b>
-					<Link href="/category/arts-entertainment/student-artists">Student Artists</Link>
-					<br />
-				</div>
-				<div>
-					<b>
-						<Link style={{ fontFamily: styles.font.serifHeader }} href="/category/sports">
-							SPORTS
-						</Link>
-						<br />
-					</b>
-					<Link href="/category/sports/student-athletes">Student Athletes</Link>
-				</div>
+				{siteSections
+					.filter(section => section.inFooter)
+					.map((section, sectionIndex, footerSections) => (
+						<div key={section.href}>
+							<b>
+								<Link style={{ fontFamily: styles.font.serifHeader }} href={section.href}>
+									{section.name}
+								</Link>
+								<br />
+							</b>
+							{section.subsections?.map((subsection, subsectionIndex) => (
+								<Fragment key={subsection.href}>
+									<Link href={subsection.href}>{subsection.name}</Link>
+									{(subsectionIndex < section.subsections!.length - 1 || sectionIndex < footerSections.length - 1) && <br />}
+								</Fragment>
+							))}
+						</div>
+					))}
 			</div>
+			<ul className="footer-utility-links" aria-label="Privacy and app links">
+				<li>
+					<Link href="/privacy">Privacy Terms</Link>
+				</li>
+				<li>
+					<a href={APP_STORE_URL}>Download our app</a>
+				</li>
+			</ul>
 			<hr />
 			<span suppressHydrationWarning>&copy; 2017-{new Date().getFullYear()} The Tower</span>
 			<span>
