@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AdminShell, { useAdmin } from "~/components/admin/AdminShell";
 import { monthName } from "~/lib/console/supabase";
+import { expandCategorySlug } from "~/lib/utils";
 
 // The app's front page renders from a tiny DSL, one directive per line:
 //   LargeArticle(123)      hero card
@@ -34,6 +35,23 @@ interface ArticleLite {
 	month: number;
 	year: number;
 	published: boolean;
+	category: string;
+	img: string | null;
+}
+
+/** One month's issue of the paper. */
+interface Issue {
+	month: number;
+	year: number;
+}
+
+const ARTICLE_COLUMNS = "id, title, month, year, published, category, img";
+
+/** True when an article belongs to the newest issue. Matched on the stored
+ *  month/year rather than on today's date, because that pair IS the issue the
+ *  article went out in. */
+function inIssue(a: Pick<ArticleLite, "month" | "year"> | null | undefined, issue: Issue | null): boolean {
+	return !!a && !!issue && a.month === issue.month && a.year === issue.year;
 }
 
 let keyCounter = 0;
@@ -91,7 +109,7 @@ function allIds(blocks: Block[]): number[] {
 	return blocks.flatMap(b => (b.kind === "large" || b.kind === "side" ? b.ids : []));
 }
 
-function ArticlePicker({ onPick, placeholder }: { onPick: (a: ArticleLite) => void; placeholder?: string }) {
+function ArticlePicker({ onPick, placeholder, latestIssue }: { onPick: (a: ArticleLite) => void; placeholder?: string; latestIssue: Issue | null }) {
 	const { supabase } = useAdmin();
 	const [term, setTerm] = useState("");
 	const [results, setResults] = useState<ArticleLite[]>([]);
@@ -113,7 +131,7 @@ function ArticlePicker({ onPick, placeholder }: { onPick: (a: ArticleLite) => vo
 				setResults([]);
 				return;
 			}
-			let query = supabase.from("article").select("id, title, month, year, published").order("id", { ascending: false }).limit(12);
+			let query = supabase.from("article").select(ARTICLE_COLUMNS).order("id", { ascending: false }).limit(12);
 			query = /^\d+$/.test(q) ? query.eq("id", Number(q)) : query.ilike("title", `%${q}%`);
 			const { data } = await query;
 			setResults((data ?? []) as ArticleLite[]);
@@ -148,6 +166,7 @@ function ArticlePicker({ onPick, placeholder }: { onPick: (a: ArticleLite) => vo
 								{monthName(a.month)} {a.year}
 								{a.published ? "" : " · UNPUBLISHED"}
 							</span>
+							{inIssue(a, latestIssue) && <span className="ta-newest-tag">Newest</span>}
 						</button>
 					))}
 				</div>
@@ -162,6 +181,7 @@ function BlockCard({
 	total,
 	titles,
 	duplicates,
+	latestIssue,
 	onChange,
 	onMove,
 	onDelete,
@@ -171,6 +191,7 @@ function BlockCard({
 	total: number;
 	titles: Map<number, ArticleLite | null>;
 	duplicates: Set<number>;
+	latestIssue: Issue | null;
 	onChange: (b: Block) => void;
 	onMove: (from: number, dir: -1 | 1) => void;
 	onDelete: () => void;
@@ -183,12 +204,20 @@ function BlockCard({
 		const info = titles.get(id);
 		const missing = info === null;
 		const dup = duplicates.has(id);
+		const newest = inIssue(info, latestIssue);
 		return (
 			<span
 				key={id}
-				className={`ta-article-chip${missing || dup ? " missing" : ""}`}
-				title={dup ? "Used more than once in this layout" : undefined}
+				className={`ta-article-chip${missing || dup ? " missing" : ""}${newest ? " newest" : ""}`}
+				title={
+					dup
+						? "Used more than once in this layout"
+						: newest && latestIssue
+						? `From the newest issue, ${monthName(latestIssue.month)} ${latestIssue.year}`
+						: undefined
+				}
 			>
+				{newest && <span className="ta-newest-dot" aria-hidden="true" />}
 				<b>#{id}</b> {missing ? "⚠ not found" : info ? info.title.slice(0, 48) : "…"}
 				{dup && <span className="ta-error">dup</span>}
 				<button type="button" onClick={remove} aria-label="Remove">
@@ -215,7 +244,11 @@ function BlockCard({
 						<div>
 							{block.ids.map(id => chip(id, () => onChange({ ...block, ids: [] })))}
 							{block.ids.length === 0 && (
-								<ArticlePicker placeholder="Pick the hero article…" onPick={a => onChange({ ...block, ids: [a.id] })} />
+								<ArticlePicker
+									latestIssue={latestIssue}
+									placeholder="Pick the hero article…"
+									onPick={a => onChange({ ...block, ids: [a.id] })}
+								/>
 							)}
 						</div>
 					</>
@@ -224,7 +257,10 @@ function BlockCard({
 					<>
 						<span className="ta-layout-kind">Sidescroll row</span>
 						<div>{block.ids.map(id => chip(id, () => onChange({ ...block, ids: block.ids.filter(x => x !== id) })))}</div>
-						<ArticlePicker onPick={a => !block.ids.includes(a.id) && onChange({ ...block, ids: [...block.ids, a.id] })} />
+						<ArticlePicker
+							latestIssue={latestIssue}
+							onPick={a => !block.ids.includes(a.id) && onChange({ ...block, ids: [...block.ids, a.id] })}
+						/>
 					</>
 				)}
 				{block.kind === "divider" && <span className="ta-layout-kind">Divider</span>}
@@ -259,6 +295,62 @@ function BlockCard({
 	);
 }
 
+/**
+ * Everything in the newest issue, as a reference column beside the editor.
+ * Building a front page means picking from the issue that just came out, and
+ * the picker only helps once you already know what you are looking for.
+ */
+function LatestIssueList({
+	issue,
+	articles,
+	state,
+	usedIds,
+}: {
+	issue: Issue | null;
+	articles: ArticleLite[];
+	state: { busy: boolean; error: string | null };
+	usedIds: Set<number>;
+}) {
+	return (
+		<aside className="ta-card ta-issue-aside">
+			<h3 className="ta-issue-head">Newest issue</h3>
+			{issue ? (
+				<p className="ta-muted ta-small ta-issue-sub">
+					{monthName(issue.month)} {issue.year} · {articles.length} published article{articles.length === 1 ? "" : "s"}
+				</p>
+			) : (
+				!state.busy && !state.error && <p className="ta-muted ta-small ta-issue-sub">No published articles yet.</p>
+			)}
+
+			{state.busy && <p className="ta-muted ta-small">Loading…</p>}
+			{state.error && <p className="ta-error">{state.error}</p>}
+
+			<ul className="ta-issue-list">
+				{articles.map(a => {
+					const used = usedIds.has(a.id);
+					return (
+						<li key={a.id} className={`ta-issue-item${used ? " used" : ""}`}>
+							{/* eslint-disable-next-line @next/next/no-img-element */}
+							{a.img ? <img src={a.img} alt="" loading="lazy" /> : <span className="ta-issue-noimg" aria-hidden="true" />}
+							<span className="ta-issue-meta">
+								<span className="ta-issue-title">{a.title}</span>
+								<span className="ta-muted ta-small">
+									{expandCategorySlug(a.category)} · #{a.id}
+								</span>
+							</span>
+							{used && (
+								<span className="ta-badge green" title="Already placed in this layout">
+									In
+								</span>
+							)}
+						</li>
+					);
+				})}
+			</ul>
+		</aside>
+	);
+}
+
 function LayoutEditor() {
 	const { supabase } = useAdmin();
 	const [rows, setRows] = useState<LayoutRow[]>([]);
@@ -270,6 +362,9 @@ function LayoutEditor() {
 	const [rawText, setRawText] = useState("");
 	const [busy, setBusy] = useState(false);
 	const [msg, setMsg] = useState<{ ok?: string; err?: string }>({});
+	const [latestIssue, setLatestIssue] = useState<Issue | null>(null);
+	const [issueArticles, setIssueArticles] = useState<ArticleLite[]>([]);
+	const [issueState, setIssueState] = useState<{ busy: boolean; error: string | null }>({ busy: true, error: null });
 
 	const loadRows = useCallback(async () => {
 		const { data, error } = await supabase
@@ -293,6 +388,54 @@ function LayoutEditor() {
 		});
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [loadRows]);
+
+	// The newest issue is the newest (year, month) that actually has a published
+	// article, not whatever month it is today: October's issue does not exist
+	// until someone publishes into it, and an editor laying out the front page
+	// means the issue that just came out.
+	useEffect(() => {
+		let cancelled = false;
+		void (async () => {
+			setIssueState({ busy: true, error: null });
+			const { data: newest, error: newestError } = await supabase
+				.from("article")
+				.select("month, year")
+				.eq("published", true)
+				.order("year", { ascending: false })
+				.order("month", { ascending: false })
+				.limit(1)
+				.maybeSingle();
+			if (cancelled) return;
+			if (newestError) {
+				setIssueState({ busy: false, error: newestError.message });
+				return;
+			}
+			if (!newest) {
+				setIssueState({ busy: false, error: null });
+				return;
+			}
+			const issue: Issue = { month: Number(newest.month), year: Number(newest.year) };
+			setLatestIssue(issue);
+
+			const { data, error } = await supabase
+				.from("article")
+				.select(ARTICLE_COLUMNS)
+				.eq("published", true)
+				.eq("year", issue.year)
+				.eq("month", issue.month)
+				.order("id", { ascending: false });
+			if (cancelled) return;
+			if (error) {
+				setIssueState({ busy: false, error: error.message });
+				return;
+			}
+			setIssueArticles((data ?? []) as ArticleLite[]);
+			setIssueState({ busy: false, error: null });
+		})();
+		return () => {
+			cancelled = true;
+		};
+	}, [supabase]);
 
 	// The row the app is actually showing right now: latest published.
 	const liveRowId = useMemo(() => {
@@ -324,7 +467,7 @@ function LayoutEditor() {
 		if (missing.length === 0) return;
 		let cancelled = false;
 		void (async () => {
-			const { data } = await supabase.from("article").select("id, title, month, year, published").in("id", missing);
+			const { data } = await supabase.from("article").select(ARTICLE_COLUMNS).in("id", missing);
 			if (cancelled) return;
 			setTitles(prev => {
 				const next = new Map(prev);
@@ -345,6 +488,7 @@ function LayoutEditor() {
 		return dups;
 	}, [idsInLayout]);
 
+	const usedIds = useMemo(() => new Set(idsInLayout), [idsInLayout]);
 	const missingIds = idsInLayout.filter(id => titles.get(id) === null);
 	const script = useMemo(() => serializeLayout(blocks), [blocks]);
 	const hardInvalid =
@@ -404,142 +548,147 @@ function LayoutEditor() {
 	};
 
 	return (
-		<div className="ta-stack">
-			<div className="ta-toolbar">
-				<select
-					value={selectedId === null ? "" : selectedId}
-					onChange={e => {
-						if (e.target.value === "new") startNew();
-						else {
-							const row = rows.find(r => r.id === Number(e.target.value));
-							if (row) selectRow(row);
-						}
-					}}
-					style={{ maxWidth: 320 }}
-				>
-					<option value="" disabled>
-						Pick a layout…
-					</option>
-					{rows.map(r => (
-						<option key={r.id} value={r.id}>
-							{monthName(r.month)} {r.year} · #{r.id}
-							{r.published ? " · published" : ""}
-							{r.id === liveRowId ? " · LIVE IN APP" : ""}
+		<div className="ta-layout-shell">
+			<div className="ta-stack">
+				<div className="ta-toolbar">
+					<select
+						value={selectedId === null ? "" : selectedId}
+						onChange={e => {
+							if (e.target.value === "new") startNew();
+							else {
+								const row = rows.find(r => r.id === Number(e.target.value));
+								if (row) selectRow(row);
+							}
+						}}
+						style={{ maxWidth: 320 }}
+					>
+						<option value="" disabled>
+							Pick a layout…
 						</option>
-					))}
-					<option value="new">+ New layout…</option>
-				</select>
-				{typeof selectedId === "number" && selectedId === liveRowId && <span className="ta-badge red">LIVE IN APP</span>}
+						{rows.map(r => (
+							<option key={r.id} value={r.id}>
+								{monthName(r.month)} {r.year} · #{r.id}
+								{r.published ? " · published" : ""}
+								{r.id === liveRowId ? " · LIVE IN APP" : ""}
+							</option>
+						))}
+						<option value="new">+ New layout…</option>
+					</select>
+					{typeof selectedId === "number" && selectedId === liveRowId && <span className="ta-badge red">LIVE IN APP</span>}
+				</div>
+
+				{selectedId !== null && (
+					<>
+						<div className="ta-card ta-row">
+							<label style={{ margin: 0 }}>
+								Month
+								<select value={meta.month} onChange={e => setMeta({ ...meta, month: Number(e.target.value) })}>
+									{Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
+										<option key={m} value={m}>
+											{monthName(m)}
+										</option>
+									))}
+								</select>
+							</label>
+							<label style={{ margin: 0, maxWidth: 110 }}>
+								Year
+								<input type="number" value={meta.year} onChange={e => setMeta({ ...meta, year: Number(e.target.value) })} />
+							</label>
+							<label style={{ margin: 0, display: "flex", alignItems: "center", gap: 6 }}>
+								<input
+									type="checkbox"
+									checked={meta.published}
+									onChange={e => setMeta({ ...meta, published: e.target.checked })}
+									style={{ width: "auto" }}
+								/>
+								Published (the app shows the latest published layout)
+							</label>
+						</div>
+
+						<div className="ta-tabs">
+							<button className={tab === "visual" ? "active" : ""} onClick={() => switchTab("visual")}>
+								Visual editor
+							</button>
+							<button className={tab === "raw" ? "active" : ""} onClick={() => switchTab("raw")}>
+								Raw script
+							</button>
+						</div>
+
+						{tab === "visual" ? (
+							<>
+								<div className="ta-stack">
+									{blocks.map((b, i) => (
+										<BlockCard
+											key={b.key}
+											block={b}
+											index={i}
+											total={blocks.length}
+											titles={titles}
+											duplicates={duplicates}
+											latestIssue={latestIssue}
+											onChange={nb => setBlocks(prev => prev.map(x => (x.key === b.key ? nb : x)))}
+											onMove={(from, dir) =>
+												setBlocks(prev => {
+													const next = [...prev];
+													const [item] = next.splice(from, 1);
+													next.splice(from + dir, 0, item);
+													return next;
+												})
+											}
+											onDelete={() => setBlocks(prev => prev.filter(x => x.key !== b.key))}
+										/>
+									))}
+									{blocks.length === 0 && <p className="ta-muted">Empty layout. Add blocks below.</p>}
+								</div>
+								<div className="ta-row">
+									<button className="ta-btn" onClick={() => addBlock("large")}>
+										+ Hero card
+									</button>
+									<button className="ta-btn" onClick={() => addBlock("side")}>
+										+ Sidescroll
+									</button>
+									<button className="ta-btn" onClick={() => addBlock("text")}>
+										+ Section header
+									</button>
+									<button className="ta-btn" onClick={() => addBlock("divider")}>
+										+ Divider
+									</button>
+								</div>
+								<div>
+									<h3 style={{ fontSize: 14, marginBottom: 6 }}>Script preview</h3>
+									<pre className="ta-code">{script || "(empty)"}</pre>
+								</div>
+							</>
+						) : (
+							<textarea rows={14} value={rawText} onChange={e => setRawText(e.target.value)} style={{ fontFamily: "monospace" }} />
+						)}
+
+						{missingIds.length > 0 && (
+							<p className="ta-error">Unknown article ids: {missingIds.join(", ")}. They don&rsquo;t exist in the article table.</p>
+						)}
+						{duplicates.size > 0 && (
+							<p className="ta-error">Duplicate article ids: {Array.from(duplicates).join(", ")}. Each article may appear once.</p>
+						)}
+
+						<div className="ta-row">
+							<button className="ta-btn ta-btn-primary" disabled={busy || (tab === "visual" && hardInvalid)} onClick={save}>
+								{busy ? "Saving…" : selectedId === "new" ? "Create layout" : "Save layout"}
+							</button>
+							{msg.ok && <span className="ta-ok">{msg.ok}</span>}
+							{msg.err && <span className="ta-error">{msg.err}</span>}
+						</div>
+					</>
+				)}
 			</div>
 
-			{selectedId !== null && (
-				<>
-					<div className="ta-card ta-row">
-						<label style={{ margin: 0 }}>
-							Month
-							<select value={meta.month} onChange={e => setMeta({ ...meta, month: Number(e.target.value) })}>
-								{Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
-									<option key={m} value={m}>
-										{monthName(m)}
-									</option>
-								))}
-							</select>
-						</label>
-						<label style={{ margin: 0, maxWidth: 110 }}>
-							Year
-							<input type="number" value={meta.year} onChange={e => setMeta({ ...meta, year: Number(e.target.value) })} />
-						</label>
-						<label style={{ margin: 0, display: "flex", alignItems: "center", gap: 6 }}>
-							<input
-								type="checkbox"
-								checked={meta.published}
-								onChange={e => setMeta({ ...meta, published: e.target.checked })}
-								style={{ width: "auto" }}
-							/>
-							Published (the app shows the latest published layout)
-						</label>
-					</div>
-
-					<div className="ta-tabs">
-						<button className={tab === "visual" ? "active" : ""} onClick={() => switchTab("visual")}>
-							Visual editor
-						</button>
-						<button className={tab === "raw" ? "active" : ""} onClick={() => switchTab("raw")}>
-							Raw script
-						</button>
-					</div>
-
-					{tab === "visual" ? (
-						<>
-							<div className="ta-stack">
-								{blocks.map((b, i) => (
-									<BlockCard
-										key={b.key}
-										block={b}
-										index={i}
-										total={blocks.length}
-										titles={titles}
-										duplicates={duplicates}
-										onChange={nb => setBlocks(prev => prev.map(x => (x.key === b.key ? nb : x)))}
-										onMove={(from, dir) =>
-											setBlocks(prev => {
-												const next = [...prev];
-												const [item] = next.splice(from, 1);
-												next.splice(from + dir, 0, item);
-												return next;
-											})
-										}
-										onDelete={() => setBlocks(prev => prev.filter(x => x.key !== b.key))}
-									/>
-								))}
-								{blocks.length === 0 && <p className="ta-muted">Empty layout. Add blocks below.</p>}
-							</div>
-							<div className="ta-row">
-								<button className="ta-btn" onClick={() => addBlock("large")}>
-									+ Hero card
-								</button>
-								<button className="ta-btn" onClick={() => addBlock("side")}>
-									+ Sidescroll
-								</button>
-								<button className="ta-btn" onClick={() => addBlock("text")}>
-									+ Section header
-								</button>
-								<button className="ta-btn" onClick={() => addBlock("divider")}>
-									+ Divider
-								</button>
-							</div>
-							<div>
-								<h3 style={{ fontSize: 14, marginBottom: 6 }}>Script preview</h3>
-								<pre className="ta-code">{script || "(empty)"}</pre>
-							</div>
-						</>
-					) : (
-						<textarea rows={14} value={rawText} onChange={e => setRawText(e.target.value)} style={{ fontFamily: "monospace" }} />
-					)}
-
-					{missingIds.length > 0 && (
-						<p className="ta-error">Unknown article ids: {missingIds.join(", ")}. They don&rsquo;t exist in the article table.</p>
-					)}
-					{duplicates.size > 0 && (
-						<p className="ta-error">Duplicate article ids: {Array.from(duplicates).join(", ")}. Each article may appear once.</p>
-					)}
-
-					<div className="ta-row">
-						<button className="ta-btn ta-btn-primary" disabled={busy || (tab === "visual" && hardInvalid)} onClick={save}>
-							{busy ? "Saving…" : selectedId === "new" ? "Create layout" : "Save layout"}
-						</button>
-						{msg.ok && <span className="ta-ok">{msg.ok}</span>}
-						{msg.err && <span className="ta-error">{msg.err}</span>}
-					</div>
-				</>
-			)}
+			<LatestIssueList issue={latestIssue} articles={issueArticles} state={issueState} usedIds={usedIds} />
 		</div>
 	);
 }
 
 export default function LayoutPage() {
 	return (
-		<AdminShell title="App front-page layout">
+		<AdminShell title="App front-page layout" wide>
 			<LayoutEditor />
 		</AdminShell>
 	);
