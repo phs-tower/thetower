@@ -127,15 +127,26 @@ function LiveConsole() {
 		[supabase]
 	);
 
+	/** Returns null on success, or why the row is still there. The caller shows
+	 *  it next to the button: this message used to land at the top of the page,
+	 *  far above the panel the editor is looking at, so a refused delete read as
+	 *  the button doing nothing at all. */
 	const remove = useCallback(
-		async (id: number) => {
-			const { error: err } = await supabase.from("broadcast").delete().eq("id", id);
+		async (id: number): Promise<string | null> => {
+			const { data, error: err } = await supabase.from("broadcast").delete().eq("id", id).select("id");
 			if (err) {
 				setError(err.message);
-				return;
+				return err.message;
+			}
+			// A delete refused by RLS is not an error: it simply matches no rows.
+			if (!data?.length) {
+				const message = "Nothing was deleted. The row exists but this account is not allowed to remove it.";
+				setError(message);
+				return message;
 			}
 			setOpenId(prev => (prev === id ? null : prev));
 			await load();
+			return null;
 		},
 		[supabase, load]
 	);
@@ -378,7 +389,7 @@ function RunOfGame({
 	row: BroadcastRow;
 	commit: Commit;
 	onClose: () => void;
-	onDelete: (id: number) => void;
+	onDelete: (id: number) => Promise<string | null>;
 	canDelete: boolean;
 }) {
 	const [savedAt, setSavedAt] = useState<number | null>(null);
@@ -958,9 +969,12 @@ function EndPanel({
 	row: BroadcastRow;
 	act: (p: Partial<BroadcastRow>, note?: string) => Promise<string | null>;
 	acting: boolean;
-	onDelete: (id: number) => void;
+	onDelete: (id: number) => Promise<string | null>;
 	canDelete: boolean;
 }) {
+	const [deleting, setDeleting] = useState(false);
+	const [deleteError, setDeleteError] = useState<string | null>(null);
+
 	return (
 		<div className="ta-live-section">
 			<h3>Ending the game</h3>
@@ -1003,23 +1017,37 @@ function EndPanel({
 				it would leave somebody who saw it announced with no idea what happened.
 			</p>
 			{canDelete ? (
-				<div className="ta-row">
-					<button
-						className="ta-btn ta-btn-danger"
-						disabled={acting}
-						onClick={() => {
-							if (
-								window.confirm(
-									`Delete "${matchupLabel(row)}" outright? Cancelling is what you want unless this row was entered by mistake.`
+				<>
+					<div className="ta-row">
+						<button
+							className="ta-btn ta-btn-danger"
+							disabled={acting || deleting}
+							onClick={async () => {
+								if (
+									!window.confirm(
+										`Delete "${matchupLabel(row)}" outright? Cancelling is what you want unless this row was entered by mistake.`
+									)
 								)
-							)
-								onDelete(row.id);
-						}}
-					>
-						Delete this row
-					</button>
-					<span className="ta-muted ta-small">For a row entered by mistake, nothing else.</span>
-				</div>
+									return;
+								setDeleting(true);
+								setDeleteError(null);
+								const message = await onDelete(row.id);
+								setDeleting(false);
+								if (message) setDeleteError(message);
+							}}
+						>
+							{deleting ? "Deleting…" : "Delete this row"}
+						</button>
+						<span className="ta-muted ta-small">For a row entered by mistake, nothing else.</span>
+					</div>
+					{deleteError && (
+						<p className="ta-error">
+							{deleteError}
+							{/foreign key|23503/i.test(deleteError) &&
+								" This is the known gamecast delete bug: a game with plays cannot be removed until supabase/migrations/20261012000003_gamecast_delete_fix.sql has been applied to this project."}
+						</p>
+					)}
+				</>
 			) : (
 				<p className="ta-muted ta-small">
 					Deleting a row outright is an admin action. Cancel the game instead — that is the right tool anyway.
