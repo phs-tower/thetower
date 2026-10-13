@@ -1,5 +1,6 @@
 /** @format */
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AdminShell, { useAdmin } from "~/components/admin/AdminShell";
 import {
@@ -22,20 +23,21 @@ import {
 	youtubeThumbnail,
 	type BroadcastStatus,
 } from "~/lib/console/live";
+import { gamecastAvailable } from "~/lib/console/gamecast";
 
 // Feeds the app's News → Live tab (public.broadcast). Three things about the
 // reader side shape this whole screen:
 //
 //   * The app trusts `status`, never the clock. A game is on the air because a
 //     person pressed "Go live" here; nothing goes live by itself at kickoff.
-//   * The app POLLS EVERY TWO MINUTES. A score saved here is on a phone within
-//     about two minutes, not instantly, which is why the panel says so — an
-//     editor tapping +7 and staring at a phone for three seconds would
-//     otherwise assume it failed and tap it again.
+//   * The app listens over REALTIME. A score saved here is on a reader's phone
+//     within about a second; the game page falls back to re-reading every 15
+//     seconds if that connection drops (school wifi, a captive portal). The
+//     panel says so, because an editor who expects a delay taps +7 twice.
 //   * Only `published` rows are visible at all. There is no draft state
 //     beyond that flag.
 
-const APP_POLL_NOTE = "Readers see changes within about two minutes — the app polls every two minutes while the Live tab is open.";
+const APP_POLL_NOTE = "Readers see changes within about a second. If a phone loses the live connection, the game page re-checks every 15 seconds.";
 
 interface BroadcastRow {
 	id: number;
@@ -52,9 +54,17 @@ interface BroadcastRow {
 	show_score: boolean;
 	note: string;
 	published: boolean;
+	/** The Gamecast switch (football only). See pages/admin/live/[id]/gamecast.tsx. */
+	gamecast: boolean;
 }
 
-const COLUMNS = "id, sport, level, opponent, home, venue, starts_at, status, youtube_id, score_phs, score_opponent, show_score, note, published";
+const BASE_COLUMNS = "id, sport, level, opponent, home, venue, starts_at, status, youtube_id, score_phs, score_opponent, show_score, note, published";
+const COLUMNS = `${BASE_COLUMNS}, gamecast`;
+
+/** Postgres "undefined column". Until the Gamecast migration is applied the
+ *  board must still load: a broken live console on game night is worse than
+ *  a missing switch. */
+const UNDEFINED_COLUMN = "42703";
 
 const STATUS_BADGE: Record<string, { label: string; tone: string }> = {
 	live: { label: "● Live", tone: "red" },
@@ -90,13 +100,15 @@ function LiveConsole() {
 	const announceRef = useRef<HTMLDivElement | null>(null);
 
 	const load = useCallback(async () => {
-		const { data, error: err } = await supabase.from("broadcast").select(COLUMNS).order("starts_at", { ascending: false });
+		const select = (columns: string) => supabase.from("broadcast").select(columns).order("starts_at", { ascending: false });
+		let { data, error: err } = await select(COLUMNS);
+		if (err?.code === UNDEFINED_COLUMN) ({ data, error: err } = await select(BASE_COLUMNS));
 		if (err) {
 			setError(err.message);
 			return;
 		}
 		setError(null);
-		setRows((data ?? []) as BroadcastRow[]);
+		setRows(((data ?? []) as unknown as BroadcastRow[]).map(row => ({ ...row, gamecast: row.gamecast ?? false })));
 	}, [supabase]);
 
 	useEffect(() => {
@@ -259,6 +271,7 @@ function OnAir({ rows, openId, onOpen, loading }: { rows: BroadcastRow[]; openId
 						<button className="ta-btn ta-btn-primary" onClick={() => onOpen(row.id)}>
 							{openId === row.id ? "Open below" : "Run this game"}
 						</button>
+						{row.gamecast && <GamecastLink id={row.id} primary />}
 					</div>
 				))}
 			</div>
@@ -334,6 +347,12 @@ function Board({
 										<button className="ta-btn ta-btn-small" onClick={() => onDuplicate(row)}>
 											Duplicate
 										</button>
+										{row.gamecast && (
+											<>
+												{" "}
+												<GamecastLink id={row.id} />
+											</>
+										)}
 									</td>
 								</tr>
 							))}
@@ -416,6 +435,7 @@ function RunOfGame({
 			<SaveStatus savedAt={savedAt} failure={failure} onRetry={() => void run(failure!.patch)} notice={notice} />
 
 			<ScorePanel row={row} run={run} setNotice={setNotice} />
+			{(gamecastAvailable(row.sport) || row.gamecast) && <GamecastPanel row={row} act={act} acting={acting} />}
 			<StreamPanel row={row} act={act} acting={acting} />
 			<TimePanel row={row} act={act} acting={acting} />
 			<EndPanel row={row} act={act} acting={acting} onDelete={onDelete} canDelete={canDelete} />
@@ -659,6 +679,63 @@ function ScoreNumber({ value, onCommit, disabled }: { value: number | null; onCo
 				if (e.key === "Enter") e.currentTarget.blur();
 			}}
 		/>
+	);
+}
+
+function GamecastLink({ id, primary }: { id: number; primary?: boolean }) {
+	return (
+		<Link href={`/admin/live/${id}/gamecast`} className={`ta-btn ta-btn-small${primary ? " ta-btn-primary" : ""}`}>
+			Gamecast
+		</Link>
+	);
+}
+
+/**
+ * The Gamecast switch. Off by default, so every game that exists, and every
+ * game added without thinking about it, stays as it was in the app. Offered
+ * for football only; a game that somehow has it on still shows the switch so
+ * it can be turned off.
+ */
+function GamecastPanel({
+	row,
+	act,
+	acting,
+}: {
+	row: BroadcastRow;
+	act: (p: Partial<BroadcastRow>, note?: string) => Promise<string | null>;
+	acting: boolean;
+}) {
+	return (
+		<div className="ta-live-section">
+			<h3>Gamecast</h3>
+			<label className="ta-live-inline-check">
+				<input
+					type="checkbox"
+					checked={row.gamecast}
+					disabled={acting}
+					onChange={e =>
+						void act(
+							{ gamecast: e.target.checked },
+							e.target.checked
+								? "Gamecast on. Readers get the play-by-play view for this game."
+								: "Gamecast off. Readers see the ordinary game page; the plays and stats are kept, not deleted."
+						)
+					}
+				/>{" "}
+				Play-by-play and stats in the app
+			</label>
+			<p className="ta-muted ta-small">
+				For the games the paper staffs properly. Readers see the situation, a play feed, and team and player stats, entered from a phone on
+				the sideline.
+			</p>
+			{row.gamecast && (
+				<div className="ta-row" style={{ marginTop: "0.5rem" }}>
+					<Link href={`/admin/live/${row.id}/gamecast`} className="ta-btn ta-btn-primary ta-btn-big">
+						Open Gamecast
+					</Link>
+				</div>
+			)}
+		</div>
 	);
 }
 

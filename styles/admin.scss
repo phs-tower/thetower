@@ -1520,6 +1520,692 @@ input.ta-live-num {
 	}
 }
 
+/* ─── Gamecast: a phone on the sideline, one hand ───
+   Everything tappable is at least 44px tall. Selected states are a solid
+   fill, never a hover colour: a phone keeps :hover on whatever was tapped
+   last, so the console's hover style would make every button look chosen. */
+.ta-gc {
+	max-width: 40rem;
+	margin: 0 auto;
+	padding-bottom: 7rem; /* room for the suggestion bar */
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+
+	textarea {
+		width: 100%;
+		box-sizing: border-box;
+	}
+
+	@media (hover: none) {
+		.ta-btn:hover:not(:disabled):not(.ta-btn-primary):not(.ta-btn-danger) {
+			background: #fff;
+			color: $navy;
+		}
+	}
+}
+
+.ta-gc-back {
+	@include label-caps;
+	font-size: 0.78rem;
+	color: $navy;
+	text-decoration: none;
+	min-height: 44px;
+	display: inline-flex;
+	align-items: center;
+}
+
+.ta-gc-head h2 {
+	font-size: 1.5rem;
+}
+
+.ta-gc-status {
+	margin: 0;
+}
+
+.ta-card.ta-gc-section {
+	padding: 0.85rem;
+
+	h3 {
+		@include label-caps;
+		font-size: 0.78rem;
+		color: $muted;
+		margin: 0 0 0.6rem;
+	}
+
+	summary {
+		cursor: pointer;
+		min-height: 44px;
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
+
+		h3 {
+			margin: 0;
+		}
+	}
+}
+
+.ta-gc-score {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 0.6rem;
+}
+
+.ta-gc-score-side {
+	text-align: center;
+	border: 1px solid $rule;
+	border-radius: 0.4rem;
+	padding: 0.5rem;
+}
+
+.ta-gc-score-name {
+	@include label-caps;
+	color: $navy;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.ta-gc-score-num {
+	font-family: var(--font-sans), sans-serif;
+	font-size: 3rem;
+	line-height: 1.1;
+	font-variant-numeric: tabular-nums;
+	color: $navy;
+}
+
+.ta-gc-score-fix {
+	display: flex;
+	gap: 0.4rem;
+	justify-content: center;
+
+	.ta-btn {
+		min-height: 44px;
+		min-width: 3.2rem;
+	}
+}
+
+/* The strip the app draws, in the console's words. */
+.ta-gc-strip {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.35rem 0.9rem;
+	padding: 0.55rem 0.7rem;
+	margin-bottom: 0.75rem;
+	background: $navy;
+	color: #fff;
+	border-radius: 0.3rem;
+	font-family: var(--font-sans), sans-serif;
+	font-variant-numeric: tabular-nums;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+
+	span {
+		color: #fff;
+	}
+}
+
+.ta-gc-field {
+	margin-bottom: 0.75rem;
+}
+
+.ta-gc-label {
+	@include label-caps;
+	font-size: 0.72rem;
+	color: $muted;
+	margin-bottom: 0.3rem;
+}
+
+.ta-gc-side {
+	color: $navy;
+	border: 1px solid $navy;
+	border-radius: 0.15rem;
+	padding: 0 0.25rem;
+	margin-left: 0.25rem;
+	font-size: 0.65rem;
+}
+
+.ta-gc-row {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	flex-wrap: wrap;
+}
+
+/* Segmented control: one choice, big targets. */
+.ta-gc-seg {
+	display: inline-flex;
+	border: 1px solid $navy;
+	border-radius: 0.3rem;
+	overflow: hidden;
+	max-width: 100%;
+
+	&.wrap {
+		display: flex;
+		flex-wrap: wrap;
+	}
+
+	button {
+		flex: 1 1 auto;
+		min-height: 44px;
+		min-width: 3.2rem;
+		padding: 0.3rem 0.7rem;
+		border: none;
+		border-right: 1px solid $rule;
+		background: #fff;
+		color: $navy;
+		@include label-caps;
+		cursor: pointer;
+
+		&:last-child {
+			border-right: none;
+		}
+
+		&.on {
+			background: $navy;
+			color: #fff;
+		}
+	}
+}
+
+.ta-root input.ta-gc-clock,
+.ta-root input.ta-gc-yard {
+	width: 5.5rem;
+	min-height: 44px;
+	font-size: 1.35rem;
+	text-align: center;
+	font-variant-numeric: tabular-nums;
+
+	&.bad {
+		border-color: $red;
+		background: #fff7f9;
+	}
+}
+
+.ta-root input.ta-gc-clock {
+	width: 7rem;
+}
+
+.ta-btn.ta-gc-big {
+	min-height: 44px;
+	min-width: 3.2rem;
+}
+
+.ta-root label.ta-gc-abbrev {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	margin-top: 0.5rem;
+	font-size: 0.85rem;
+	color: $muted;
+
+	input {
+		width: 5rem;
+		text-transform: uppercase;
+	}
+}
+
+/* Play types: four across, so all sixteen fit in four short rows. */
+.ta-gc-types {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 0.3rem;
+	margin-bottom: 0.6rem;
+
+	button {
+		min-height: 44px;
+		padding: 0.2rem;
+		line-height: 1.15;
+		border: 1px solid $navy;
+		border-radius: 0.3rem;
+		background: #fff;
+		color: $navy;
+		@include label-caps;
+		font-size: 0.68rem;
+		letter-spacing: 0.04em;
+		cursor: pointer;
+
+		&.on {
+			background: $navy;
+			color: #fff;
+		}
+	}
+}
+
+.ta-gc-entry.editing {
+	border: 2px solid $red;
+}
+
+.ta-gc-chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.35rem;
+	margin: 0.35rem 0;
+
+	button {
+		min-height: 40px;
+		padding: 0.25rem 0.65rem;
+		border: 1px solid $rule;
+		border-radius: 999px;
+		background: #fff;
+		color: #000;
+		font-size: 0.9rem;
+		cursor: pointer;
+
+		&.on {
+			background: $navy;
+			border-color: $navy;
+			color: #fff;
+		}
+	}
+}
+
+.ta-gc-flags {
+	margin: 0.25rem 0 0.85rem;
+}
+
+.ta-gc-pick-name {
+	font-size: 1.05rem;
+
+	&.unknown {
+		color: $muted;
+		font-size: 0.85rem;
+	}
+}
+
+.ta-root textarea.ta-gc-desc {
+	font-size: 1rem;
+	font-family: var(--font-serif-text), serif;
+}
+
+.ta-gc-linkbtn {
+	border: none;
+	background: none;
+	padding: 0;
+	color: $navy;
+	text-decoration: underline;
+	cursor: pointer;
+	font-size: 0.72rem;
+}
+
+.ta-root label.ta-gc-small-field {
+	width: 7rem;
+	margin: 0;
+}
+
+.ta-gc-submit {
+	margin-top: 0.5rem;
+}
+
+.ta-btn.ta-gc-post {
+	flex: 1 1 12rem;
+	min-height: 56px;
+	font-size: 1.05rem;
+}
+
+.ta-gc-feed {
+	list-style: none;
+	margin: 0.6rem 0 0;
+	padding: 0;
+
+	li {
+		border-top: 1px solid $rule;
+		padding: 0.55rem 0;
+
+		&.scoring {
+			border-left: 4px solid $red;
+			padding-left: 0.55rem;
+		}
+
+		&.editing {
+			background: #fff7f9;
+		}
+	}
+}
+
+.ta-gc-feed-meta {
+	@include label-caps;
+	font-size: 0.68rem;
+	color: $muted;
+}
+
+.ta-gc-feed-desc {
+	margin: 0.15rem 0;
+}
+
+.ta-gc-feed-foot {
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
+
+	.ta-btn {
+		margin-left: auto;
+		min-height: 36px;
+	}
+}
+
+.ta-gc-roster {
+	list-style: none;
+	padding: 0;
+	margin: 0.6rem 0 0;
+
+	li {
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
+		padding: 0.25rem 0;
+		border-bottom: 1px solid $rule;
+
+		.ta-btn {
+			margin-left: auto;
+			min-height: 36px;
+			min-width: 36px;
+		}
+	}
+}
+
+.ta-gc-roster-num {
+	font-variant-numeric: tabular-nums;
+	min-width: 2.2rem;
+	color: $navy;
+}
+
+.ta-gc-stats {
+	width: 100%;
+	border-collapse: collapse;
+	margin-top: 0.6rem;
+	font-size: 0.9rem;
+	font-variant-numeric: tabular-nums;
+
+	th,
+	td {
+		padding: 0.25rem 0.35rem;
+		border-bottom: 1px solid $rule;
+		text-align: right;
+	}
+
+	th:first-child,
+	td:first-child {
+		text-align: left;
+	}
+
+	th {
+		@include label-caps;
+		font-size: 0.66rem;
+		color: $muted;
+	}
+}
+
+/* The game bar: pinned to the top while the editor scrolls. */
+.ta-gc-title {
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
+	flex-wrap: wrap;
+}
+
+.ta-gc-bar {
+	position: sticky;
+	top: 0;
+	z-index: 15;
+	background: $navy;
+	color: #fff;
+	border-radius: 0.35rem;
+	padding: 0.5rem 0.7rem;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+
+	span,
+	b {
+		color: #fff;
+	}
+
+	.ta-gc-linkbtn {
+		color: #fff;
+		font-size: 0.85rem;
+		margin-left: 0.6rem;
+		min-height: 32px;
+	}
+}
+
+.ta-gc-bar-top {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.6rem;
+}
+
+.ta-gc-bar-score {
+	display: flex;
+	align-items: baseline;
+	gap: 0.4rem;
+	font-family: var(--font-sans), sans-serif;
+	font-variant-numeric: tabular-nums;
+
+	span {
+		@include label-caps;
+		font-size: 0.72rem;
+	}
+
+	b {
+		font-size: 1.6rem;
+		font-weight: 600;
+	}
+}
+
+.ta-gc-bar-time {
+	font-family: var(--font-sans), sans-serif;
+	font-size: 1.15rem;
+	font-variant-numeric: tabular-nums;
+	color: #fff;
+}
+
+.ta-gc-bar-sit {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	width: 100%;
+	min-height: 44px;
+	margin-top: 0.35rem;
+	padding: 0.3rem 0.5rem;
+	border: 1px solid rgba(255, 255, 255, 0.35);
+	border-radius: 0.3rem;
+	background: rgba(255, 255, 255, 0.08);
+	color: #fff;
+	font-family: var(--font-sans), sans-serif;
+	font-size: 1rem;
+	text-align: left;
+	cursor: pointer;
+
+	b {
+		flex: 1;
+		text-transform: uppercase;
+		letter-spacing: 0.03em;
+	}
+
+	&.open {
+		background: rgba(255, 255, 255, 0.18);
+	}
+}
+
+.ta-gc-bar-poss {
+	@include label-caps;
+	font-size: 0.68rem;
+	white-space: nowrap;
+}
+
+.ta-gc-bar-adjust {
+	@include label-caps;
+	font-size: 0.68rem;
+	text-decoration: underline;
+}
+
+.ta-gc-bar-note,
+.ta-gc-bar-error,
+.ta-gc-bar-saved {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	font-size: 0.82rem;
+	margin-top: 0.25rem;
+	min-height: 1.1rem;
+	opacity: 0.9;
+}
+
+.ta-gc-bar-error {
+	background: $red;
+	border-radius: 0.2rem;
+	padding: 0.25rem 0.4rem;
+	opacity: 1;
+}
+
+/* Corrections drawer inside the bar. Scrolls on its own so the bar never
+   grows taller than the screen. */
+.ta-gc-adjust {
+	margin-top: 0.5rem;
+	padding: 0.6rem;
+	background: #fff;
+	color: #000;
+	border-radius: 0.3rem;
+	max-height: 60vh;
+	overflow-y: auto;
+
+	span,
+	b {
+		color: inherit;
+	}
+
+	.ta-gc-label {
+		color: $muted;
+	}
+}
+
+.ta-gc-inline {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 0.4rem;
+	margin-bottom: 0.5rem;
+
+	> .ta-gc-label {
+		min-width: 3.6rem;
+		margin: 0;
+	}
+}
+
+.ta-gc-scorefix {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.25rem;
+	margin-right: 0.5rem;
+	@include label-caps;
+	font-size: 0.72rem;
+}
+
+/* Time at the snap: the first thing on every play. */
+.ta-gc-snap {
+	padding-bottom: 0.5rem;
+	margin-bottom: 0.5rem;
+	border-bottom: 1px solid $rule;
+}
+
+.ta-gc-snap-period {
+	@include label-caps;
+	color: $navy;
+}
+
+.ta-gc-picks {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0.5rem 0.6rem;
+	margin-bottom: 0.6rem;
+}
+
+.ta-gc-pick {
+	min-width: 0;
+
+	.ta-gc-label {
+		margin-bottom: 0.15rem;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.ta-gc-row {
+		flex-wrap: nowrap;
+		gap: 0.35rem;
+	}
+
+	input.ta-gc-yard {
+		width: 3.6rem;
+		flex-shrink: 0;
+	}
+
+	.ta-gc-pick-name {
+		font-size: 0.85rem;
+		line-height: 1.15;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+}
+
+/* Recent numbers: one swipeable row rather than a wrapping block. */
+.ta-gc-chips.ta-gc-recent {
+	flex-wrap: nowrap;
+	overflow-x: auto;
+	margin: 0.25rem 0 0;
+	-webkit-overflow-scrolling: touch;
+
+	button {
+		flex-shrink: 0;
+		min-height: 36px;
+		font-size: 0.8rem;
+		padding: 0.15rem 0.5rem;
+	}
+}
+
+/* Post sits under the thumb, so a play is entered without scrolling to it. */
+.ta-gc-postbar {
+	position: fixed;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	z-index: 20;
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
+	padding: 0.55rem 0.75rem calc(0.55rem + env(safe-area-inset-bottom));
+	background: #fff;
+	border-top: 3px solid $navy;
+	box-shadow: 0 -4px 14px rgba(0, 0, 0, 0.12);
+}
+
+.ta-gc-postbar-text {
+	flex: 1;
+	min-width: 0;
+}
+
+.ta-gc-postbar-desc {
+	font-size: 0.92rem;
+	line-height: 1.25;
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
+
+.ta-gc-postbar-actions {
+	display: flex;
+	gap: 0.35rem;
+	flex-shrink: 0;
+
+	.ta-btn.ta-gc-post {
+		flex: none;
+		min-width: 5.5rem;
+		min-height: 48px;
+	}
+}
+
 /* ─── Layout editor: the newest issue ─── */
 .ta-layout-shell {
 	display: grid;
