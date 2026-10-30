@@ -35,6 +35,7 @@ const NAV = [
 	{ href: "/admin/live", label: "Live" },
 	{ href: "/admin/crossword", label: "Crosswords" },
 	{ href: "/admin/vanguard", label: "Vanguard" },
+	{ href: "/admin/ascent", label: "Ascent" },
 	{ href: "/admin/push", label: "Push" },
 ];
 

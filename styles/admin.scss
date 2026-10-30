@@ -2316,3 +2316,347 @@ input.ta-live-num {
 	font-size: 1rem;
 	line-height: 1.25;
 }
+
+/* ─── The Ascent ─── */
+.ta-tabs a {
+	position: relative;
+	border-bottom: 3px solid transparent;
+	margin-bottom: -1px;
+	padding: 0.5rem 0.9rem;
+	@include label-caps;
+	font-size: 0.78rem;
+	color: $muted;
+	text-decoration: none;
+	white-space: nowrap;
+
+	&:hover {
+		color: $navy;
+	}
+
+	&.active {
+		color: $navy;
+		border-bottom-color: $navy;
+	}
+}
+
+.ta-asc-meta {
+	@include label-caps;
+	font-size: 0.7rem;
+}
+
+.ta-asc-nowrap {
+	white-space: nowrap;
+}
+
+.ta-asc-notice {
+	margin: 0;
+	padding: 0.6rem 0.85rem;
+	border-left: 3px solid $navy;
+	background: #f3f6f8;
+	font-family: var(--font-sans), sans-serif;
+	font-size: 0.95rem;
+}
+
+.ta-asc-counts {
+	@include label-caps;
+	color: $navy;
+	margin-bottom: 0.25rem;
+}
+
+.ta-asc-weekname {
+	font-family: var(--font-serif-header), serif;
+	font-weight: normal;
+	font-size: 1.25rem;
+}
+
+.ta-asc-week {
+	display: grid;
+	grid-template-columns: repeat(5, minmax(0, 1fr));
+	gap: 0.75rem;
+	margin-top: 1rem;
+
+	@media screen and (max-width: 900px) {
+		grid-template-columns: 1fr;
+	}
+}
+
+.ta-asc-day {
+	display: flex;
+	flex-direction: column;
+	gap: 0.6rem;
+
+	h3 {
+		font-size: 1.15rem;
+		border-bottom: 2px solid #000;
+		padding-bottom: 0.2rem;
+	}
+}
+
+.ta-asc-slot {
+	border: 1px solid $rule;
+	border-top: 3px solid $navy;
+	border-radius: 0.3rem;
+	background: #fff;
+	padding: 0.6rem 0.7rem;
+	display: flex;
+	flex-direction: column;
+	gap: 0.45rem;
+	min-height: 9rem;
+
+	&.sport {
+		border-top-color: $red;
+	}
+
+	&.archive {
+		border-top-color: $pale;
+	}
+
+	&.empty {
+		border-style: dashed;
+		border-top-width: 1px;
+		align-items: flex-start;
+		justify-content: space-between;
+		background: #fafbfc;
+	}
+
+	.ta-btn-small {
+		align-self: flex-start;
+	}
+}
+
+.ta-asc-slot-text {
+	font-family: var(--font-serif-header), serif;
+	font-size: 1.1rem;
+	line-height: 1.25;
+}
+
+.ta-asc-slot-actions {
+	gap: 0.85rem;
+	font-size: 0.9rem;
+}
+
+.ta-asc-weights {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.25rem 0.6rem;
+	align-items: baseline;
+	font-family: var(--font-sans), sans-serif;
+	font-size: 0.85rem;
+}
+
+.ta-asc-weights-form {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 0.4rem;
+	max-width: 26rem;
+
+	label {
+		margin-bottom: 0;
+		font-size: 0.68rem;
+	}
+
+	.ta-row,
+	.ta-error {
+		grid-column: 1 / -1;
+	}
+}
+
+.ta-asc-note {
+	font-size: 0.8rem;
+}
+
+.ta-root .ta-asc-danger {
+	color: $red;
+}
+
+.ta-asc-confirm {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.4rem;
+	align-items: center;
+	font-family: var(--font-sans), sans-serif;
+	font-size: 0.9rem;
+}
+
+.ta-asc-picker {
+	max-width: 44rem;
+
+	h3 {
+		text-transform: capitalize;
+	}
+
+	ul {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+	}
+
+	li {
+		display: flex;
+		gap: 0.75rem;
+		align-items: center;
+		justify-content: space-between;
+		padding: 0.45rem 0;
+		border-bottom: 1px solid $rule;
+
+		&.blocked .ta-asc-picker-main > div:first-child {
+			color: $muted;
+		}
+	}
+}
+
+.ta-asc-blocked {
+	color: $red;
+}
+
+.ta-asc-bank-group {
+	margin-bottom: 1.75rem;
+
+	h2 {
+		font-size: 1.4rem;
+		text-transform: capitalize;
+		margin-bottom: 0.5rem;
+	}
+}
+
+.ta-asc-head h2 {
+	font-size: 1.6rem;
+	margin: 0.35rem 0 0.5rem;
+}
+
+.ta-asc-try label {
+	margin-bottom: 0.4rem;
+}
+
+.ta-asc-ask {
+	color: #a16207;
+	font-family: var(--font-sans), sans-serif;
+	margin: 0;
+}
+
+.ta-asc-add {
+	align-items: flex-start;
+
+	input[type="text"] {
+		max-width: 24rem;
+	}
+
+	.ta-error {
+		flex-basis: 100%;
+	}
+}
+
+.ta-asc-words {
+	td {
+		font-family: var(--font-sans), sans-serif;
+		font-size: 0.92rem;
+	}
+
+	input[type="text"] {
+		padding: 0.25rem 0.4rem;
+		font-size: 0.9rem;
+		min-width: 8rem;
+	}
+}
+
+.ta-asc-canonical {
+	font-weight: 600;
+}
+
+.ta-asc-aliases {
+	max-width: 18rem;
+}
+
+.ta-asc-inline {
+	margin-left: 0.4rem;
+	font-size: 0.85rem;
+}
+
+.ta-asc-inline-form {
+	display: flex;
+	gap: 0.3rem;
+	align-items: center;
+	margin-top: 0.25rem;
+}
+
+.ta-asc-cell-error {
+	font-size: 0.85rem;
+	margin-top: 0.2rem;
+}
+
+.ta-root .ta-table .ta-asc-num {
+	text-align: right;
+	white-space: nowrap;
+}
+
+/* The prior as a bar behind its number: short is obvious, long is rare. */
+.ta-asc-prior {
+	display: inline-block;
+	min-width: 3.5rem;
+	padding: 0 0.3rem;
+	background: linear-gradient(to right, rgba(6, 27, 64, 0.14) calc(var(--p) * 100%), transparent 0);
+}
+
+.ta-asc-review {
+	display: grid;
+	grid-template-columns: 18rem minmax(0, 1fr);
+	gap: 1.5rem;
+	align-items: start;
+
+	@media screen and (max-width: 800px) {
+		grid-template-columns: 1fr;
+	}
+
+	h2 {
+		font-size: 1.5rem;
+	}
+}
+
+.ta-asc-review-list {
+	ul {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		max-height: 75vh;
+		overflow-y: auto;
+		border: 1px solid $rule;
+		border-radius: 0.35rem;
+	}
+
+	button {
+		display: flex;
+		flex-direction: column;
+		gap: 0.15rem;
+		width: 100%;
+		text-align: left;
+		background: #fff;
+		border: none;
+		border-bottom: 1px solid $rule;
+		padding: 0.55rem 0.7rem;
+		cursor: pointer;
+		font-size: 0.95rem;
+
+		&:hover {
+			background: #fafbfc;
+		}
+
+		&.active {
+			background: #eef2f6;
+			box-shadow: inset 3px 0 0 $navy;
+		}
+	}
+}
+
+.ta-asc-raw {
+	font-family: var(--font-serif-text), serif;
+	font-size: 1.1rem;
+}
+
+.ta-asc-done {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+}
