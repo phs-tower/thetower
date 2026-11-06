@@ -216,13 +216,12 @@ test("the ladder covers 0 to 1 without gaps and tierIndex agrees with it", () =>
 	assert.equal(LADDER[0].from, 0);
 	assert.equal(LADDER[LADDER.length - 1].to, 1);
 	for (let i = 1; i < LADDER.length; i++) assert.equal(LADDER[i].from, LADDER[i - 1].to);
-	// ascent_score: rarity < 0.35 is 10, < 0.55 is 25 … else 100.
+	// ascent_score: rarity < 0.35 is 10, < 0.55 is 25 … < 0.90 is 70, else 100.
 	assert.equal(LADDER[tierIndex(0)].score, 10);
 	assert.equal(LADDER[tierIndex(0.3499)].score, 10);
 	assert.equal(LADDER[tierIndex(0.35)].score, 25);
-	assert.equal(LADDER[tierIndex(0.9)].score, 85);
-	assert.equal(LADDER[tierIndex(0.9599)].score, 85);
-	assert.equal(LADDER[tierIndex(0.96)].score, 100);
+	assert.equal(LADDER[tierIndex(0.8999)].score, 70);
+	assert.equal(LADDER[tierIndex(0.9)].score, 100);
 	assert.equal(LADDER[tierIndex(1)].score, 100);
 });
 
@@ -231,7 +230,7 @@ test("byTier lists every tier, empty ones too", () => {
 	assert.equal(groups.length, LADDER.length);
 	assert.deepEqual(
 		groups.map(g => g.answers.map(a => a.id)),
-		[[1], [], [], [], [], [], [2]]
+		[[1], [], [], [], [], [2]]
 	);
 });
 
@@ -247,6 +246,8 @@ test("dropPrior lands halfway between neighbours, inside the tier dropped into",
 	assert.equal(dropPrior(others, { kind: "answer", id: 3, after: false }), 0.575);
 	// Below 4, at the top: between 4 and 1.
 	assert.equal(dropPrior(others, { kind: "answer", id: 4, after: true }), 0.99);
+	// Above 4, the only Legendary: between the 0.90 threshold and 4.
+	assert.equal(dropPrior(others, { kind: "answer", id: 4, after: false }), 0.94);
 	// On an empty tier's heading (Epic): its middle.
 	assert.equal(dropPrior(others, { kind: "tier", index: 4 }), 0.86);
 	// On a tier's heading with answers in it: above its first.

@@ -312,8 +312,9 @@ function Ladder({ groups }: { groups: ReturnType<typeof byTier> }) {
 				))}
 			</div>
 			<p className="ta-muted ta-small">
-				Rarity runs 0 (most obvious) to 1 (rarest), and the tier it lands in is the score: readers&apos; answers never move it. Drag an answer
-				by ⠿ to place it by hand; it lands halfway between its new neighbours, inside the tier you drop it in.
+				Rarity is an answer&apos;s rank in this list, 0 for the most mentioned and 1 for the least, so the tiers split the list by position:
+				the bottom 35% Common, the top 10% Legendary. Readers&apos; answers never move it. Drag an answer by ⠿ to place it by hand; it lands
+				halfway between its new neighbours, inside the tier you drop it in.
 			</p>
 		</div>
 	);

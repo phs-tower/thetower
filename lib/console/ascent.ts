@@ -247,15 +247,15 @@ export interface Tier {
 
 /** Mirrors ascent_score() and ascent_tier() in the app repo's
  *  supabase/ascent.sql, and the rarity words of lib/models/ascent.dart.
- *  Ground to roof. */
+ *  Ground to roof. Rarity is an answer's rank in its prompt, so these are
+ *  shares of the list: the bottom 35% Common, the top 10% Legendary. */
 export const LADDER: Tier[] = [
 	{ from: 0, to: 0.35, score: 10, tier: "Front Steps", rarity: "Common" },
 	{ from: 0.35, to: 0.55, score: 25, tier: "Lobby", rarity: "Uncommon" },
 	{ from: 0.55, to: 0.7, score: 40, tier: "Newsroom", rarity: "Rare" },
 	{ from: 0.7, to: 0.82, score: 55, tier: "The Archives", rarity: "Super Rare" },
 	{ from: 0.82, to: 0.9, score: 70, tier: "Clock Face", rarity: "Epic" },
-	{ from: 0.9, to: 0.96, score: 85, tier: "Belfry", rarity: "Legendary" },
-	{ from: 0.96, to: 1, score: 100, tier: "The Masthead", rarity: "Legendary" },
+	{ from: 0.9, to: 1, score: 100, tier: "The Masthead", rarity: "Legendary" },
 ];
 
 /** The colour each rarity word is shown in, as the app shows it. */
