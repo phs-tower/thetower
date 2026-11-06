@@ -4,22 +4,29 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import AdminShell, { useAdmin } from "~/components/admin/AdminShell";
 import { AscentTabs } from "~/components/admin/AscentKit";
-import { FAMILIES, formatWeights, PROMPT_COLUMNS, type AscentPrompt } from "~/lib/console/ascent";
+import { FAMILIES, formatWeights, lastRunByKey, lastUsedLabel, localToday, PROMPT_COLUMNS, type AscentPrompt } from "~/lib/console/ascent";
 
 // Every prompt in the bank (day is null). Each is the template its scheduled
-// copies start from: its word list, search terms and weights are what the
-// next run gets.
+// copies start from: its word list, search terms, weights and hand-placed
+// answers are what the next run gets. Prompts may repeat; the tag says when
+// each last ran.
 
 function Bank() {
 	const { supabase } = useAdmin();
 	const [prompts, setPrompts] = useState<AscentPrompt[] | null>(null);
+	const [lastRun, setLastRun] = useState<Map<string, string>>(new Map());
 	const [error, setError] = useState<string | null>(null);
 	const [filter, setFilter] = useState("");
 
 	const load = useCallback(async () => {
-		const { data, error: err } = await supabase.from("ascent_prompt").select(PROMPT_COLUMNS).is("day", null).order("key");
-		if (err) setError(err.message);
-		else setPrompts((data ?? []) as AscentPrompt[]);
+		const [bank, runs] = await Promise.all([
+			supabase.from("ascent_prompt").select(PROMPT_COLUMNS).is("day", null).order("key"),
+			supabase.from("ascent_prompt").select("key, day").not("day", "is", null),
+		]);
+		const err = bank.error ?? runs.error;
+		if (err) return setError(err.message);
+		setPrompts((bank.data ?? []) as AscentPrompt[]);
+		setLastRun(lastRunByKey((runs.data ?? []) as { key: string | null; day: string | null }[]));
 	}, [supabase]);
 
 	useEffect(() => {
@@ -49,6 +56,7 @@ function Bank() {
 								<tr>
 									<th>Prompt</th>
 									<th>Key</th>
+									<th>Last used</th>
 									<th>Weights</th>
 								</tr>
 							</thead>
@@ -59,6 +67,11 @@ function Bank() {
 											<Link href={`/admin/ascent/${p.id}`}>{p.text}</Link>
 										</td>
 										<td className="ta-muted">{p.key}</td>
+										<td className="ta-asc-nowrap">
+											<span className={`ta-badge ${p.key && lastRun.has(p.key) ? "" : "green"}`}>
+												{lastUsedLabel((p.key && lastRun.get(p.key)) || null, localToday())}
+											</span>
+										</td>
 										<td className="ta-muted ta-asc-nowrap">{formatWeights(p)}</td>
 									</tr>
 								))}

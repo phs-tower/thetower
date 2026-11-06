@@ -2660,3 +2660,89 @@ input.ta-live-num {
 	flex-direction: column;
 	gap: 0.25rem;
 }
+
+/* The word list, grouped by tier. Each tbody carries its rarity colour as
+   --c; rows drag by their ⠿ handle and show a line where they would land. */
+.ta-asc-ladder {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.ta-asc-ladder-bar {
+	display: flex;
+	gap: 2px;
+	min-height: 3.6rem;
+
+	> div {
+		flex-basis: 0;
+		min-width: 4.5rem;
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		padding: 0.3rem 0.45rem;
+		background: color-mix(in srgb, var(--c) 14%, #fff);
+		border-top: 4px solid var(--c);
+		font-family: var(--font-sans), sans-serif;
+		line-height: 1.2;
+	}
+}
+
+.ta-asc-ladder-word {
+	font-weight: 700;
+	color: var(--c);
+	font-size: 0.85rem;
+}
+
+.ta-asc-ladder-sub {
+	font-size: 0.72rem;
+	color: $muted;
+	white-space: nowrap;
+}
+
+.ta-root .ta-table.ta-asc-words {
+	tr.ta-asc-tier td {
+		background: color-mix(in srgb, var(--c) 12%, #fff);
+		border-left: 4px solid var(--c);
+		font-family: var(--font-sans), sans-serif;
+		font-size: 0.85rem;
+		padding-top: 0.35rem;
+		padding-bottom: 0.35rem;
+
+		strong {
+			color: var(--c);
+		}
+	}
+
+	tr.drop-before td {
+		box-shadow: inset 0 3px 0 $navy;
+	}
+
+	tr.drop-after td {
+		box-shadow: inset 0 -3px 0 $navy;
+	}
+
+	tr.dragging {
+		opacity: 0.4;
+	}
+}
+
+.ta-asc-handle {
+	cursor: grab;
+	color: $muted;
+	user-select: none;
+	width: 1.2rem;
+	text-align: center;
+
+	&[draggable="false"] {
+		cursor: default;
+		opacity: 0.3;
+	}
+}
+
+.ta-asc-manual {
+	display: block;
+	font-size: 0.72rem;
+	color: $muted;
+	@include label-caps;
+}

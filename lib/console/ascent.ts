@@ -4,10 +4,12 @@
 // be unit tested.
 //
 // THE SERVER OWNS THE GAME. Scheduling rules live in ascent_bank, matching in
-// ascent_match (via ascent_try), scoring in ascent_archive_prior and
-// ascent_board. Nothing here decides whether a prompt may run, whether an
-// answer counts or how rare it is: this file lays out what the RPCs return and
-// fetches Wikipedia counts, the one input the server cannot get for itself.
+// ascent_match (via ascent_try), scoring in ascent_prior and ascent_board.
+// Nothing here decides whether a prompt may run or whether an answer counts:
+// this file lays out what the RPCs return, fetches Wikipedia counts (the one
+// input the server cannot get for itself), and works out where a dragged
+// answer's prior goes. LADDER mirrors ascent_score so the word list can show
+// which tier each answer lands in.
 // See the app repo's ASCENT.md and supabase/ascent.sql.
 //
 // Dates are ISO days ('2026-11-02'), the same as ascent_prompt.day. Date
@@ -26,7 +28,7 @@ export const SET_ANSWERS_BATCH = 25;
 /** How many Wikipedia requests are in flight at once. */
 export const WIKI_CONCURRENCY = 4;
 
-export const PROMPT_COLUMNS = "id, day, slot, key, family, text, opens_at, closes_at, published, wiki_weight, prior_weight, turnout";
+export const PROMPT_COLUMNS = "id, day, slot, key, family, text, opens_at, closes_at, published, wiki_weight";
 
 export interface AscentPrompt {
 	id: number;
@@ -39,8 +41,6 @@ export interface AscentPrompt {
 	closes_at: string | null;
 	published: boolean;
 	wiki_weight: number;
-	prior_weight: number;
-	turnout: number;
 }
 
 export interface BankRow {
@@ -58,7 +58,12 @@ export interface ReviewAnswer {
 	term: string | null;
 	tower_mentions: number | null;
 	wiki_hits: number | null;
+	/** What the counts give: 0 most obvious, 1 rarest. */
+	archive_prior: number | null;
+	/** The score's rarity: the editor's placement if `manual`, else archive_prior. */
 	prior: number | null;
+	/** Whether an editor dragged it into place (ascent_set_prior). */
+	manual: boolean;
 }
 
 export interface Unmatched {
@@ -182,56 +187,138 @@ export function permissions(phase: Phase) {
 
 // ─── The bank ───────────────────────────────────────────────────────────────
 
-export const COOLDOWN_REASON = "ran within six months";
-
 export function groupBank(rows: BankRow[]): { family: Family; rows: BankRow[] }[] {
 	return FAMILIES.map(family => ({ family, rows: rows.filter(r => r.family === family) })).filter(g => g.rows.length > 0);
 }
 
-/** Whether the cooldown has blocked most of the bank: three quarters or
- *  more, or fewer than five prompts left that it hasn't. */
-export function bankRunningLow(rows: BankRow[]): boolean {
-	if (rows.length === 0) return false;
-	const cooled = rows.filter(r => r.blocked === COOLDOWN_REASON).length;
-	return cooled / rows.length >= 0.75 || rows.length - cooled < 5;
+/** The tag beside a bank prompt: when a copy of it last ran (or is
+ *  scheduled to). Prompts may repeat; this is only so an editor notices. */
+export function lastUsedLabel(lastRan: string | null, todayIso: string): string {
+	if (!lastRan) return "never used";
+	const when = `${dayLabel(lastRan)} ${lastRan.slice(0, 4)}`;
+	return lastRan > todayIso ? `scheduled ${when}` : lastRan === todayIso ? "running today" : `last used ${when}`;
+}
+
+/** The latest day each key has been scheduled, from ascent_prompt rows. */
+export function lastRunByKey(rows: { key: string | null; day: string | null }[]): Map<string, string> {
+	const out = new Map<string, string>();
+	for (const r of rows) if (r.key && r.day && (out.get(r.key) ?? "") < r.day) out.set(r.key, r.day);
+	return out;
 }
 
 // ─── Weights ────────────────────────────────────────────────────────────────
 
 export interface Weights {
 	wiki_weight: number;
-	prior_weight: number;
-	turnout: number;
 }
 
 export interface WeightsForm {
 	wikiPct: string;
-	priorPct: string;
-	turnout: string;
 }
 
 const pctOf = (fraction: number) => String(Math.round(Number(fraction) * 1000) / 10);
 
 export function weightsToForm(w: Weights): WeightsForm {
-	return { wikiPct: pctOf(w.wiki_weight), priorPct: pctOf(w.prior_weight), turnout: String(w.turnout) };
+	return { wikiPct: pctOf(w.wiki_weight) };
 }
 
 /** The form as the RPC's arguments, or the reason it can't be. */
 export function formToWeights(f: WeightsForm): { ok: true; weights: Weights } | { ok: false; error: string } {
 	const wiki = Number(f.wikiPct.trim());
-	const prior = Number(f.priorPct.trim());
-	const turnout = Number(f.turnout.trim());
 	if (f.wikiPct.trim() === "" || !Number.isFinite(wiki) || wiki < 0 || wiki > 100) return { ok: false, error: "Wikipedia share must be 0–100%." };
-	if (f.priorPct.trim() === "" || !Number.isFinite(prior) || prior < 0 || prior > 100) return { ok: false, error: "Prior share must be 0–100%." };
-	if (!Number.isInteger(turnout) || turnout < 1) return { ok: false, error: "Turnout must be a whole number, 1 or more." };
-	return {
-		ok: true,
-		weights: { wiki_weight: Math.round(wiki * 10) / 1000, prior_weight: Math.round(prior * 10) / 1000, turnout },
-	};
+	return { ok: true, weights: { wiki_weight: Math.round(wiki * 10) / 1000 } };
 }
 
 export function formatWeights(w: Weights): string {
-	return `wiki ${pctOf(w.wiki_weight)}% · prior ${pctOf(w.prior_weight)}% · turnout ${w.turnout}`;
+	return `wiki ${pctOf(w.wiki_weight)}%`;
+}
+
+// ─── The ladder ─────────────────────────────────────────────────────────────
+
+export interface Tier {
+	/** Rarity from which an answer reaches this tier, inclusive. */
+	from: number;
+	/** Rarity at which the next tier starts, exclusive (1 for the top). */
+	to: number;
+	score: number;
+	tier: string;
+	rarity: string;
+}
+
+/** Mirrors ascent_score() and ascent_tier() in the app repo's
+ *  supabase/ascent.sql, and the rarity words of lib/models/ascent.dart.
+ *  Ground to roof. */
+export const LADDER: Tier[] = [
+	{ from: 0, to: 0.35, score: 10, tier: "Front Steps", rarity: "Common" },
+	{ from: 0.35, to: 0.55, score: 25, tier: "Lobby", rarity: "Uncommon" },
+	{ from: 0.55, to: 0.7, score: 40, tier: "Newsroom", rarity: "Rare" },
+	{ from: 0.7, to: 0.82, score: 55, tier: "The Archives", rarity: "Super Rare" },
+	{ from: 0.82, to: 0.9, score: 70, tier: "Clock Face", rarity: "Epic" },
+	{ from: 0.9, to: 0.96, score: 85, tier: "Belfry", rarity: "Legendary" },
+	{ from: 0.96, to: 1, score: 100, tier: "The Masthead", rarity: "Legendary" },
+];
+
+/** The colour each rarity word is shown in, as the app shows it. */
+export const RARITY_COLORS: Record<string, string> = {
+	Common: "#8A949C",
+	Uncommon: "#2E9E6B",
+	Rare: "#2F7FD1",
+	"Super Rare": "#13A3B5",
+	Epic: "#8E44D9",
+	Legendary: "#E08A00",
+};
+
+/** The index into LADDER of the tier a rarity lands in. */
+export function tierIndex(prior: number): number {
+	for (let i = LADDER.length - 1; i > 0; i--) if (Number(prior) >= LADDER[i].from) return i;
+	return 0;
+}
+
+/** Answers grouped under every tier of the ladder, empty tiers included so
+ *  an answer can be dragged into one. `answers` must be sortByPrior'd;
+ *  answers without a prior are left out. */
+export function byTier(answers: ReviewAnswer[]): { tier: Tier; index: number; answers: ReviewAnswer[] }[] {
+	return LADDER.map((tier, index) => ({
+		tier,
+		index,
+		answers: answers.filter(a => a.prior !== null && a.prior !== undefined && tierIndex(a.prior) === index),
+	}));
+}
+
+/** Where an answer was dropped: just above or below another answer, or at
+ *  the top of a tier (on its heading). */
+export type DropTarget = { kind: "answer"; id: number; after: boolean } | { kind: "tier"; index: number };
+
+/** The prior a dragged answer gets: halfway between whatever it now sits
+ *  between, never outside the tier it was dropped into. `others` are the
+ *  prompt's other answers, sortByPrior'd. Null if the target is not there. */
+export function dropPrior(others: ReviewAnswer[], target: DropTarget): number | null {
+	const ranked = others.filter(a => a.prior !== null && a.prior !== undefined);
+	let lo: number;
+	let hi: number;
+	if (target.kind === "tier") {
+		const tier = LADDER[target.index];
+		if (!tier) return null;
+		const first = ranked.find(a => tierIndex(a.prior!) === target.index);
+		lo = tier.from;
+		hi = first ? Number(first.prior) : tier.to;
+	} else {
+		const at = ranked.findIndex(a => a.id === target.id);
+		if (at < 0) return null;
+		const p = Number(ranked[at].prior);
+		const tier = LADDER[tierIndex(p)];
+		const sameTier = (a: ReviewAnswer | undefined) => a !== undefined && tierIndex(a.prior!) === tierIndex(p);
+		if (target.after) {
+			const next = ranked[at + 1];
+			lo = p;
+			hi = sameTier(next) ? Number(next.prior) : tier.to;
+		} else {
+			const prev = ranked[at - 1];
+			lo = sameTier(prev) ? Number(prev.prior) : tier.from;
+			hi = p;
+		}
+	}
+	return Math.round(((lo + hi) / 2) * 10000) / 10000;
 }
 
 // ─── The word list ──────────────────────────────────────────────────────────

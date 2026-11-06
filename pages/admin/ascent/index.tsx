@@ -6,12 +6,12 @@ import AdminShell, { useAdmin } from "~/components/admin/AdminShell";
 import { AscentTabs, PhaseBadge, useNow, WeightsEditor } from "~/components/admin/AscentKit";
 import {
 	addDays,
-	bankRunningLow,
 	dayLabel,
 	defaultMonday,
 	familyCounts,
 	formatFamilyCounts,
 	groupBank,
+	lastUsedLabel,
 	localToday,
 	permissions,
 	promptPhase,
@@ -22,7 +22,7 @@ import {
 } from "~/lib/console/ascent";
 
 // The Ascent's week: two prompts a school day. The scheduling rules (two
-// families a day, four of a family a week, six months between runs) live in
+// families a day, four of a family a week; no cooldown for now) live in
 // ascent_bank and ascent_schedule; this screen shows what they say.
 
 function Picker({ day, onScheduled, onClose }: { day: string; onScheduled: () => void; onClose: () => void }) {
@@ -73,12 +73,6 @@ function Picker({ day, onScheduled, onClose }: { day: string; onScheduled: () =>
 						<p className="ta-muted ta-small">
 							{free} of {rows.length} prompts can run this day.
 						</p>
-						{bankRunningLow(rows) && (
-							<p className="ta-asc-notice">
-								Most of the bank ran in the last six months, so the choice is thin. Add prompts to the bank in the app repo&apos;s
-								import when you can.
-							</p>
-						)}
 						{groupBank(rows).map(group => (
 							<section key={group.family} className="ta-asc-picker-group">
 								<h3>{group.family}</h3>
@@ -88,8 +82,10 @@ function Picker({ day, onScheduled, onClose }: { day: string; onScheduled: () =>
 											<div className="ta-asc-picker-main">
 												<div>{r.text}</div>
 												<div className="ta-muted ta-asc-meta">
-													{r.key} ·{" "}
-													{r.last_ran ? `last ran ${dayLabel(r.last_ran)} ${r.last_ran.slice(0, 4)}` : "never run"}
+													{r.key}{" "}
+													<span className={`ta-badge ${r.last_ran ? "" : "green"}`}>
+														{lastUsedLabel(r.last_ran, localToday())}
+													</span>
 													{r.blocked && <span className="ta-asc-blocked"> · {r.blocked}</span>}
 												</div>
 											</div>

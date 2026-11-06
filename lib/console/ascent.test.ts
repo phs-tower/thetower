@@ -11,15 +11,19 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
 	addDays,
-	bankRunningLow,
+	byTier,
 	chunk,
 	defaultMonday,
 	describeTry,
+	dropPrior,
 	familyCounts,
 	fetchWikiCounts,
 	formatFamilyCounts,
 	formToWeights,
 	groupBank,
+	LADDER,
+	lastRunByKey,
+	lastUsedLabel,
 	missingWiki,
 	mondayOf,
 	parseReview,
@@ -29,6 +33,7 @@ import {
 	promptPhase,
 	searchTerm,
 	sortByPrior,
+	tierIndex,
 	weekGrid,
 	weightsToForm,
 	wikiBatches,
@@ -49,8 +54,6 @@ const prompt = (over: Partial<AscentPrompt>): AscentPrompt => ({
 	closes_at: "2026-11-03T12:00:00Z",
 	published: true,
 	wiki_weight: 0.4,
-	prior_weight: 0.75,
-	turnout: 30,
 	...over,
 });
 
@@ -61,7 +64,9 @@ const answer = (over: Partial<ReviewAnswer>): ReviewAnswer => ({
 	term: null,
 	tower_mentions: 3,
 	wiki_hits: 100,
+	archive_prior: 0.5,
 	prior: 0.5,
+	manual: false,
 	...over,
 });
 
@@ -172,36 +177,81 @@ test("groupBank groups by family in a fixed order and drops empty families", () 
 	);
 });
 
-test("bankRunningLow only counts the cooldown", () => {
-	const rows = (cooled: number, other: number, free: number) => [
-		...Array.from({ length: cooled }, (_, i) => bankRow(`a${i}`, "club", "ran within six months")),
-		...Array.from({ length: other }, (_, i) => bankRow(`b${i}`, "sport", "already a sport prompt that day")),
-		...Array.from({ length: free }, (_, i) => bankRow(`c${i}`, "archive")),
-	];
-	assert.equal(bankRunningLow([]), false);
-	assert.equal(bankRunningLow(rows(5, 10, 10)), false);
-	assert.equal(bankRunningLow(rows(16, 0, 4)), true);
-	assert.equal(bankRunningLow(rows(10, 0, 3)), true, "fewer than five left");
+test("lastUsedLabel tags past, today, future and never", () => {
+	assert.equal(lastUsedLabel(null, "2026-11-05"), "never used");
+	assert.equal(lastUsedLabel("2026-11-02", "2026-11-05"), "last used Mon Nov 2 2026");
+	assert.equal(lastUsedLabel("2026-11-05", "2026-11-05"), "running today");
+	assert.equal(lastUsedLabel("2026-11-10", "2026-11-05"), "scheduled Tue Nov 10 2026");
+});
+
+test("lastRunByKey keeps each key's latest day and skips the bank", () => {
+	const m = lastRunByKey([
+		{ key: "a", day: "2026-10-01" },
+		{ key: "a", day: "2026-11-03" },
+		{ key: "a", day: "2026-09-01" },
+		{ key: "b", day: null },
+		{ key: null, day: "2026-11-01" },
+	]);
+	assert.deepEqual([...m], [["a", "2026-11-03"]]);
 });
 
 // ─── Weights ───
 
 test("weights round-trip through the form as percentages", () => {
-	const form = weightsToForm({ wiki_weight: 0.4, prior_weight: 0.75, turnout: 30 });
-	assert.deepEqual(form, { wikiPct: "40", priorPct: "75", turnout: "30" });
-	assert.deepEqual(formToWeights(form), { ok: true, weights: { wiki_weight: 0.4, prior_weight: 0.75, turnout: 30 } });
-	assert.deepEqual(formToWeights({ wikiPct: "12.5", priorPct: "0", turnout: "1" }), {
-		ok: true,
-		weights: { wiki_weight: 0.125, prior_weight: 0, turnout: 1 },
-	});
+	const form = weightsToForm({ wiki_weight: 0.4 });
+	assert.deepEqual(form, { wikiPct: "40" });
+	assert.deepEqual(formToWeights(form), { ok: true, weights: { wiki_weight: 0.4 } });
+	assert.deepEqual(formToWeights({ wikiPct: "12.5" }), { ok: true, weights: { wiki_weight: 0.125 } });
 });
 
-test("formToWeights refuses out-of-range and fractional input", () => {
-	assert.equal(formToWeights({ wikiPct: "101", priorPct: "75", turnout: "30" }).ok, false);
-	assert.equal(formToWeights({ wikiPct: "", priorPct: "75", turnout: "30" }).ok, false);
-	assert.equal(formToWeights({ wikiPct: "40", priorPct: "-1", turnout: "30" }).ok, false);
-	assert.equal(formToWeights({ wikiPct: "40", priorPct: "75", turnout: "2.5" }).ok, false);
-	assert.equal(formToWeights({ wikiPct: "40", priorPct: "75", turnout: "0" }).ok, false);
+test("formToWeights refuses out-of-range input", () => {
+	assert.equal(formToWeights({ wikiPct: "101" }).ok, false);
+	assert.equal(formToWeights({ wikiPct: "" }).ok, false);
+	assert.equal(formToWeights({ wikiPct: "-1" }).ok, false);
+});
+
+// ─── The ladder ───
+
+test("the ladder covers 0 to 1 without gaps and tierIndex agrees with it", () => {
+	assert.equal(LADDER[0].from, 0);
+	assert.equal(LADDER[LADDER.length - 1].to, 1);
+	for (let i = 1; i < LADDER.length; i++) assert.equal(LADDER[i].from, LADDER[i - 1].to);
+	// ascent_score: rarity < 0.35 is 10, < 0.55 is 25 … else 100.
+	assert.equal(LADDER[tierIndex(0)].score, 10);
+	assert.equal(LADDER[tierIndex(0.3499)].score, 10);
+	assert.equal(LADDER[tierIndex(0.35)].score, 25);
+	assert.equal(LADDER[tierIndex(0.9)].score, 85);
+	assert.equal(LADDER[tierIndex(0.9599)].score, 85);
+	assert.equal(LADDER[tierIndex(0.96)].score, 100);
+	assert.equal(LADDER[tierIndex(1)].score, 100);
+});
+
+test("byTier lists every tier, empty ones too", () => {
+	const groups = byTier([answer({ id: 1, prior: 0.1 }), answer({ id: 2, prior: 0.97 }), answer({ id: 3, prior: null })]);
+	assert.equal(groups.length, LADDER.length);
+	assert.deepEqual(
+		groups.map(g => g.answers.map(a => a.id)),
+		[[1], [], [], [], [], [], [2]]
+	);
+});
+
+test("dropPrior lands halfway between neighbours, inside the tier dropped into", () => {
+	const others = [answer({ id: 1, prior: 0.1 }), answer({ id: 2, prior: 0.3 }), answer({ id: 3, prior: 0.6 }), answer({ id: 4, prior: 0.98 })];
+	// Above 2: between 1 and 2.
+	assert.equal(dropPrior(others, { kind: "answer", id: 2, after: false }), 0.2);
+	// Above 1, the first: between the floor and 1.
+	assert.equal(dropPrior(others, { kind: "answer", id: 1, after: false }), 0.05);
+	// Below 2, the last Common: stays Common, between 2 and the 0.35 threshold.
+	assert.equal(dropPrior(others, { kind: "answer", id: 2, after: true }), 0.325);
+	// Above 3, the only Rare: between the 0.55 threshold and 3, not Uncommon.
+	assert.equal(dropPrior(others, { kind: "answer", id: 3, after: false }), 0.575);
+	// Below 4, at the top: between 4 and 1.
+	assert.equal(dropPrior(others, { kind: "answer", id: 4, after: true }), 0.99);
+	// On an empty tier's heading (Epic): its middle.
+	assert.equal(dropPrior(others, { kind: "tier", index: 4 }), 0.86);
+	// On a tier's heading with answers in it: above its first.
+	assert.equal(dropPrior(others, { kind: "tier", index: 0 }), 0.05);
+	assert.equal(dropPrior(others, { kind: "answer", id: 99, after: false }), null);
 });
 
 // ─── Word list ───

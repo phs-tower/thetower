@@ -6,8 +6,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AdminShell, { useAdmin } from "~/components/admin/AdminShell";
 import { AscentTabs, errorText, PhaseBadge, useNow, WeightsEditor } from "~/components/admin/AscentKit";
 import {
+	byTier,
 	dayLabel,
 	describeTry,
+	dropPrior,
 	fetchWikiCounts,
 	formatPrior,
 	missingWiki,
@@ -16,17 +18,23 @@ import {
 	permissions,
 	promptPhase,
 	PROMPT_COLUMNS,
+	RARITY_COLORS,
 	sortByPrior,
 	wikiBatches,
 	type AscentPrompt,
+	type DropTarget,
 	type ReviewAnswer,
+	type Tier,
 	type TryResult,
 } from "~/lib/console/ascent";
 
 // One prompt's word list: every answer it accepts, with what its prior is
-// made of. A bank prompt's list is what every future copy starts from; a
-// scheduled prompt's is its own, and additions and aliases also reach the
-// bank. Matching and scoring are the server's (ascent_try, ascent_review).
+// made of, grouped under the tier its prior lands in. The prior is the score:
+// what readers say never moves it. An editor drags an answer up or down to
+// override what the counts gave (ascent_set_prior). A bank prompt's list is
+// what every future copy starts from; a scheduled prompt's is its own, and
+// additions and aliases also reach the bank. Matching and scoring are the
+// server's (ascent_try, ascent_review).
 
 type Supabase = ReturnType<typeof useAdmin>["supabase"];
 
@@ -91,20 +99,60 @@ function TryBox({ promptId }: { promptId: number }) {
 	);
 }
 
+/** Props that make a row a drop target: above or below it, by which half
+ *  of the row the pointer is over. */
+function dropZone(
+	target: (after: boolean) => DropTarget,
+	drag: { active: boolean; onOver: (t: DropTarget) => void; onDrop: (t: DropTarget) => void }
+) {
+	if (!drag.active) return {};
+	const at = (e: React.DragEvent<HTMLElement>) => {
+		const r = e.currentTarget.getBoundingClientRect();
+		return target(e.clientY > r.top + r.height / 2);
+	};
+	return {
+		onDragOver: (e: React.DragEvent<HTMLElement>) => {
+			e.preventDefault();
+			e.dataTransfer.dropEffect = "move";
+			drag.onOver(at(e));
+		},
+		onDrop: (e: React.DragEvent<HTMLElement>) => {
+			e.preventDefault();
+			drag.onDrop(at(e));
+		},
+	};
+}
+
+interface Drag {
+	/** Whether dragging is allowed at all (the prompt hasn't closed). */
+	enabled: boolean;
+	/** The answer being dragged, if any. */
+	id: number | null;
+	over: DropTarget | null;
+	start: (id: number) => void;
+	end: () => void;
+	onOver: (t: DropTarget) => void;
+	onDrop: (t: DropTarget) => void;
+}
+
 function AnswerRow({
 	answer,
 	can,
 	busy,
+	drag,
 	onTerm,
 	onAlias,
 	onRemove,
+	onResetPrior,
 }: {
 	answer: ReviewAnswer;
 	can: ReturnType<typeof permissions>;
 	busy: boolean;
+	drag: Drag;
 	onTerm: (term: string) => Promise<string | null>;
 	onAlias: (alias: string) => Promise<string | null>;
 	onRemove: () => Promise<string | null>;
+	onResetPrior: () => Promise<string | null>;
 }) {
 	const [term, setTerm] = useState(answer.term ?? "");
 	const [alias, setAlias] = useState<string | null>(null);
@@ -124,9 +172,35 @@ function AnswerRow({
 	};
 
 	const termDirty = term.trim() !== (answer.term ?? "").trim();
+	const over = drag.over?.kind === "answer" && drag.over.id === answer.id ? (drag.over.after ? "drop-after" : "drop-before") : "";
+	const dragging = drag.id === answer.id;
 
 	return (
-		<tr>
+		<tr
+			className={`${over} ${dragging ? "dragging" : ""}`}
+			{...dropZone(after => ({ kind: "answer", id: answer.id, after }), {
+				active: drag.id !== null && !dragging,
+				onOver: drag.onOver,
+				onDrop: drag.onDrop,
+			})}
+		>
+			{drag.enabled && (
+				<td
+					className="ta-asc-handle"
+					draggable={!busy && answer.prior !== null && answer.prior !== undefined}
+					title="Drag up for more obvious, down for rarer"
+					onDragStart={e => {
+						e.dataTransfer.effectAllowed = "move";
+						e.dataTransfer.setData("text/plain", String(answer.id));
+						const row = e.currentTarget.parentElement;
+						if (row) e.dataTransfer.setDragImage(row, 12, 12);
+						drag.start(answer.id);
+					}}
+					onDragEnd={drag.end}
+				>
+					⠿
+				</td>
+			)}
 			<td>
 				<div className="ta-asc-canonical">{answer.canonical}</div>
 				{error && <p className="ta-error ta-asc-cell-error">{error}</p>}
@@ -180,6 +254,16 @@ function AnswerRow({
 				{answer.wiki_hits == null ? <span className="ta-muted">not fetched</span> : answer.wiki_hits.toLocaleString()}
 			</td>
 			<td className="ta-asc-num">
+				{answer.manual && (
+					<span className="ta-asc-manual" title={`Placed by hand. The counts give ${formatPrior(answer.archive_prior)}.`}>
+						set by hand
+						{can.editWeights && (
+							<button className="ta-linkish ta-asc-inline" onClick={() => run(onResetPrior)} disabled={busy || working}>
+								reset
+							</button>
+						)}
+					</span>
+				)}
 				<span className="ta-asc-prior" style={{ ["--p" as string]: String(answer.prior ?? 0) }}>
 					{formatPrior(answer.prior)}
 				</span>
@@ -206,6 +290,39 @@ function AnswerRow({
 	);
 }
 
+/** The thresholds, ground to roof, with how many answers sit in each. */
+function Ladder({ groups }: { groups: ReturnType<typeof byTier> }) {
+	return (
+		<div className="ta-card ta-asc-ladder">
+			<div className="ta-asc-ladder-bar">
+				{groups.map(g => (
+					<div
+						key={g.tier.score}
+						style={{ flexGrow: g.tier.to - g.tier.from, ["--c" as string]: RARITY_COLORS[g.tier.rarity] }}
+						title={`${g.tier.rarity} · ${g.tier.tier}: rarity ${rangeText(g.tier)}`}
+					>
+						<span className="ta-asc-ladder-word">{g.tier.rarity}</span>
+						<span className="ta-asc-ladder-sub">
+							{g.tier.tier} · {g.tier.score}
+						</span>
+						<span className="ta-asc-ladder-sub">
+							{rangeText(g.tier)} · {g.answers.length}
+						</span>
+					</div>
+				))}
+			</div>
+			<p className="ta-muted ta-small">
+				Rarity runs 0 (most obvious) to 1 (rarest), and the tier it lands in is the score: readers&apos; answers never move it. Drag an answer
+				by ⠿ to place it by hand; it lands halfway between its new neighbours, inside the tier you drop it in.
+			</p>
+		</div>
+	);
+}
+
+function rangeText(t: Tier): string {
+	return t.to >= 1 ? `≥ ${t.from.toFixed(2)}` : `${t.from.toFixed(2)}–${t.to.toFixed(2)}`;
+}
+
 function WordList({ id }: { id: number }) {
 	const { supabase } = useAdmin();
 	const now = useNow();
@@ -218,6 +335,8 @@ function WordList({ id }: { id: number }) {
 	const [newAnswer, setNewAnswer] = useState("");
 	const [adding, setAdding] = useState(false);
 	const [addError, setAddError] = useState<string | null>(null);
+	const [dragId, setDragId] = useState<number | null>(null);
+	const [dragOver, setDragOver] = useState<DropTarget | null>(null);
 
 	const loadPrompt = useCallback(async () => {
 		const { data, error: err } = await supabase.from("ascent_prompt").select(PROMPT_COLUMNS).eq("id", id).maybeSingle();
@@ -248,6 +367,8 @@ function WordList({ id }: { id: number }) {
 	const phase = prompt ? promptPhase(prompt, now) : null;
 	const can = permissions(phase ?? "closed");
 	const missing = useMemo(() => missingWiki(answers ?? []), [answers]);
+	const groups = useMemo(() => byTier(answers ?? []), [answers]);
+	const unranked = useMemo(() => (answers ?? []).filter(a => a.prior === null || a.prior === undefined), [answers]);
 	const busy = progress !== null;
 
 	const reportWiki = (failed: string[], err: string | null) => {
@@ -306,6 +427,48 @@ function WordList({ id }: { id: number }) {
 		return null;
 	};
 
+	const setPrior = async (answerId: number, prior: number | null) => {
+		const { error: err } = await supabase.rpc("ascent_set_prior", { p_answer_id: answerId, p_prior: prior });
+		if (err) return err.message;
+		await loadAnswers();
+		return null;
+	};
+
+	const drop = async (target: DropTarget) => {
+		const moving = answers?.find(a => a.id === dragId);
+		setDragId(null);
+		setDragOver(null);
+		if (!moving || !answers) return;
+		const prior = dropPrior(
+			answers.filter(a => a.id !== moving.id),
+			target
+		);
+		if (prior === null || prior === Number(moving.prior)) return;
+		// Shown at once so the row doesn't jump back while the server answers.
+		setAnswers(sortByPrior(answers.map(a => (a.id === moving.id ? { ...a, prior, manual: true } : a))));
+		const err = await setPrior(moving.id, prior);
+		if (err) {
+			setNotice(`Couldn't move ${moving.canonical}: ${err}`);
+			await loadAnswers();
+		}
+	};
+
+	const drag: Drag = {
+		enabled: can.editWeights,
+		id: dragId,
+		over: dragOver,
+		start: answerId => {
+			setNotice(null);
+			setDragId(answerId);
+		},
+		end: () => {
+			setDragId(null);
+			setDragOver(null);
+		},
+		onOver: t => setDragOver(prev => (JSON.stringify(prev) === JSON.stringify(t) ? prev : t)),
+		onDrop: t => void drop(t),
+	};
+
 	const remove = async (a: ReviewAnswer) => {
 		const { error: err } = await supabase.rpc("ascent_remove_answer", { p_answer_id: a.id });
 		if (err) return err.message;
@@ -362,7 +525,9 @@ function WordList({ id }: { id: number }) {
 			)}
 
 			<div className="ta-row ta-spread">
-				<span className="ta-muted">{answers ? `${answers.length} answers, most obvious first` : "Loading answers…"}</span>
+				<span className="ta-muted">
+					{answers ? `${answers.length} answers, most obvious first${can.editWeights ? "; drag ⠿ to re-rank" : ""}` : "Loading answers…"}
+				</span>
 				{can.editAnswers && (
 					<button className="ta-btn" onClick={fetchAll} disabled={busy || !answers?.length}>
 						{progress ?? "Fetch Wikipedia counts"}
@@ -371,35 +536,74 @@ function WordList({ id }: { id: number }) {
 			</div>
 			{notice && <p className="ta-asc-notice">{notice}</p>}
 
+			{answers && <Ladder groups={groups} />}
+
 			{answers && (
 				<div className="ta-table-wrap">
-					<table className="ta-table ta-asc-words">
+					<table className={`ta-table ta-asc-words ${dragId !== null ? "is-dragging" : ""}`}>
 						<thead>
 							<tr>
+								{drag.enabled && <th />}
 								<th>Answer</th>
 								<th>Aliases</th>
 								<th>Search term</th>
 								<th className="ta-asc-num">Tower</th>
 								<th className="ta-asc-num">Wikipedia</th>
 								<th className="ta-asc-num" title="0 is the most obvious, 1 the rarest">
-									Prior
+									Rarity
 								</th>
 								{can.removeAnswer && <th />}
 							</tr>
 						</thead>
-						<tbody>
-							{answers.map(a => (
-								<AnswerRow
-									key={a.id}
-									answer={a}
-									can={can}
-									busy={busy}
-									onTerm={term => setTerm(a, term)}
-									onAlias={alias => addAlias(a, alias)}
-									onRemove={() => remove(a)}
-								/>
-							))}
-						</tbody>
+						{groups.map(g => (
+							<tbody key={g.tier.score} style={{ ["--c" as string]: RARITY_COLORS[g.tier.rarity] }}>
+								<tr
+									className={`ta-asc-tier ${dragOver?.kind === "tier" && dragOver.index === g.index ? "drop-after" : ""}`}
+									{...dropZone(() => ({ kind: "tier", index: g.index }), {
+										active: dragId !== null,
+										onOver: drag.onOver,
+										onDrop: drag.onDrop,
+									})}
+								>
+									<td colSpan={5 + (drag.enabled ? 1 : 0) + 1 + (can.removeAnswer ? 1 : 0)}>
+										<strong>{g.tier.rarity}</strong> · {g.tier.tier} · {g.tier.score} points ·{" "}
+										<span className="ta-muted">
+											rarity {rangeText(g.tier)} · {g.answers.length} answer{g.answers.length === 1 ? "" : "s"}
+										</span>
+									</td>
+								</tr>
+								{g.answers.map(a => (
+									<AnswerRow
+										key={a.id}
+										answer={a}
+										can={can}
+										busy={busy}
+										drag={drag}
+										onTerm={term => setTerm(a, term)}
+										onAlias={alias => addAlias(a, alias)}
+										onRemove={() => remove(a)}
+										onResetPrior={() => setPrior(a.id, null)}
+									/>
+								))}
+							</tbody>
+						))}
+						{unranked.length > 0 && (
+							<tbody>
+								{unranked.map(a => (
+									<AnswerRow
+										key={a.id}
+										answer={a}
+										can={can}
+										busy={busy}
+										drag={drag}
+										onTerm={term => setTerm(a, term)}
+										onAlias={alias => addAlias(a, alias)}
+										onRemove={() => remove(a)}
+										onResetPrior={() => setPrior(a.id, null)}
+									/>
+								))}
+							</tbody>
+						)}
 					</table>
 				</div>
 			)}

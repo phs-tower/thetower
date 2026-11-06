@@ -50,14 +50,14 @@ export function errorText(e: unknown): string {
 	return String(e);
 }
 
-/** A prompt's three weights. Read-only unless `editable`; saving calls
+/** A prompt's Wikipedia weight. Read-only unless `editable`; saving calls
  *  ascent_set_weights for this prompt alone. */
 export function WeightsEditor({
 	prompt,
 	editable,
 	onSaved,
 }: {
-	prompt: Pick<AscentPrompt, "id" | "wiki_weight" | "prior_weight" | "turnout">;
+	prompt: Pick<AscentPrompt, "id" | "wiki_weight">;
 	editable: boolean;
 	onSaved: () => void;
 }) {
@@ -69,7 +69,7 @@ export function WeightsEditor({
 
 	useEffect(() => {
 		setForm(weightsToForm(prompt));
-	}, [prompt.id, prompt.wiki_weight, prompt.prior_weight, prompt.turnout]); // eslint-disable-line react-hooks/exhaustive-deps
+	}, [prompt.id, prompt.wiki_weight]); // eslint-disable-line react-hooks/exhaustive-deps
 
 	if (!editable || !open)
 		return (
@@ -77,7 +77,7 @@ export function WeightsEditor({
 				<span className="ta-muted">{formatWeights(prompt)}</span>
 				{editable && (
 					<button className="ta-linkish" onClick={() => setOpen(true)}>
-						Edit weights
+						Edit weight
 					</button>
 				)}
 				{!editable && <span className="ta-muted ta-asc-note">(final)</span>}
@@ -95,8 +95,6 @@ export function WeightsEditor({
 		const { error: err } = await supabase.rpc("ascent_set_weights", {
 			p_prompt_id: prompt.id,
 			p_wiki_weight: parsed.weights.wiki_weight,
-			p_prior_weight: parsed.weights.prior_weight,
-			p_turnout: parsed.weights.turnout,
 		});
 		setBusy(false);
 		if (err) {
@@ -119,21 +117,6 @@ export function WeightsEditor({
 					value={form.wikiPct}
 					onChange={e => setForm({ ...form, wikiPct: e.target.value })}
 				/>
-			</label>
-			<label>
-				Prior %
-				<input
-					type="number"
-					min={0}
-					max={100}
-					step="any"
-					value={form.priorPct}
-					onChange={e => setForm({ ...form, priorPct: e.target.value })}
-				/>
-			</label>
-			<label>
-				Turnout
-				<input type="number" min={1} step={1} value={form.turnout} onChange={e => setForm({ ...form, turnout: e.target.value })} />
 			</label>
 			<div className="ta-row">
 				<button className="ta-btn ta-btn-small ta-btn-primary" onClick={save} disabled={busy}>
