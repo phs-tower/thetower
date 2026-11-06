@@ -30,6 +30,7 @@ import {
 	parseReview,
 	parseTry,
 	parseWikiHits,
+	placeAnswers,
 	permissions,
 	promptPhase,
 	searchTerm,
@@ -399,4 +400,36 @@ test("selectRange takes everything between the anchor and the click", () => {
 	assert.deepEqual(selectRange(order, 9, 3), [3, 8, 1, 9]);
 	assert.deepEqual(selectRange(order, null, 8), [8]);
 	assert.deepEqual(selectRange(order, 42, 8), [8]);
+});
+
+test("placeAnswers moves only the dragged answers when there is room", () => {
+	const list = [answer({ id: 1, prior: 0.1 }), answer({ id: 2, prior: 0.3 }), answer({ id: 3, prior: 0.95 })];
+	assert.deepEqual([...placeAnswers(list, [3], { kind: "answer", id: 2, after: false })!], [[3, 0.2]]);
+});
+
+test("placeAnswers re-spaces the tier when the drop lands between ties", () => {
+	// Three Legendaries tied at 1, as answers with the same counts are.
+	const list = [answer({ id: 1, prior: 0.1 }), answer({ id: 2, prior: 1 }), answer({ id: 3, prior: 1 }), answer({ id: 4, prior: 1 })];
+	// Drag 4 above 3: no room between 2 and 3, so the tier is laid out
+	// again as 2, 4, 3 across 0.90–1.
+	const moved = placeAnswers(list, [4], { kind: "answer", id: 3, after: false })!;
+	assert.deepEqual(
+		[...moved].sort((a, b) => a[1] - b[1]),
+		[
+			[2, 0.9167],
+			[4, 0.95],
+			[3, 0.9833],
+		]
+	);
+	// Answers outside the tier are untouched.
+	assert.equal(moved.has(1), false);
+});
+
+test("placeAnswers moves a group into a tie in order", () => {
+	const list = [answer({ id: 1, prior: 0.2 }), answer({ id: 2, prior: 0.2 }), answer({ id: 5, prior: 0.6 }), answer({ id: 6, prior: 0.65 })];
+	const moved = placeAnswers(list, [5, 6], { kind: "answer", id: 1, after: true })!;
+	const order = [...moved].sort((a, b) => a[1] - b[1]).map(([id]) => id);
+	assert.deepEqual(order, [1, 5, 6, 2]);
+	for (const [, p] of moved) assert.ok(p < 0.35, "stays Common");
+	assert.equal(placeAnswers(list, [9], { kind: "tier", index: 0 }), null);
 });

@@ -319,12 +319,64 @@ export function dropPriors(others: ReviewAnswer[], target: DropTarget, count: nu
 			hi = p;
 		}
 	}
-	return Array.from({ length: count }, (_, k) => Math.round((lo + ((hi - lo) * (k + 1)) / (count + 1)) * 10000) / 10000);
+	return Array.from({ length: count }, (_, k) => round4(lo + ((hi - lo) * (k + 1)) / (count + 1)));
 }
 
 /** The prior one dragged answer gets: halfway between its new neighbours. */
 export function dropPrior(others: ReviewAnswer[], target: DropTarget): number | null {
 	return dropPriors(others, target, 1)?.[0] ?? null;
+}
+
+const round4 = (n: number) => Math.round(n * 10000) / 10000;
+
+/** Where a drop lands in its tier: the tier, and how many of the tier's
+ *  other answers sit above the dropped ones. */
+function dropSlot(ranked: ReviewAnswer[], target: DropTarget): { index: number; pos: number } | null {
+	if (target.kind === "tier") return LADDER[target.index] ? { index: target.index, pos: 0 } : null;
+	const at = ranked.find(a => a.id === target.id);
+	if (!at) return null;
+	const index = tierIndex(at.prior!);
+	const inTier = ranked.filter(a => tierIndex(a.prior!) === index);
+	return { index, pos: inTier.indexOf(at) + (target.after ? 1 : 0) };
+}
+
+/** The new priors for a drop of `ids` (kept in their current order) at
+ *  `target`, as answer id → prior. `answers` is the whole list,
+ *  sortByPrior'd. Normally only the moved answers change, spread evenly
+ *  between their new neighbours. When there is no room between them (they
+ *  tie, as answers with the same counts do), the whole tier is re-spaced
+ *  in its new order instead, or the moved rows would sort straight back to
+ *  where they were. Null if the target is not there. */
+export function placeAnswers(answers: ReviewAnswer[], ids: number[], target: DropTarget): Map<number, number> | null {
+	const ranked = answers.filter(a => a.prior !== null && a.prior !== undefined);
+	const movers = ranked.filter(a => ids.includes(a.id));
+	const others = ranked.filter(a => !ids.includes(a.id));
+	if (!movers.length) return null;
+	const priors = dropPriors(others, target, movers.length);
+	const slot = dropSlot(others, target);
+	if (!priors || !slot) return null;
+
+	const tier = LADDER[slot.index];
+	const inTier = others.filter(a => tierIndex(a.prior!) === slot.index);
+	const above = inTier[slot.pos - 1];
+	const below = inTier[slot.pos];
+	const fits = priors.every(
+		(p, i) =>
+			p >= tier.from &&
+			p < tier.to &&
+			(above === undefined || p > Number(above.prior)) &&
+			(below === undefined || p < Number(below.prior)) &&
+			(i === 0 || p > priors[i - 1])
+	);
+	if (fits) return new Map(movers.map((a, i) => [a.id, priors[i]]));
+
+	const order = [...inTier.slice(0, slot.pos), ...movers, ...inTier.slice(slot.pos)];
+	const out = new Map<number, number>();
+	order.forEach((a, k) => {
+		const p = round4(tier.from + ((tier.to - tier.from) * (k + 0.5)) / order.length);
+		if (ids.includes(a.id) || p !== Number(a.prior)) out.set(a.id, p);
+	});
+	return out;
 }
 
 /** The ids from `anchor` to `id` inclusive, in `order`: a shift-click's

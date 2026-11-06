@@ -9,7 +9,6 @@ import {
 	byTier,
 	dayLabel,
 	describeTry,
-	dropPriors,
 	fetchWikiCounts,
 	formatPrior,
 	LADDER,
@@ -18,10 +17,12 @@ import {
 	parseTry,
 	permissions,
 	promptPhase,
+	placeAnswers,
 	PROMPT_COLUMNS,
 	RARITY_COLORS,
 	selectRange,
 	sortByPrior,
+	tierIndex,
 	wikiBatches,
 	type AscentPrompt,
 	type DropTarget,
@@ -32,8 +33,8 @@ import {
 
 // One prompt's word list: every answer it accepts, with what its prior is
 // made of, grouped under the tier its prior lands in. The prior is the score:
-// what readers say never moves it. An editor drags an answer up or down to
-// override what the counts gave (ascent_set_prior). A bank prompt's list is
+// what readers say never moves it. An editor moves an answer to another
+// tier to override what the counts gave (ascent_set_prior). A bank prompt's list is
 // what every future copy starts from; a scheduled prompt's is its own, and
 // additions and aliases also reach the bank. Matching and scoring are the
 // server's (ascent_try, ascent_review).
@@ -101,52 +102,43 @@ function TryBox({ promptId }: { promptId: number }) {
 	);
 }
 
-/** Props that make a row a drop target: above or below it, by which half
- *  of the row the pointer is over. */
-function dropZone(
-	target: (after: boolean) => DropTarget,
-	drag: { active: boolean; onOver: (t: DropTarget) => void; onDrop: (t: DropTarget) => void }
-) {
-	if (!drag.active) return {};
-	const at = (e: React.DragEvent<HTMLElement>) => {
-		const r = e.currentTarget.getBoundingClientRect();
-		return target(e.clientY > r.top + r.height / 2);
-	};
-	return {
-		onDragOver: (e: React.DragEvent<HTMLElement>) => {
-			e.preventDefault();
-			e.dataTransfer.dropEffect = "move";
-			drag.onOver(at(e));
-		},
-		onDrop: (e: React.DragEvent<HTMLElement>) => {
-			e.preventDefault();
-			drag.onDrop(at(e));
-		},
-	};
-}
-
-interface Drag {
-	/** Whether dragging is allowed at all (the prompt hasn't closed). */
+interface Placing {
+	/** Whether answers can be moved at all (the prompt hasn't closed). */
 	enabled: boolean;
-	/** The answers being dragged, if any: the selection, when the dragged
-	 *  row is in it. */
-	moving: number[] | null;
 	selected: Set<number>;
 	/** Select or deselect a row; with shift, everything from the last click. */
 	toggle: (id: number, shift: boolean) => void;
-	over: DropTarget | null;
-	/** Starts a drag from this row; returns how many answers it moves. */
-	start: (id: number) => number;
-	end: () => void;
-	onOver: (t: DropTarget) => void;
-	onDrop: (t: DropTarget) => void;
+	/** Moves one answer to the top of a tier (an index into LADDER). */
+	moveTo: (id: number, tier: number) => void;
+}
+
+/** The tiers as a row of buttons, the answer's own lit. Legendary appears
+ *  once even though it is the top of the ladder. */
+function TierButtons({ answer, place, busy }: { answer: ReviewAnswer; place: Placing; busy: boolean }) {
+	const current = answer.prior === null || answer.prior === undefined ? -1 : tierIndex(answer.prior);
+	return (
+		<div className="ta-asc-tier-buttons">
+			{LADDER.map((t, i) => (
+				<button
+					key={t.score}
+					className={i === current ? "current" : ""}
+					style={{ ["--c" as string]: RARITY_COLORS[t.rarity] }}
+					disabled={busy || i === current || current < 0}
+					onClick={() => place.moveTo(answer.id, i)}
+					title={i === current ? `Already ${t.rarity}` : `Move to ${t.rarity} (${t.tier}, ${t.score} points)`}
+				>
+					{t.rarity}
+				</button>
+			))}
+		</div>
+	);
 }
 
 function AnswerRow({
 	answer,
 	can,
 	busy,
-	drag,
+	place,
 	onTerm,
 	onAlias,
 	onRemove,
@@ -155,7 +147,7 @@ function AnswerRow({
 	answer: ReviewAnswer;
 	can: ReturnType<typeof permissions>;
 	busy: boolean;
-	drag: Drag;
+	place: Placing;
 	onTerm: (term: string) => Promise<string | null>;
 	onAlias: (alias: string) => Promise<string | null>;
 	onRemove: () => Promise<string | null>;
@@ -179,54 +171,22 @@ function AnswerRow({
 	};
 
 	const termDirty = term.trim() !== (answer.term ?? "").trim();
-	const over = drag.over?.kind === "answer" && drag.over.id === answer.id ? (drag.over.after ? "drop-after" : "drop-before") : "";
-	const dragging = drag.moving?.includes(answer.id) ?? false;
-	const selected = drag.selected.has(answer.id);
+	const selected = place.selected.has(answer.id);
 	const ranked = answer.prior !== null && answer.prior !== undefined;
 
 	return (
-		<tr
-			className={`${over} ${dragging ? "dragging" : ""} ${selected ? "selected" : ""}`}
-			{...dropZone(after => ({ kind: "answer", id: answer.id, after }), {
-				active: drag.moving !== null && !dragging,
-				onOver: drag.onOver,
-				onDrop: drag.onDrop,
-			})}
-		>
-			{drag.enabled && (
-				<td className="ta-asc-handle-cell">
+		<tr className={selected ? "selected" : ""}>
+			{place.enabled && (
+				<td className="ta-asc-check-cell">
 					<input
 						type="checkbox"
 						checked={selected}
 						readOnly
 						disabled={!ranked}
-						onClick={e => drag.toggle(answer.id, e.shiftKey)}
+						onClick={e => place.toggle(answer.id, e.shiftKey)}
 						aria-label={`Select ${answer.canonical}`}
 						title="Select; shift-click to select a range"
 					/>
-					<span
-						className="ta-asc-handle"
-						draggable={!busy && ranked}
-						title={selected ? "Drag to move every selected answer" : "Drag up for more obvious, down for rarer"}
-						onDragStart={e => {
-							e.dataTransfer.effectAllowed = "move";
-							e.dataTransfer.setData("text/plain", String(answer.id));
-							const n = drag.start(answer.id);
-							const row = e.currentTarget.closest("tr");
-							if (n > 1) {
-								// A label rather than one row, so it's plain they all move.
-								const label = document.createElement("div");
-								label.className = "ta-asc-drag-label";
-								label.textContent = `Moving ${n} answers`;
-								document.body.appendChild(label);
-								e.dataTransfer.setDragImage(label, 12, 12);
-								setTimeout(() => label.remove(), 0);
-							} else if (row) e.dataTransfer.setDragImage(row, 12, 12);
-						}}
-						onDragEnd={drag.end}
-					>
-						⠿
-					</span>
 				</td>
 			)}
 			<td>
@@ -296,6 +256,11 @@ function AnswerRow({
 					{formatPrior(answer.prior)}
 				</span>
 			</td>
+			{place.enabled && (
+				<td>
+					<TierButtons answer={answer} place={place} busy={busy || working} />
+				</td>
+			)}
 			{can.removeAnswer && (
 				<td>
 					{confirming ? (
@@ -341,8 +306,8 @@ function Ladder({ groups }: { groups: ReturnType<typeof byTier> }) {
 			</div>
 			<p className="ta-muted ta-small">
 				Rarity is an answer&apos;s rank in this list, 0 for the most mentioned and 1 for the least, so the tiers split the list by position:
-				the bottom 35% Common, the top 10% Legendary. Readers&apos; answers never move it. Drag an answer by ⠿ to place it by hand; it lands
-				halfway between its new neighbours, inside the tier you drop it in.
+				the bottom 35% Common, the top 10% Legendary. Readers&apos; answers never move it. Click a tier on an answer&apos;s row to move it
+				there by hand, or tick several and move them together.
 			</p>
 		</div>
 	);
@@ -364,11 +329,12 @@ function WordList({ id }: { id: number }) {
 	const [newAnswer, setNewAnswer] = useState("");
 	const [adding, setAdding] = useState(false);
 	const [addError, setAddError] = useState<string | null>(null);
-	const [moving, setMoving] = useState<number[] | null>(null);
-	const [dragOver, setDragOver] = useState<DropTarget | null>(null);
 	const [selected, setSelected] = useState<Set<number>>(new Set());
 	const [anchor, setAnchor] = useState<number | null>(null);
 	const [moveBusy, setMoveBusy] = useState(false);
+	/** Why a move didn't save. Pinned to the bottom of the screen, since the
+	 *  editor is usually scrolled well down the list when it happens. */
+	const [moveError, setMoveError] = useState<string | null>(null);
 
 	const loadPrompt = useCallback(async () => {
 		const { data, error: err } = await supabase.from("ascent_prompt").select(PROMPT_COLUMNS).eq("id", id).maybeSingle();
@@ -481,7 +447,13 @@ function WordList({ id }: { id: number }) {
 		setMoveBusy(true);
 		const errors = await Promise.all(changes.map(c => savePrior(c.answer.id, c.prior)));
 		const failed = changes.filter((_, i) => errors[i]).map(c => c.answer.canonical);
-		if (failed.length) setNotice(`Couldn't move ${failed.join(", ")}: ${errors.find(Boolean)}`);
+		const first = errors.find(Boolean);
+		if (failed.length)
+			setMoveError(
+				first && /could not find the function/i.test(first)
+					? "Couldn't save: the database doesn't have ascent_set_prior yet. Run the app repo's supabase/ascent.sql in the Supabase SQL Editor."
+					: `Couldn't move ${failed.join(", ")}: ${first}`
+			);
 		await loadAnswers();
 		setMoveBusy(false);
 	};
@@ -489,20 +461,14 @@ function WordList({ id }: { id: number }) {
 	/** Places `ids` (kept in their current order) at `target`. */
 	const moveTo = async (ids: number[], target: DropTarget) => {
 		if (!answers) return;
-		const movers = answers.filter(a => ids.includes(a.id) && a.prior !== null && a.prior !== undefined);
-		if (!movers.length) return;
-		const priors = dropPriors(
-			answers.filter(a => !ids.includes(a.id)),
-			target,
-			movers.length
-		);
-		if (!priors) return;
-		const changes = movers.map((answer, i) => ({ answer, prior: priors[i] })).filter(c => c.prior !== Number(c.answer.prior));
+		const placed = placeAnswers(answers, ids, target);
+		if (!placed) return;
+		const byId = new Map(answers.map(a => [a.id, a]));
+		const changes = [...placed].map(([answerId, prior]) => ({ answer: byId.get(answerId)!, prior }));
 		if (!changes.length) return;
-		setNotice(null);
+		setMoveError(null);
 		// Shown at once so the rows don't jump back while the server answers.
-		const next = new Map(changes.map(c => [c.answer.id, c.prior]));
-		setAnswers(sortByPrior(answers.map(a => (next.has(a.id) ? { ...a, prior: next.get(a.id)!, manual: true } : a))));
+		setAnswers(sortByPrior(answers.map(a => (placed.has(a.id) ? { ...a, prior: placed.get(a.id)!, manual: true } : a))));
 		await savePriors(changes);
 	};
 
@@ -516,9 +482,8 @@ function WordList({ id }: { id: number }) {
 		setAnchor(null);
 	};
 
-	const drag: Drag = {
+	const place: Placing = {
 		enabled: can.editWeights,
-		moving,
 		selected,
 		toggle: (answerId, shift) => {
 			setSelected(prev => {
@@ -530,24 +495,7 @@ function WordList({ id }: { id: number }) {
 			});
 			setAnchor(answerId);
 		},
-		over: dragOver,
-		start: answerId => {
-			setNotice(null);
-			const ids = selected.has(answerId) ? order.filter(x => selected.has(x)) : [answerId];
-			setMoving(ids);
-			return ids.length;
-		},
-		end: () => {
-			setMoving(null);
-			setDragOver(null);
-		},
-		onOver: t => setDragOver(prev => (JSON.stringify(prev) === JSON.stringify(t) ? prev : t)),
-		onDrop: t => {
-			const ids = moving;
-			setMoving(null);
-			setDragOver(null);
-			if (ids) void moveTo(ids, t);
-		},
+		moveTo: (answerId, tier) => void moveTo([answerId], { kind: "tier", index: tier }),
 	};
 
 	const remove = async (a: ReviewAnswer) => {
@@ -609,7 +557,7 @@ function WordList({ id }: { id: number }) {
 				<span className="ta-muted">
 					{answers
 						? `${answers.length} answers, most obvious first${
-								can.editWeights ? "; drag ⠿ to re-rank, or tick several to move them together" : ""
+								can.editWeights ? "; click a tier on a row to move it, or tick several to move them together" : ""
 						  }`
 						: "Loading answers…"}
 				</span>
@@ -620,49 +568,54 @@ function WordList({ id }: { id: number }) {
 				)}
 			</div>
 			{notice && <p className="ta-asc-notice">{notice}</p>}
+			{moveError && (
+				<div className="ta-asc-toast" role="alert">
+					<span>{moveError}</span>
+					<button className="ta-linkish" onClick={() => setMoveError(null)}>
+						Dismiss
+					</button>
+				</div>
+			)}
 
 			{answers && <Ladder groups={groups} />}
 
-			{drag.enabled && chosen.length > 0 && (
+			{place.enabled && chosen.length > 0 && (
 				<div className="ta-asc-selbar">
-					<strong>{chosen.length} selected</strong>
-					<label>
-						Move to{" "}
-						<select
-							value=""
-							disabled={busy}
-							onChange={e => {
-								if (e.target.value !== "")
+					<strong>Move {chosen.length} selected to</strong>
+					<div className="ta-asc-tier-buttons">
+						{LADDER.map((t, i) => (
+							<button
+								key={t.score}
+								style={{ ["--c" as string]: RARITY_COLORS[t.rarity] }}
+								disabled={busy}
+								onClick={() =>
 									void moveTo(
 										chosen.map(a => a.id),
-										{ kind: "tier", index: Number(e.target.value) }
-									);
-							}}
-						>
-							<option value="">a tier…</option>
-							{LADDER.map((t, i) => (
-								<option key={t.score} value={i}>
-									{t.rarity} · {t.tier} ({rangeText(t)})
-								</option>
-							))}
-						</select>
-					</label>
+										{ kind: "tier", index: i }
+									)
+								}
+								title={`${t.tier}, ${t.score} points`}
+							>
+								{t.rarity}
+							</button>
+						))}
+					</div>
 					<button className="ta-btn ta-btn-small" onClick={resetSelected} disabled={busy || !chosen.some(a => a.manual)}>
 						Reset to counts
 					</button>
 					<button className="ta-linkish" onClick={clearSelection}>
 						Clear
 					</button>
-					<span className="ta-muted ta-small">{moveBusy ? "Saving…" : "Or drag any ticked row's ⠿ to move them all."}</span>
+					{moveBusy && <span className="ta-muted ta-small">Saving…</span>}
 				</div>
 			)}
 
 			{answers && (
 				<div className="ta-table-wrap">
-					<table className={`ta-table ta-asc-words ${moving !== null ? "is-dragging" : ""}`}>
+					<table className="ta-table ta-asc-words">
 						<thead>
 							<tr>
-								{drag.enabled && <th />}
+								{place.enabled && <th />}
 								<th>Answer</th>
 								<th>Aliases</th>
 								<th>Search term</th>
@@ -671,21 +624,15 @@ function WordList({ id }: { id: number }) {
 								<th className="ta-asc-num" title="0 is the most obvious, 1 the rarest">
 									Rarity
 								</th>
+								{place.enabled && <th>Move to</th>}
 								{can.removeAnswer && <th />}
 							</tr>
 						</thead>
 						{groups.map(g => (
 							<tbody key={g.tier.score} style={{ ["--c" as string]: RARITY_COLORS[g.tier.rarity] }}>
-								<tr
-									className={`ta-asc-tier ${dragOver?.kind === "tier" && dragOver.index === g.index ? "drop-after" : ""}`}
-									{...dropZone(() => ({ kind: "tier", index: g.index }), {
-										active: moving !== null,
-										onOver: drag.onOver,
-										onDrop: drag.onDrop,
-									})}
-								>
-									<td colSpan={5 + (drag.enabled ? 1 : 0) + 1 + (can.removeAnswer ? 1 : 0)}>
-										{drag.enabled && g.answers.length > 0 && (
+								<tr className="ta-asc-tier">
+									<td colSpan={6 + (place.enabled ? 2 : 0) + (can.removeAnswer ? 1 : 0)}>
+										{place.enabled && g.answers.length > 0 && (
 											<input
 												type="checkbox"
 												className="ta-asc-tier-check"
@@ -718,7 +665,7 @@ function WordList({ id }: { id: number }) {
 										answer={a}
 										can={can}
 										busy={busy}
-										drag={drag}
+										place={place}
 										onTerm={term => setTerm(a, term)}
 										onAlias={alias => addAlias(a, alias)}
 										onRemove={() => remove(a)}
@@ -735,7 +682,7 @@ function WordList({ id }: { id: number }) {
 										answer={a}
 										can={can}
 										busy={busy}
-										drag={drag}
+										place={place}
 										onTerm={term => setTerm(a, term)}
 										onAlias={alias => addAlias(a, alias)}
 										onRemove={() => remove(a)}
