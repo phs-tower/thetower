@@ -16,6 +16,7 @@ import {
 	defaultMonday,
 	describeTry,
 	dropPrior,
+	dropPriors,
 	familyCounts,
 	fetchWikiCounts,
 	formatFamilyCounts,
@@ -32,6 +33,7 @@ import {
 	permissions,
 	promptPhase,
 	searchTerm,
+	selectRange,
 	sortByPrior,
 	tierIndex,
 	weekGrid,
@@ -378,4 +380,23 @@ test("counts go to the server 25 rows at a time", () => {
 	assert.ok(batches.every(b => b.length <= 25));
 	assert.equal(batches.flat().length, 151);
 	assert.deepEqual(batches[0][3], { id: 3, wiki_hits: 30 });
+});
+
+test("dropPriors spreads a group evenly, in order, inside the tier", () => {
+	const others = [answer({ id: 1, prior: 0.1 }), answer({ id: 2, prior: 0.3 }), answer({ id: 3, prior: 0.95 })];
+	// Between 1 (0.1) and 2 (0.3): thirds.
+	assert.deepEqual(dropPriors(others, { kind: "answer", id: 2, after: false }, 2), [0.1667, 0.2333]);
+	// On the empty Rare heading (0.55–0.70): quarters.
+	assert.deepEqual(dropPriors(others, { kind: "tier", index: 2 }, 3), [0.5875, 0.625, 0.6625]);
+	// Below the only Legendary: between it and 1.
+	assert.deepEqual(dropPriors(others, { kind: "answer", id: 3, after: true }, 1), [0.975]);
+	assert.equal(dropPriors(others, { kind: "answer", id: 9, after: true }, 2), null);
+});
+
+test("selectRange takes everything between the anchor and the click", () => {
+	const order = [5, 3, 8, 1, 9];
+	assert.deepEqual(selectRange(order, 3, 1), [3, 8, 1]);
+	assert.deepEqual(selectRange(order, 9, 3), [3, 8, 1, 9]);
+	assert.deepEqual(selectRange(order, null, 8), [8]);
+	assert.deepEqual(selectRange(order, 42, 8), [8]);
 });

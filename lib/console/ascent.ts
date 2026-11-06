@@ -289,10 +289,11 @@ export function byTier(answers: ReviewAnswer[]): { tier: Tier; index: number; an
  *  the top of a tier (on its heading). */
 export type DropTarget = { kind: "answer"; id: number; after: boolean } | { kind: "tier"; index: number };
 
-/** The prior a dragged answer gets: halfway between whatever it now sits
- *  between, never outside the tier it was dropped into. `others` are the
- *  prompt's other answers, sortByPrior'd. Null if the target is not there. */
-export function dropPrior(others: ReviewAnswer[], target: DropTarget): number | null {
+/** The priors a dragged group of `count` answers gets, in order: spread
+ *  evenly between whatever they now sit between, never outside the tier they
+ *  were dropped into. `others` are the prompt's other answers, sortByPrior'd.
+ *  Null if the target is not there. */
+export function dropPriors(others: ReviewAnswer[], target: DropTarget, count: number): number[] | null {
 	const ranked = others.filter(a => a.prior !== null && a.prior !== undefined);
 	let lo: number;
 	let hi: number;
@@ -318,7 +319,21 @@ export function dropPrior(others: ReviewAnswer[], target: DropTarget): number | 
 			hi = p;
 		}
 	}
-	return Math.round(((lo + hi) / 2) * 10000) / 10000;
+	return Array.from({ length: count }, (_, k) => Math.round((lo + ((hi - lo) * (k + 1)) / (count + 1)) * 10000) / 10000);
+}
+
+/** The prior one dragged answer gets: halfway between its new neighbours. */
+export function dropPrior(others: ReviewAnswer[], target: DropTarget): number | null {
+	return dropPriors(others, target, 1)?.[0] ?? null;
+}
+
+/** The ids from `anchor` to `id` inclusive, in `order`: a shift-click's
+ *  range. Just `id` if the anchor isn't in the list. */
+export function selectRange(order: number[], anchor: number | null, id: number): number[] {
+	const a = anchor === null ? -1 : order.indexOf(anchor);
+	const b = order.indexOf(id);
+	if (a < 0 || b < 0) return [id];
+	return order.slice(Math.min(a, b), Math.max(a, b) + 1);
 }
 
 // ─── The word list ──────────────────────────────────────────────────────────

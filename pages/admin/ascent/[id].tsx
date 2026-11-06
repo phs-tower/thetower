@@ -9,9 +9,10 @@ import {
 	byTier,
 	dayLabel,
 	describeTry,
-	dropPrior,
+	dropPriors,
 	fetchWikiCounts,
 	formatPrior,
+	LADDER,
 	missingWiki,
 	parseReview,
 	parseTry,
@@ -19,6 +20,7 @@ import {
 	promptPhase,
 	PROMPT_COLUMNS,
 	RARITY_COLORS,
+	selectRange,
 	sortByPrior,
 	wikiBatches,
 	type AscentPrompt,
@@ -126,10 +128,15 @@ function dropZone(
 interface Drag {
 	/** Whether dragging is allowed at all (the prompt hasn't closed). */
 	enabled: boolean;
-	/** The answer being dragged, if any. */
-	id: number | null;
+	/** The answers being dragged, if any: the selection, when the dragged
+	 *  row is in it. */
+	moving: number[] | null;
+	selected: Set<number>;
+	/** Select or deselect a row; with shift, everything from the last click. */
+	toggle: (id: number, shift: boolean) => void;
 	over: DropTarget | null;
-	start: (id: number) => void;
+	/** Starts a drag from this row; returns how many answers it moves. */
+	start: (id: number) => number;
 	end: () => void;
 	onOver: (t: DropTarget) => void;
 	onDrop: (t: DropTarget) => void;
@@ -173,32 +180,53 @@ function AnswerRow({
 
 	const termDirty = term.trim() !== (answer.term ?? "").trim();
 	const over = drag.over?.kind === "answer" && drag.over.id === answer.id ? (drag.over.after ? "drop-after" : "drop-before") : "";
-	const dragging = drag.id === answer.id;
+	const dragging = drag.moving?.includes(answer.id) ?? false;
+	const selected = drag.selected.has(answer.id);
+	const ranked = answer.prior !== null && answer.prior !== undefined;
 
 	return (
 		<tr
-			className={`${over} ${dragging ? "dragging" : ""}`}
+			className={`${over} ${dragging ? "dragging" : ""} ${selected ? "selected" : ""}`}
 			{...dropZone(after => ({ kind: "answer", id: answer.id, after }), {
-				active: drag.id !== null && !dragging,
+				active: drag.moving !== null && !dragging,
 				onOver: drag.onOver,
 				onDrop: drag.onDrop,
 			})}
 		>
 			{drag.enabled && (
-				<td
-					className="ta-asc-handle"
-					draggable={!busy && answer.prior !== null && answer.prior !== undefined}
-					title="Drag up for more obvious, down for rarer"
-					onDragStart={e => {
-						e.dataTransfer.effectAllowed = "move";
-						e.dataTransfer.setData("text/plain", String(answer.id));
-						const row = e.currentTarget.parentElement;
-						if (row) e.dataTransfer.setDragImage(row, 12, 12);
-						drag.start(answer.id);
-					}}
-					onDragEnd={drag.end}
-				>
-					⠿
+				<td className="ta-asc-handle-cell">
+					<input
+						type="checkbox"
+						checked={selected}
+						readOnly
+						disabled={!ranked}
+						onClick={e => drag.toggle(answer.id, e.shiftKey)}
+						aria-label={`Select ${answer.canonical}`}
+						title="Select; shift-click to select a range"
+					/>
+					<span
+						className="ta-asc-handle"
+						draggable={!busy && ranked}
+						title={selected ? "Drag to move every selected answer" : "Drag up for more obvious, down for rarer"}
+						onDragStart={e => {
+							e.dataTransfer.effectAllowed = "move";
+							e.dataTransfer.setData("text/plain", String(answer.id));
+							const n = drag.start(answer.id);
+							const row = e.currentTarget.closest("tr");
+							if (n > 1) {
+								// A label rather than one row, so it's plain they all move.
+								const label = document.createElement("div");
+								label.className = "ta-asc-drag-label";
+								label.textContent = `Moving ${n} answers`;
+								document.body.appendChild(label);
+								e.dataTransfer.setDragImage(label, 12, 12);
+								setTimeout(() => label.remove(), 0);
+							} else if (row) e.dataTransfer.setDragImage(row, 12, 12);
+						}}
+						onDragEnd={drag.end}
+					>
+						⠿
+					</span>
 				</td>
 			)}
 			<td>
@@ -336,8 +364,11 @@ function WordList({ id }: { id: number }) {
 	const [newAnswer, setNewAnswer] = useState("");
 	const [adding, setAdding] = useState(false);
 	const [addError, setAddError] = useState<string | null>(null);
-	const [dragId, setDragId] = useState<number | null>(null);
+	const [moving, setMoving] = useState<number[] | null>(null);
 	const [dragOver, setDragOver] = useState<DropTarget | null>(null);
+	const [selected, setSelected] = useState<Set<number>>(new Set());
+	const [anchor, setAnchor] = useState<number | null>(null);
+	const [moveBusy, setMoveBusy] = useState(false);
 
 	const loadPrompt = useCallback(async () => {
 		const { data, error: err } = await supabase.from("ascent_prompt").select(PROMPT_COLUMNS).eq("id", id).maybeSingle();
@@ -370,7 +401,11 @@ function WordList({ id }: { id: number }) {
 	const missing = useMemo(() => missingWiki(answers ?? []), [answers]);
 	const groups = useMemo(() => byTier(answers ?? []), [answers]);
 	const unranked = useMemo(() => (answers ?? []).filter(a => a.prior === null || a.prior === undefined), [answers]);
-	const busy = progress !== null;
+	const busy = progress !== null || moveBusy;
+	/** Every row in the order shown, for shift-click ranges. */
+	const order = useMemo(() => [...groups.flatMap(g => g.answers), ...unranked].map(a => a.id), [groups, unranked]);
+	// Answers removed since they were selected drop out of the selection.
+	const chosen = useMemo(() => (answers ?? []).filter(a => selected.has(a.id)), [answers, selected]);
 
 	const reportWiki = (failed: string[], err: string | null) => {
 		if (err) setNotice(`Saving counts failed: ${err}`);
@@ -428,46 +463,91 @@ function WordList({ id }: { id: number }) {
 		return null;
 	};
 
-	const setPrior = async (answerId: number, prior: number | null) => {
+	const savePrior = async (answerId: number, prior: number | null) => {
 		const { error: err } = await supabase.rpc("ascent_set_prior", { p_answer_id: answerId, p_prior: prior });
-		if (err) return err.message;
+		return err ? err.message : null;
+	};
+
+	const setPrior = async (answerId: number, prior: number | null) => {
+		const err = await savePrior(answerId, prior);
+		if (err) return err;
 		await loadAnswers();
 		return null;
 	};
 
-	const drop = async (target: DropTarget) => {
-		const moving = answers?.find(a => a.id === dragId);
-		setDragId(null);
-		setDragOver(null);
-		if (!moving || !answers) return;
-		const prior = dropPrior(
-			answers.filter(a => a.id !== moving.id),
-			target
+	/** Saves several answers' priors at once, then reloads. Reports what
+	 *  failed by name. */
+	const savePriors = async (changes: { answer: ReviewAnswer; prior: number | null }[]) => {
+		setMoveBusy(true);
+		const errors = await Promise.all(changes.map(c => savePrior(c.answer.id, c.prior)));
+		const failed = changes.filter((_, i) => errors[i]).map(c => c.answer.canonical);
+		if (failed.length) setNotice(`Couldn't move ${failed.join(", ")}: ${errors.find(Boolean)}`);
+		await loadAnswers();
+		setMoveBusy(false);
+	};
+
+	/** Places `ids` (kept in their current order) at `target`. */
+	const moveTo = async (ids: number[], target: DropTarget) => {
+		if (!answers) return;
+		const movers = answers.filter(a => ids.includes(a.id) && a.prior !== null && a.prior !== undefined);
+		if (!movers.length) return;
+		const priors = dropPriors(
+			answers.filter(a => !ids.includes(a.id)),
+			target,
+			movers.length
 		);
-		if (prior === null || prior === Number(moving.prior)) return;
-		// Shown at once so the row doesn't jump back while the server answers.
-		setAnswers(sortByPrior(answers.map(a => (a.id === moving.id ? { ...a, prior, manual: true } : a))));
-		const err = await setPrior(moving.id, prior);
-		if (err) {
-			setNotice(`Couldn't move ${moving.canonical}: ${err}`);
-			await loadAnswers();
-		}
+		if (!priors) return;
+		const changes = movers.map((answer, i) => ({ answer, prior: priors[i] })).filter(c => c.prior !== Number(c.answer.prior));
+		if (!changes.length) return;
+		setNotice(null);
+		// Shown at once so the rows don't jump back while the server answers.
+		const next = new Map(changes.map(c => [c.answer.id, c.prior]));
+		setAnswers(sortByPrior(answers.map(a => (next.has(a.id) ? { ...a, prior: next.get(a.id)!, manual: true } : a))));
+		await savePriors(changes);
+	};
+
+	const resetSelected = async () => {
+		const changes = chosen.filter(a => a.manual).map(answer => ({ answer, prior: null }));
+		if (changes.length) await savePriors(changes);
+	};
+
+	const clearSelection = () => {
+		setSelected(new Set());
+		setAnchor(null);
 	};
 
 	const drag: Drag = {
 		enabled: can.editWeights,
-		id: dragId,
+		moving,
+		selected,
+		toggle: (answerId, shift) => {
+			setSelected(prev => {
+				const next = new Set(prev);
+				if (shift && anchor !== null) for (const x of selectRange(order, anchor, answerId)) next.add(x);
+				else if (next.has(answerId)) next.delete(answerId);
+				else next.add(answerId);
+				return next;
+			});
+			setAnchor(answerId);
+		},
 		over: dragOver,
 		start: answerId => {
 			setNotice(null);
-			setDragId(answerId);
+			const ids = selected.has(answerId) ? order.filter(x => selected.has(x)) : [answerId];
+			setMoving(ids);
+			return ids.length;
 		},
 		end: () => {
-			setDragId(null);
+			setMoving(null);
 			setDragOver(null);
 		},
 		onOver: t => setDragOver(prev => (JSON.stringify(prev) === JSON.stringify(t) ? prev : t)),
-		onDrop: t => void drop(t),
+		onDrop: t => {
+			const ids = moving;
+			setMoving(null);
+			setDragOver(null);
+			if (ids) void moveTo(ids, t);
+		},
 	};
 
 	const remove = async (a: ReviewAnswer) => {
@@ -527,7 +607,11 @@ function WordList({ id }: { id: number }) {
 
 			<div className="ta-row ta-spread">
 				<span className="ta-muted">
-					{answers ? `${answers.length} answers, most obvious first${can.editWeights ? "; drag ⠿ to re-rank" : ""}` : "Loading answers…"}
+					{answers
+						? `${answers.length} answers, most obvious first${
+								can.editWeights ? "; drag ⠿ to re-rank, or tick several to move them together" : ""
+						  }`
+						: "Loading answers…"}
 				</span>
 				{can.editAnswers && (
 					<button className="ta-btn" onClick={fetchAll} disabled={busy || !answers?.length}>
@@ -539,9 +623,43 @@ function WordList({ id }: { id: number }) {
 
 			{answers && <Ladder groups={groups} />}
 
+			{drag.enabled && chosen.length > 0 && (
+				<div className="ta-asc-selbar">
+					<strong>{chosen.length} selected</strong>
+					<label>
+						Move to{" "}
+						<select
+							value=""
+							disabled={busy}
+							onChange={e => {
+								if (e.target.value !== "")
+									void moveTo(
+										chosen.map(a => a.id),
+										{ kind: "tier", index: Number(e.target.value) }
+									);
+							}}
+						>
+							<option value="">a tier…</option>
+							{LADDER.map((t, i) => (
+								<option key={t.score} value={i}>
+									{t.rarity} · {t.tier} ({rangeText(t)})
+								</option>
+							))}
+						</select>
+					</label>
+					<button className="ta-btn ta-btn-small" onClick={resetSelected} disabled={busy || !chosen.some(a => a.manual)}>
+						Reset to counts
+					</button>
+					<button className="ta-linkish" onClick={clearSelection}>
+						Clear
+					</button>
+					<span className="ta-muted ta-small">{moveBusy ? "Saving…" : "Or drag any ticked row's ⠿ to move them all."}</span>
+				</div>
+			)}
+
 			{answers && (
 				<div className="ta-table-wrap">
-					<table className={`ta-table ta-asc-words ${dragId !== null ? "is-dragging" : ""}`}>
+					<table className={`ta-table ta-asc-words ${moving !== null ? "is-dragging" : ""}`}>
 						<thead>
 							<tr>
 								{drag.enabled && <th />}
@@ -561,12 +679,33 @@ function WordList({ id }: { id: number }) {
 								<tr
 									className={`ta-asc-tier ${dragOver?.kind === "tier" && dragOver.index === g.index ? "drop-after" : ""}`}
 									{...dropZone(() => ({ kind: "tier", index: g.index }), {
-										active: dragId !== null,
+										active: moving !== null,
 										onOver: drag.onOver,
 										onDrop: drag.onDrop,
 									})}
 								>
 									<td colSpan={5 + (drag.enabled ? 1 : 0) + 1 + (can.removeAnswer ? 1 : 0)}>
+										{drag.enabled && g.answers.length > 0 && (
+											<input
+												type="checkbox"
+												className="ta-asc-tier-check"
+												checked={g.answers.every(a => selected.has(a.id))}
+												readOnly
+												onClick={() =>
+													setSelected(prev => {
+														const next = new Set(prev);
+														const all = g.answers.every(a => next.has(a.id));
+														for (const a of g.answers) {
+															if (all) next.delete(a.id);
+															else next.add(a.id);
+														}
+														return next;
+													})
+												}
+												aria-label={`Select every ${g.tier.rarity} answer`}
+												title={`Select every answer in ${g.tier.tier}`}
+											/>
+										)}
 										<strong>{g.tier.rarity}</strong> · {g.tier.tier} · {g.tier.score} points ·{" "}
 										<span className="ta-muted">
 											rarity {rangeText(g.tier)} · {g.answers.length} answer{g.answers.length === 1 ? "" : "s"}

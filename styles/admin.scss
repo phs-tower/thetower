@@ -2746,3 +2746,56 @@ input.ta-live-num {
 	color: $muted;
 	@include label-caps;
 }
+
+/* Selecting several answers to move together. */
+.ta-asc-handle-cell {
+	white-space: nowrap;
+	width: 3rem;
+
+	input {
+		margin: 0 0.35rem 0 0;
+		vertical-align: middle;
+		cursor: pointer;
+	}
+}
+
+.ta-asc-tier-check {
+	margin: 0 0.6rem 0 0.15rem;
+	vertical-align: middle;
+	cursor: pointer;
+}
+
+.ta-root .ta-table.ta-asc-words tr.selected td {
+	background: rgba(6, 27, 64, 0.07);
+}
+
+.ta-asc-selbar {
+	position: sticky;
+	top: 0;
+	z-index: 5;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.6rem 1rem;
+	padding: 0.55rem 0.8rem;
+	background: #fff;
+	border: 1px solid $navy;
+	box-shadow: 0 2px 8px rgba(6, 27, 64, 0.12);
+	font-family: var(--font-sans), sans-serif;
+
+	select {
+		padding: 0.2rem 0.3rem;
+	}
+}
+
+.ta-asc-drag-label {
+	position: absolute;
+	top: -100px;
+	left: -100px;
+	padding: 0.35rem 0.7rem;
+	background: $navy;
+	color: #fff;
+	font-family: var(--font-sans), sans-serif;
+	font-size: 0.85rem;
+	white-space: nowrap;
+}
