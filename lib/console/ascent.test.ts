@@ -57,6 +57,7 @@ const prompt = (over: Partial<AscentPrompt>): AscentPrompt => ({
 	closes_at: "2026-11-03T12:00:00Z",
 	published: true,
 	wiki_weight: 0.4,
+	unlocked: false,
 	...over,
 });
 
@@ -133,6 +134,16 @@ test("promptPhase follows opens_at and closes_at", () => {
 	assert.equal(promptPhase(p, new Date("2026-11-02T11:59:59Z")), "upcoming");
 	assert.equal(promptPhase(p, new Date("2026-11-02T12:00:00Z")), "open");
 	assert.equal(promptPhase(p, new Date("2026-11-03T12:00:00Z")), "closed");
+});
+
+test("an unlocked closed prompt allows every edit, for testing", () => {
+	const closed = permissions("closed", true);
+	assert.equal(closed.removeAnswer, true);
+	assert.equal(closed.addAnswer, true);
+	assert.equal(closed.editAnswers, true);
+	assert.equal(closed.editWeights, true);
+	assert.equal(closed.unschedule, false);
+	assert.equal(permissions("closed", false).editWeights, false);
 });
 
 test("permissions hide what the server would refuse", () => {

@@ -363,7 +363,7 @@ function WordList({ id }: { id: number }) {
 	}, [loadPrompt, loadAnswers]);
 
 	const phase = prompt ? promptPhase(prompt, now) : null;
-	const can = permissions(phase ?? "closed");
+	const can = permissions(phase ?? "closed", prompt?.unlocked);
 	const missing = useMemo(() => missingWiki(answers ?? []), [answers]);
 	const groups = useMemo(() => byTier(answers ?? []), [answers]);
 	const unranked = useMemo(() => (answers ?? []).filter(a => a.prior === null || a.prior === undefined), [answers]);
@@ -498,6 +498,17 @@ function WordList({ id }: { id: number }) {
 		moveTo: (answerId, tier) => void moveTo([answerId], { kind: "tier", index: tier }),
 	};
 
+	const [unlocking, setUnlocking] = useState(false);
+	const [unlockError, setUnlockError] = useState<string | null>(null);
+	const setUnlocked = async (unlocked: boolean) => {
+		setUnlocking(true);
+		setUnlockError(null);
+		const { error: err } = await supabase.rpc("ascent_set_unlocked", { p_prompt_id: id, p_unlocked: unlocked });
+		if (err) setUnlockError(err.message);
+		else await loadPrompt();
+		setUnlocking(false);
+	};
+
 	const remove = async (a: ReviewAnswer) => {
 		const { error: err } = await supabase.rpc("ascent_remove_answer", { p_answer_id: a.id });
 		if (err) return err.message;
@@ -526,12 +537,25 @@ function WordList({ id }: { id: number }) {
 						<Link href={`/admin/ascent/${bankId}`}>bank prompt</Link>; weights and removals stay with this day.
 					</p>
 				)}
-				{phase === "closed" && (
+				{phase === "closed" && !prompt.unlocked && (
 					<p className="ta-muted ta-small">
 						Closed: its board has been shown, so only aliases can change here. To grow the list for next time, add the answer on the bank
-						prompt.
+						prompt.{" "}
+						<button className="ta-linkish" onClick={() => setUnlocked(true)} disabled={unlocking}>
+							Unlock for testing
+						</button>
 					</p>
 				)}
+				{phase === "closed" && prompt.unlocked && (
+					<p className="ta-asc-notice">
+						Unlocked for testing: everything here can change, and readers who open this day&apos;s results will see the new board.
+						Removing an answer turns everyone who gave it into Still Outside.{" "}
+						<button className="ta-linkish" onClick={() => setUnlocked(false)} disabled={unlocking}>
+							Lock again
+						</button>
+					</p>
+				)}
+				{unlockError && <p className="ta-error">{unlockError}</p>}
 			</div>
 
 			<TryBox promptId={id} />

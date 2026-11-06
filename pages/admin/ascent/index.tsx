@@ -137,7 +137,7 @@ function Slot({
 		);
 
 	const phase = promptPhase(prompt, now);
-	const can = permissions(phase);
+	const can = permissions(phase, prompt.unlocked);
 
 	const unschedule = async () => {
 		setBusy(true);

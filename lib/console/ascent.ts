@@ -28,7 +28,7 @@ export const SET_ANSWERS_BATCH = 25;
 /** How many Wikipedia requests are in flight at once. */
 export const WIKI_CONCURRENCY = 4;
 
-export const PROMPT_COLUMNS = "id, day, slot, key, family, text, opens_at, closes_at, published, wiki_weight";
+export const PROMPT_COLUMNS = "id, day, slot, key, family, text, opens_at, closes_at, published, wiki_weight, unlocked";
 
 export interface AscentPrompt {
 	id: number;
@@ -41,6 +41,8 @@ export interface AscentPrompt {
 	closes_at: string | null;
 	published: boolean;
 	wiki_weight: number;
+	/** For testing: a closed prompt an editor has unlocked to change. */
+	unlocked: boolean;
 }
 
 export interface BankRow {
@@ -173,8 +175,12 @@ export function promptPhase(p: Pick<AscentPrompt, "day" | "opens_at" | "closes_a
 }
 
 /** What an editor may do to a prompt in each phase. The server enforces all
- *  of these; the console only hides what would be refused. */
-export function permissions(phase: Phase) {
+ *  of these; the console only hides what would be refused. An `unlocked`
+ *  prompt (for testing) allows every edit to its word list and weight, even
+ *  after it has closed. */
+export function permissions(phase: Phase, unlocked = false) {
+	if (unlocked)
+		return { unschedule: phase === "upcoming", removeAnswer: true, addAnswer: true, editAnswers: true, editWeights: true, addAlias: true };
 	return {
 		unschedule: phase === "upcoming",
 		removeAnswer: phase === "bank" || phase === "upcoming",
