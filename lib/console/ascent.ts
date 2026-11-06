@@ -28,7 +28,10 @@ export const SET_ANSWERS_BATCH = 25;
 /** How many Wikipedia requests are in flight at once. */
 export const WIKI_CONCURRENCY = 4;
 
-export const PROMPT_COLUMNS = "id, day, slot, key, family, text, opens_at, closes_at, published, wiki_weight, unlocked";
+/** Every column, rather than a list: a column the console expects but the
+ *  database doesn't have yet (supabase/ascent.sql not re-run) then comes back
+ *  undefined instead of failing the whole query. */
+export const PROMPT_COLUMNS = "*";
 
 export interface AscentPrompt {
 	id: number;
