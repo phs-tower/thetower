@@ -142,17 +142,24 @@ function Slot({
 	const unschedule = async () => {
 		setBusy(true);
 		setError(null);
-		// The opens_at filter makes the server refuse too if it opened meanwhile.
-		const { data, error: err } = await supabase
-			.from("ascent_prompt")
-			.delete()
-			.eq("id", prompt.id)
-			.gt("opens_at", new Date().toISOString())
-			.select("id");
+		// The opens_at filter makes the server refuse too if it opened meanwhile,
+		// unless an editor unlocked it for testing.
+		let query = supabase.from("ascent_prompt").delete().eq("id", prompt.id);
+		if (!prompt.unlocked) query = query.gt("opens_at", new Date().toISOString());
+		const { data, error: err } = await query.select("id");
 		setBusy(false);
 		setConfirming(false);
 		if (err) setError(err.message);
 		else if (!data?.length) setError("Not removed: the prompt has opened, so readers may have answered it.");
+		else onChanged();
+	};
+
+	const setUnlocked = async (unlocked: boolean) => {
+		setBusy(true);
+		setError(null);
+		const { error: err } = await supabase.rpc("ascent_set_unlocked", { p_prompt_id: prompt.id, p_unlocked: unlocked });
+		setBusy(false);
+		if (err) setError(err.message);
 		else onChanged();
 	};
 
@@ -162,7 +169,9 @@ function Slot({
 				<span className="ta-muted ta-asc-meta">
 					Slot {slot} · {prompt.family} · {prompt.key}
 				</span>
-				<PhaseBadge phase={phase} />
+				<span>
+					{prompt.unlocked && <span className="ta-badge red">Unlocked</span>} <PhaseBadge phase={phase} />
+				</span>
 			</div>
 			<div className="ta-asc-slot-text">{prompt.text}</div>
 			<WeightsEditor prompt={prompt} editable={can.editWeights} onSaved={onChanged} />
@@ -175,6 +184,11 @@ function Slot({
 						Review
 					</Link>
 				)}
+				{phase === "closed" && (
+					<button className="ta-linkish" onClick={() => setUnlocked(!prompt.unlocked)} disabled={busy}>
+						{prompt.unlocked ? "Lock again" : "Unlock for testing"}
+					</button>
+				)}
 				{can.unschedule && !confirming && (
 					<button className="ta-linkish ta-asc-danger" onClick={() => setConfirming(true)}>
 						Unschedule
@@ -183,7 +197,9 @@ function Slot({
 			</div>
 			{confirming && (
 				<div className="ta-asc-confirm">
-					<span>Remove this prompt and its answers from {prompt.day}?</span>
+					<span>
+						Remove this prompt and its answers from {prompt.day}?{phase !== "upcoming" && " Readers' answers to it are deleted too."}
+					</span>
 					<button className="ta-btn ta-btn-small ta-btn-danger" onClick={unschedule} disabled={busy}>
 						{busy ? "Removing…" : "Remove"}
 					</button>

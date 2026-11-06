@@ -179,11 +179,10 @@ export function promptPhase(p: Pick<AscentPrompt, "day" | "opens_at" | "closes_a
 
 /** What an editor may do to a prompt in each phase. The server enforces all
  *  of these; the console only hides what would be refused. An `unlocked`
- *  prompt (for testing) allows every edit to its word list and weight, even
- *  after it has closed. */
+ *  prompt (for testing) allows every edit to its word list and weight, and
+ *  unscheduling, even after it has closed. */
 export function permissions(phase: Phase, unlocked = false) {
-	if (unlocked)
-		return { unschedule: phase === "upcoming", removeAnswer: true, addAnswer: true, editAnswers: true, editWeights: true, addAlias: true };
+	if (unlocked) return { unschedule: phase !== "bank", removeAnswer: true, addAnswer: true, editAnswers: true, editWeights: true, addAlias: true };
 	return {
 		unschedule: phase === "upcoming",
 		removeAnswer: phase === "bank" || phase === "upcoming",

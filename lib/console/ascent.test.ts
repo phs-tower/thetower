@@ -142,8 +142,9 @@ test("an unlocked closed prompt allows every edit, for testing", () => {
 	assert.equal(closed.addAnswer, true);
 	assert.equal(closed.editAnswers, true);
 	assert.equal(closed.editWeights, true);
-	assert.equal(closed.unschedule, false);
+	assert.equal(closed.unschedule, true);
 	assert.equal(permissions("closed", false).editWeights, false);
+	assert.equal(permissions("closed", false).unschedule, false);
 });
 
 test("permissions hide what the server would refuse", () => {
