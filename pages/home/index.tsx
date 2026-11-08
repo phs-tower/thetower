@@ -6,7 +6,6 @@ import Image from "next/image";
 import { FiArrowDown } from "react-icons/fi";
 import { useEffect, useRef, useState, type ComponentType, type CSSProperties } from "react";
 import ArticlePreview from "~/components/preview.client";
-import Advertisement from "~/components/advertisement";
 import { getFrontpageArticles, getIdOfNewest, getRecommendedSubcategoryArticle, getSpreadsByCategory } from "~/lib/queries";
 import SubBanner from "~/components/subbanner.client";
 import { SectionContainer, VanguardContainer } from "~/components/sectioncontainer.client";
@@ -321,18 +320,6 @@ export default function FrontPage({ articles, vanguardSpreads, featuredVanguardA
 					height: var(--dynamic-image-height, 16rem) !important;
 					max-height: var(--dynamic-image-height, 16rem) !important;
 				}
-				.home-leaderboard {
-					display: flex;
-					justify-content: center;
-					margin: 1.5rem 0 2rem;
-					padding: 1.25rem 0;
-					border-top: 1px solid gainsboro;
-					border-bottom: 1px solid var(--accent-dark);
-				}
-				.home-leaderboard :global(aside) {
-					box-sizing: border-box;
-					width: min(100%, calc(728px + 0.9rem + 2px));
-				}
 				.mobile-issue {
 					display: none;
 				}
@@ -462,15 +449,6 @@ export default function FrontPage({ articles, vanguardSpreads, featuredVanguardA
 						</div>
 					))}
 				</div>
-			</div>
-			<div className="home-leaderboard">
-				<Advertisement
-					href="https://www.jfcswheels4meals.org/"
-					src="/assets/jfcs-wheels-heels-2026-leaderboard.png"
-					width={1365}
-					height={169}
-					alt="JFCS Wheels & Heels for Meals, October 11, 2026 at Mercer County Community College"
-				/>
 			</div>
 			<SectionContainer category="NEWS & FEATURES" desc="The latest stories on PHS and its community." articles={articles["news-features"]} />
 			<hr />
