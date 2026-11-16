@@ -430,7 +430,16 @@ export function parseTry(data: unknown): TryResult | null {
 	return { answer_id: Number(d.answer_id), canonical: String(d.canonical ?? ""), how: d.how };
 }
 
-export function describeTry(r: TryResult | null): string {
+/** Reads ascent-suggest's reply: the answer the AI would offer, or null. */
+export function parseSuggest(data: unknown): string | null {
+	const s = (data as { suggest?: unknown } | null)?.suggest;
+	return typeof s === "string" && s.trim() ? s : null;
+}
+
+/** `suggest` is asked of ascent-suggest only when ascent_try found nothing,
+ *  the same order the app asks in. */
+export function describeTry(r: TryResult | null, suggest: string | null = null): string {
+	if (!r && suggest) return `Asks “Did you mean ${suggest}?” (AI, close in meaning); counts if they say yes.`;
 	if (!r) return "Would not count: it lands on the unmatched list.";
 	switch (r.how) {
 		case "exact":

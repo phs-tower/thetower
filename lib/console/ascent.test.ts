@@ -28,6 +28,7 @@ import {
 	missingWiki,
 	mondayOf,
 	parseReview,
+	parseSuggest,
 	parseTry,
 	parseWikiHits,
 	placeAnswers,
@@ -307,6 +308,16 @@ test("parseReview and parseTry read the RPCs' jsonb", () => {
 	});
 	assert.match(describeTry(null), /would not count/i);
 	assert.match(describeTry({ answer_id: 7, canonical: "PHS Debate", how: "typo" }), /Did you mean PHS Debate/);
+});
+
+test("an AI suggestion is shown only when ascent_try found nothing", () => {
+	assert.equal(parseSuggest({ suggest: "Swimming", similarity: 0.91 }), "Swimming");
+	assert.equal(parseSuggest({ suggest: null, similarity: 0.8 }), null);
+	assert.equal(parseSuggest({}), null);
+	assert.equal(parseSuggest(null), null);
+	assert.match(describeTry(null, "Swimming"), /Did you mean Swimming\?.*AI/);
+	assert.match(describeTry(null, null), /would not count/i);
+	assert.match(describeTry({ answer_id: 7, canonical: "PHS Debate", how: "alias" }, "Swimming"), /Counts as PHS Debate/);
 });
 
 // ─── Wikipedia ───

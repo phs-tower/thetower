@@ -14,6 +14,7 @@ import {
 	LADDER,
 	missingWiki,
 	parseReview,
+	parseSuggest,
 	parseTry,
 	permissions,
 	promptPhase,
@@ -62,7 +63,9 @@ async function refreshWiki(
 function TryBox({ promptId }: { promptId: number }) {
 	const { supabase } = useAdmin();
 	const [text, setText] = useState("");
-	const [result, setResult] = useState<{ raw: string; match: TryResult | null } | null>(null);
+	// suggest: what ascent-suggest would offer when ascent_try found nothing.
+	// "asking" while it runs (a second or two), "failed" if it couldn't answer.
+	const [result, setResult] = useState<{ raw: string; match: TryResult | null; suggest: string | null | "asking" | "failed" } | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const seq = useRef(0);
 
@@ -77,14 +80,24 @@ function TryBox({ promptId }: { promptId: number }) {
 		const t = setTimeout(async () => {
 			const { data, error: err } = await supabase.rpc("ascent_try", { p_prompt_id: promptId, p_raw: raw });
 			if (mine !== seq.current) return;
-			if (err) setError(err.message);
-			else {
-				setError(null);
-				setResult({ raw, match: parseTry(data) });
+			if (err) {
+				setError(err.message);
+				return;
 			}
+			setError(null);
+			const match = parseTry(data);
+			setResult({ raw, match, suggest: match ? null : "asking" });
+			if (match) return;
+			// as_editor lets the function answer for prompts that haven't opened;
+			// it checks is_editor() under this session before honouring it.
+			const ai = await supabase.functions.invoke("ascent-suggest", { body: { prompt_id: promptId, raw, as_editor: true } });
+			if (mine !== seq.current) return;
+			setResult({ raw, match, suggest: ai.error ? "failed" : parseSuggest(ai.data) });
 		}, 300);
 		return () => clearTimeout(t);
 	}, [text, promptId, supabase]);
+
+	const suggest = result?.suggest === "asking" || result?.suggest === "failed" ? null : result?.suggest ?? null;
 
 	return (
 		<div className="ta-card ta-asc-try">
@@ -93,10 +106,24 @@ function TryBox({ promptId }: { promptId: number }) {
 				<input type="text" value={text} onChange={e => setText(e.target.value)} placeholder="Type what a reader might" />
 			</label>
 			{error && <p className="ta-error">{error}</p>}
-			{result && (
-				<p className={result.match ? (result.match.how === "exact" || result.match.how === "alias" ? "ta-ok" : "ta-asc-ask") : "ta-error"}>
-					“{result.raw}”: {describeTry(result.match)}
+			{result?.suggest === "asking" && <p className="ta-muted">“{result.raw}”: no match by name; asking the AI…</p>}
+			{result && result.suggest !== "asking" && (
+				<p
+					className={
+						result.match
+							? result.match.how === "exact" || result.match.how === "alias"
+								? "ta-ok"
+								: "ta-asc-ask"
+							: suggest
+							? "ta-asc-ask"
+							: "ta-error"
+					}
+				>
+					“{result.raw}”: {describeTry(result.match, suggest)}
 				</p>
+			)}
+			{result?.suggest === "failed" && (
+				<p className="ta-muted ta-small">The AI check didn&apos;t answer, so this shows the name matching alone.</p>
 			)}
 		</div>
 	);
