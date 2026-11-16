@@ -21,6 +21,7 @@ Dashboard → SQL Editor → paste & run each file in `supabase/migrations/`:
 | 8 | `20261012000001_gamecast.sql` | **Copied from the app repo** (`supabase/gamecast.sql`): `broadcast.gamecast`, the `gamecast` and `gamecast_play` tables, the touch trigger, reader SELECT policies, realtime |
 | 9 | `20261012000002_gamecast_console.sql` | editor-only write policies on `gamecast` / `gamecast_play`, and the console-only `gamecast_roster` table |
 | 10 | `20261012000003_gamecast_delete_fix.sql` | fixes the touch trigger so a game with plays can be deleted (the cascade used to violate a foreign key) |
+| 11 | `20261116000001_ascent_nearest_editor.sql` | `ascent_nearest(…, p_editor)` so the console's "Test an answer" box gets AI suggestions on prompts that haven't opened (already applied to the live project). Needs the `ascent-suggest` in the app repo that passes `p_editor` |
 
 All are idempotent — safe to re-run. **Note:** `is_editor()` is SECURITY
 DEFINER (not invoker as the original brief sketched): a policy on `editor`
