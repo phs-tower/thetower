@@ -46,6 +46,29 @@ export interface AscentPrompt {
 	wiki_weight: number;
 	/** For testing: a closed prompt an editor has unlocked to change. */
 	unlocked: boolean;
+	/** How close an answer must be for the AI to suggest one. Undefined until
+	 *  20261116000002_ascent_ai_leniency.sql is applied. */
+	ai_leniency?: Leniency;
+}
+
+// ─── AI leniency ────────────────────────────────────────────────────────────
+
+/** The thresholds are ascent_nearest's; these are only their names. */
+export type Leniency = "strict" | "normal" | "loose" | "very_loose";
+
+export const LENIENCIES: { level: Leniency; label: string; hint: string }[] = [
+	{ level: "strict", label: "Strict", hint: "Suggests only near-certain matches." },
+	{ level: "normal", label: "Normal", hint: "The default." },
+	{ level: "loose", label: "Loose", hint: "For vaguer prompts, where readers describe an answer rather than name it." },
+	{
+		level: "very_loose",
+		label: "Very loose",
+		hint: "For wordy prompts and long answer names. Offers more guesses; readers still have to confirm each one.",
+	},
+];
+
+export function leniencyOf(p: Pick<AscentPrompt, "ai_leniency">): Leniency {
+	return LENIENCIES.some(l => l.level === p.ai_leniency) ? (p.ai_leniency as Leniency) : "normal";
 }
 
 export interface BankRow {

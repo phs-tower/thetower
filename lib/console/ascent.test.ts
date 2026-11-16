@@ -24,6 +24,8 @@ import {
 	groupBank,
 	LADDER,
 	lastRunByKey,
+	LENIENCIES,
+	leniencyOf,
 	lastUsedLabel,
 	missingWiki,
 	mondayOf,
@@ -308,6 +310,17 @@ test("parseReview and parseTry read the RPCs' jsonb", () => {
 	});
 	assert.match(describeTry(null), /would not count/i);
 	assert.match(describeTry({ answer_id: 7, canonical: "PHS Debate", how: "typo" }), /Did you mean PHS Debate/);
+});
+
+test("leniencyOf falls back to normal for a missing or unknown level", () => {
+	assert.equal(leniencyOf({ ai_leniency: "very_loose" }), "very_loose");
+	assert.equal(leniencyOf({}), "normal");
+	assert.equal(leniencyOf({ ai_leniency: "lax" as never }), "normal");
+	// The levels the database's check constraint allows, in order.
+	assert.deepEqual(
+		LENIENCIES.map(l => l.level),
+		["strict", "normal", "loose", "very_loose"]
+	);
 });
 
 test("an AI suggestion is shown only when ascent_try found nothing", () => {

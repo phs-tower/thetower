@@ -2528,6 +2528,33 @@ input.ta-live-num {
 	margin-bottom: 0.4rem;
 }
 
+/* The AI leniency row above "Test an answer": the tier buttons' look, in navy. */
+.ta-asc-leniency {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.3rem 0.6rem;
+	align-items: center;
+	margin-bottom: 0.9rem;
+	padding-bottom: 0.8rem;
+	border-bottom: 1px solid $rule;
+	font-family: var(--font-sans), sans-serif;
+
+	.ta-asc-tier-buttons {
+		--c: #{$navy};
+	}
+
+	.ta-error {
+		flex-basis: 100%;
+		margin: 0;
+	}
+}
+
+.ta-asc-leniency-label {
+	font-size: 0.72rem;
+	color: $muted;
+	@include label-caps;
+}
+
 .ta-asc-ask {
 	color: #a16207;
 	font-family: var(--font-sans), sans-serif;

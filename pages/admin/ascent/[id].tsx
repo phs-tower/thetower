@@ -12,6 +12,8 @@ import {
 	fetchWikiCounts,
 	formatPrior,
 	LADDER,
+	LENIENCIES,
+	leniencyOf,
 	missingWiki,
 	parseReview,
 	parseSuggest,
@@ -27,6 +29,7 @@ import {
 	wikiBatches,
 	type AscentPrompt,
 	type DropTarget,
+	type Leniency,
 	type ReviewAnswer,
 	type Tier,
 	type TryResult,
@@ -60,7 +63,47 @@ async function refreshWiki(
 	return { failed: failed.map(f => f.canonical), error: null };
 }
 
-function TryBox({ promptId }: { promptId: number }) {
+/** How close an answer must be for the AI to offer it. Saved for the question
+ *  (ascent_set_leniency also sets the bank prompt and unclosed copies), and
+ *  only changes suggestions, never scores, so a closed prompt may change too. */
+function LeniencyPicker({ promptId, level, onSaved }: { promptId: number; level: Leniency; onSaved: () => void }) {
+	const { supabase } = useAdmin();
+	const [busy, setBusy] = useState(false);
+	const [error, setError] = useState<string | null>(null);
+
+	const pick = async (next: Leniency) => {
+		setBusy(true);
+		setError(null);
+		const { error: err } = await supabase.rpc("ascent_set_leniency", { p_prompt_id: promptId, p_level: next });
+		setBusy(false);
+		if (err) setError(err.message);
+		else onSaved();
+	};
+
+	return (
+		<div className="ta-asc-leniency">
+			<span className="ta-asc-leniency-label">AI leniency</span>
+			<div className="ta-asc-tier-buttons">
+				{LENIENCIES.map(l => (
+					<button
+						key={l.level}
+						className={l.level === level ? "current" : ""}
+						aria-pressed={l.level === level}
+						disabled={busy || l.level === level}
+						onClick={() => pick(l.level)}
+						title={l.hint}
+					>
+						{l.label}
+					</button>
+				))}
+			</div>
+			<span className="ta-muted ta-small">{LENIENCIES.find(l => l.level === level)?.hint}</span>
+			{error && <p className="ta-error">{error}</p>}
+		</div>
+	);
+}
+
+function TryBox({ promptId, leniency, onLeniency }: { promptId: number; leniency: Leniency; onLeniency: () => void }) {
 	const { supabase } = useAdmin();
 	const [text, setText] = useState("");
 	// suggest: what ascent-suggest would offer when ascent_try found nothing.
@@ -95,12 +138,13 @@ function TryBox({ promptId }: { promptId: number }) {
 			setResult({ raw, match, suggest: ai.error ? "failed" : parseSuggest(ai.data) });
 		}, 300);
 		return () => clearTimeout(t);
-	}, [text, promptId, supabase]);
+	}, [text, promptId, supabase, leniency]);
 
 	const suggest = result?.suggest === "asking" || result?.suggest === "failed" ? null : result?.suggest ?? null;
 
 	return (
 		<div className="ta-card ta-asc-try">
+			<LeniencyPicker promptId={promptId} level={leniency} onSaved={onLeniency} />
 			<label>
 				Test an answer
 				<input type="text" value={text} onChange={e => setText(e.target.value)} placeholder="Type what a reader might" />
@@ -585,7 +629,7 @@ function WordList({ id }: { id: number }) {
 				{unlockError && <p className="ta-error">{unlockError}</p>}
 			</div>
 
-			<TryBox promptId={id} />
+			<TryBox promptId={id} leniency={leniencyOf(prompt)} onLeniency={loadPrompt} />
 
 			{can.addAnswer && (
 				<form className="ta-row ta-asc-add" onSubmit={addAnswer}>
