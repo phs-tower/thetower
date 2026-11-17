@@ -5,7 +5,7 @@
 // Anyone holding the link edits the same draft, with no sign-in. The link IS
 // the credential, so this page never asks who you are and never needs to; the
 // database refuses every request that does not carry the token (see
-// supabase/migrations/20261116000001_crossword_room.sql).
+// supabase/migrations/20261116000003_crossword_room.sql).
 //
 // Keeping two browsers in step is split in two:
 //   * a realtime channel carries each edit to the other people in the room,

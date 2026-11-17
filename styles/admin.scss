@@ -2432,3 +2432,534 @@ input.ta-live-num {
 		border-top: 0;
 	}
 }
+
+
+/* ─── The Ascent ─── */
+.ta-tabs a {
+	position: relative;
+	border-bottom: 3px solid transparent;
+	margin-bottom: -1px;
+	padding: 0.5rem 0.9rem;
+	@include label-caps;
+	font-size: 0.78rem;
+	color: $muted;
+	text-decoration: none;
+	white-space: nowrap;
+
+	&:hover {
+		color: $navy;
+	}
+
+	&.active {
+		color: $navy;
+		border-bottom-color: $navy;
+	}
+}
+
+.ta-asc-meta {
+	@include label-caps;
+	font-size: 0.7rem;
+}
+
+.ta-asc-nowrap {
+	white-space: nowrap;
+}
+
+.ta-asc-notice {
+	margin: 0;
+	padding: 0.6rem 0.85rem;
+	border-left: 3px solid $navy;
+	background: #f3f6f8;
+	font-family: var(--font-sans), sans-serif;
+	font-size: 0.95rem;
+}
+
+.ta-asc-counts {
+	@include label-caps;
+	color: $navy;
+	margin-bottom: 0.25rem;
+}
+
+.ta-asc-weekname {
+	font-family: var(--font-serif-header), serif;
+	font-weight: normal;
+	font-size: 1.25rem;
+}
+
+.ta-asc-week {
+	display: grid;
+	grid-template-columns: repeat(5, minmax(0, 1fr));
+	gap: 0.75rem;
+	margin-top: 1rem;
+
+	@media screen and (max-width: 900px) {
+		grid-template-columns: 1fr;
+	}
+}
+
+.ta-asc-day {
+	display: flex;
+	flex-direction: column;
+	gap: 0.6rem;
+
+	h3 {
+		font-size: 1.15rem;
+		border-bottom: 2px solid #000;
+		padding-bottom: 0.2rem;
+	}
+}
+
+.ta-asc-slot {
+	border: 1px solid $rule;
+	border-top: 3px solid $navy;
+	border-radius: 0.3rem;
+	background: #fff;
+	padding: 0.6rem 0.7rem;
+	display: flex;
+	flex-direction: column;
+	gap: 0.45rem;
+	min-height: 9rem;
+
+	&.sport {
+		border-top-color: $red;
+	}
+
+	&.archive {
+		border-top-color: $pale;
+	}
+
+	&.empty {
+		border-style: dashed;
+		border-top-width: 1px;
+		align-items: flex-start;
+		justify-content: space-between;
+		background: #fafbfc;
+	}
+
+	.ta-btn-small {
+		align-self: flex-start;
+	}
+}
+
+.ta-asc-slot-text {
+	font-family: var(--font-serif-header), serif;
+	font-size: 1.1rem;
+	line-height: 1.25;
+}
+
+.ta-asc-slot-actions {
+	gap: 0.85rem;
+	font-size: 0.9rem;
+}
+
+.ta-asc-weights {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.25rem 0.6rem;
+	align-items: baseline;
+	font-family: var(--font-sans), sans-serif;
+	font-size: 0.85rem;
+}
+
+.ta-asc-weights-form {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 0.4rem;
+	max-width: 26rem;
+
+	label {
+		margin-bottom: 0;
+		font-size: 0.68rem;
+	}
+
+	.ta-row,
+	.ta-error {
+		grid-column: 1 / -1;
+	}
+}
+
+.ta-asc-note {
+	font-size: 0.8rem;
+}
+
+.ta-root .ta-asc-danger {
+	color: $red;
+}
+
+.ta-asc-confirm {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.4rem;
+	align-items: center;
+	font-family: var(--font-sans), sans-serif;
+	font-size: 0.9rem;
+}
+
+.ta-asc-picker {
+	max-width: 44rem;
+
+	h3 {
+		text-transform: capitalize;
+	}
+
+	ul {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+	}
+
+	li {
+		display: flex;
+		gap: 0.75rem;
+		align-items: center;
+		justify-content: space-between;
+		padding: 0.45rem 0;
+		border-bottom: 1px solid $rule;
+
+		&.blocked .ta-asc-picker-main > div:first-child {
+			color: $muted;
+		}
+	}
+}
+
+.ta-asc-blocked {
+	color: $red;
+}
+
+.ta-asc-bank-group {
+	margin-bottom: 1.75rem;
+
+	h2 {
+		font-size: 1.4rem;
+		text-transform: capitalize;
+		margin-bottom: 0.5rem;
+	}
+}
+
+.ta-asc-head h2 {
+	font-size: 1.6rem;
+	margin: 0.35rem 0 0.5rem;
+}
+
+.ta-asc-try label {
+	margin-bottom: 0.4rem;
+}
+
+/* The AI leniency row above "Test an answer": the tier buttons' look, in navy. */
+.ta-asc-leniency {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.3rem 0.6rem;
+	align-items: center;
+	margin-bottom: 0.9rem;
+	padding-bottom: 0.8rem;
+	border-bottom: 1px solid $rule;
+	font-family: var(--font-sans), sans-serif;
+
+	.ta-asc-tier-buttons {
+		--c: #{$navy};
+	}
+
+	.ta-error {
+		flex-basis: 100%;
+		margin: 0;
+	}
+}
+
+.ta-asc-leniency-label {
+	font-size: 0.72rem;
+	color: $muted;
+	@include label-caps;
+}
+
+.ta-asc-ask {
+	color: #a16207;
+	font-family: var(--font-sans), sans-serif;
+	margin: 0;
+}
+
+.ta-asc-add {
+	align-items: flex-start;
+
+	input[type="text"] {
+		max-width: 24rem;
+	}
+
+	.ta-error {
+		flex-basis: 100%;
+	}
+}
+
+.ta-asc-words {
+	td {
+		font-family: var(--font-sans), sans-serif;
+		font-size: 0.92rem;
+	}
+
+	input[type="text"] {
+		padding: 0.25rem 0.4rem;
+		font-size: 0.9rem;
+		min-width: 8rem;
+	}
+}
+
+.ta-asc-canonical {
+	font-weight: 600;
+}
+
+.ta-asc-aliases {
+	max-width: 18rem;
+}
+
+.ta-asc-inline {
+	margin-left: 0.4rem;
+	font-size: 0.85rem;
+}
+
+.ta-asc-inline-form {
+	display: flex;
+	gap: 0.3rem;
+	align-items: center;
+	margin-top: 0.25rem;
+}
+
+.ta-asc-cell-error {
+	font-size: 0.85rem;
+	margin-top: 0.2rem;
+}
+
+.ta-root .ta-table .ta-asc-num {
+	text-align: right;
+	white-space: nowrap;
+}
+
+/* The prior as a bar behind its number: short is obvious, long is rare. */
+.ta-asc-prior {
+	display: inline-block;
+	min-width: 3.5rem;
+	padding: 0 0.3rem;
+	background: linear-gradient(to right, rgba(6, 27, 64, 0.14) calc(var(--p) * 100%), transparent 0);
+}
+
+.ta-asc-review {
+	display: grid;
+	grid-template-columns: 18rem minmax(0, 1fr);
+	gap: 1.5rem;
+	align-items: start;
+
+	@media screen and (max-width: 800px) {
+		grid-template-columns: 1fr;
+	}
+
+	h2 {
+		font-size: 1.5rem;
+	}
+}
+
+.ta-asc-review-list {
+	ul {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		max-height: 75vh;
+		overflow-y: auto;
+		border: 1px solid $rule;
+		border-radius: 0.35rem;
+	}
+
+	button {
+		display: flex;
+		flex-direction: column;
+		gap: 0.15rem;
+		width: 100%;
+		text-align: left;
+		background: #fff;
+		border: none;
+		border-bottom: 1px solid $rule;
+		padding: 0.55rem 0.7rem;
+		cursor: pointer;
+		font-size: 0.95rem;
+
+		&:hover {
+			background: #fafbfc;
+		}
+
+		&.active {
+			background: #eef2f6;
+			box-shadow: inset 3px 0 0 $navy;
+		}
+	}
+}
+
+.ta-asc-raw {
+	font-family: var(--font-serif-text), serif;
+	font-size: 1.1rem;
+}
+
+.ta-asc-done {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+}
+
+/* The word list, grouped by tier. Each tbody carries its rarity colour as
+   --c; rows drag by their ⠿ handle and show a line where they would land. */
+.ta-asc-ladder {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.ta-asc-ladder-bar {
+	display: flex;
+	gap: 2px;
+	min-height: 3.6rem;
+
+	> div {
+		flex-basis: 0;
+		min-width: 4.5rem;
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		padding: 0.3rem 0.45rem;
+		background: color-mix(in srgb, var(--c) 14%, #fff);
+		border-top: 4px solid var(--c);
+		font-family: var(--font-sans), sans-serif;
+		line-height: 1.2;
+	}
+}
+
+.ta-asc-ladder-word {
+	font-weight: 700;
+	color: var(--c);
+	font-size: 0.85rem;
+}
+
+.ta-asc-ladder-sub {
+	font-size: 0.72rem;
+	color: $muted;
+	white-space: nowrap;
+}
+
+.ta-root .ta-table.ta-asc-words {
+	tr.ta-asc-tier td {
+		background: color-mix(in srgb, var(--c) 12%, #fff);
+		border-left: 4px solid var(--c);
+		font-family: var(--font-sans), sans-serif;
+		font-size: 0.85rem;
+		padding-top: 0.35rem;
+		padding-bottom: 0.35rem;
+
+		strong {
+			color: var(--c);
+		}
+	}
+}
+
+/* A row's "move to" buttons, one per tier in its rarity colour; the tier
+   the answer is in now is filled. */
+.ta-asc-tier-buttons {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.2rem;
+
+	button {
+		padding: 0.12rem 0.4rem;
+		border: 1px solid var(--c);
+		border-radius: 0.15rem;
+		background: #fff;
+		color: var(--c);
+		font-family: var(--font-sans), sans-serif;
+		font-size: 0.72rem;
+		font-weight: 600;
+		white-space: nowrap;
+		cursor: pointer;
+
+		&:hover:not(:disabled) {
+			background: color-mix(in srgb, var(--c) 14%, #fff);
+		}
+
+		&.current {
+			background: var(--c);
+			color: #fff;
+			cursor: default;
+		}
+
+		&:disabled:not(.current) {
+			opacity: 0.45;
+			cursor: default;
+		}
+	}
+}
+
+.ta-asc-manual {
+	display: block;
+	font-size: 0.72rem;
+	color: $muted;
+	@include label-caps;
+}
+
+/* Selecting several answers to move together. */
+.ta-asc-check-cell {
+	width: 1.6rem;
+
+	input {
+		margin: 0;
+		vertical-align: middle;
+		cursor: pointer;
+	}
+}
+
+.ta-asc-tier-check {
+	margin: 0 0.6rem 0 0.15rem;
+	vertical-align: middle;
+	cursor: pointer;
+}
+
+.ta-root .ta-table.ta-asc-words tr.selected td {
+	background: rgba(6, 27, 64, 0.07);
+}
+
+.ta-asc-selbar {
+	position: sticky;
+	top: 0;
+	z-index: 5;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.6rem 1rem;
+	padding: 0.55rem 0.8rem;
+	background: #fff;
+	border: 1px solid $navy;
+	box-shadow: 0 2px 8px rgba(6, 27, 64, 0.12);
+	font-family: var(--font-sans), sans-serif;
+
+	.ta-asc-tier-buttons button {
+		font-size: 0.8rem;
+		padding: 0.2rem 0.55rem;
+	}
+}
+
+/* A move that didn't save, pinned where the editor can see it. */
+.ta-asc-toast {
+	position: fixed;
+	left: 50%;
+	bottom: 1.2rem;
+	transform: translateX(-50%);
+	z-index: 50;
+	display: flex;
+	gap: 1rem;
+	align-items: center;
+	max-width: min(40rem, 92vw);
+	padding: 0.7rem 1rem;
+	background: #fff;
+	border: 1px solid $red;
+	border-left-width: 4px;
+	box-shadow: 0 4px 16px rgba(6, 27, 64, 0.2);
+	color: $red;
+	font-family: var(--font-sans), sans-serif;
+	font-size: 0.9rem;
+}
