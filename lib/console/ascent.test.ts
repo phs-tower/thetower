@@ -125,8 +125,8 @@ test("familyCounts counts the whole week, Monday to Sunday, and nothing else", (
 		prompt({ day: "2026-11-09", family: "club" }), // next week
 		prompt({ day: "2026-11-01", family: "sport" }), // last week
 	]);
-	assert.deepEqual(counts, { club: 2, sport: 1, archive: 1 });
-	assert.equal(formatFamilyCounts(counts), "club 2/4 · sport 1/4 · archive 1/4");
+	assert.deepEqual(counts, { club: 2, sport: 1, archive: 1, nj: 0, princeton: 0, reading: 0, courses: 0 });
+	assert.equal(formatFamilyCounts(counts), "club 2/4 · sport 1/4 · archive 1/4 · nj 0/4 · princeton 0/4 · reading 0/4 · courses 0/4");
 });
 
 // ─── Phases ───

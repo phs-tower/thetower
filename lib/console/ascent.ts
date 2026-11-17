@@ -15,8 +15,10 @@
 // Dates are ISO days ('2026-11-02'), the same as ascent_prompt.day. Date
 // arithmetic is done at UTC noon so no time zone can move a day.
 
-export type Family = "club" | "sport" | "archive";
-export const FAMILIES: Family[] = ["club", "sport", "archive"];
+// The order the bank and the schedule picker group them in. A new family
+// also needs adding to ascent_prompt_family_check.
+export type Family = "club" | "sport" | "archive" | "nj" | "princeton" | "reading" | "courses";
+export const FAMILIES: Family[] = ["club", "sport", "archive", "nj", "princeton", "reading", "courses"];
 
 /** At most this many prompts of one family a week (ascent_bank's rule, shown
  *  here only so the counts above the grid read "3/4"). */
@@ -174,7 +176,7 @@ export function weekGrid(monday: string, prompts: AscentPrompt[]): GridDay[] {
 /** Prompts per family in the week starting `monday` (Monday to Sunday, as
  *  ascent_bank counts). */
 export function familyCounts(monday: string, prompts: AscentPrompt[]): Record<Family, number> {
-	const counts: Record<Family, number> = { club: 0, sport: 0, archive: 0 };
+	const counts = Object.fromEntries(FAMILIES.map(f => [f, 0])) as Record<Family, number>;
 	const end = addDays(monday, 6);
 	for (const p of prompts) {
 		if (!p.day || p.day < monday || p.day > end || !p.family) continue;

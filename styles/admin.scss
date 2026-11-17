@@ -2433,7 +2433,6 @@ input.ta-live-num {
 	}
 }
 
-
 /* ─── The Ascent ─── */
 .ta-tabs a {
 	position: relative;
@@ -2526,6 +2525,22 @@ input.ta-live-num {
 
 	&.archive {
 		border-top-color: $pale;
+	}
+
+	&.nj {
+		border-top-color: #15803d;
+	}
+
+	&.princeton {
+		border-top-color: #ea580c;
+	}
+
+	&.reading {
+		border-top-color: #7c3aed;
+	}
+
+	&.courses {
+		border-top-color: #0891b2;
 	}
 
 	&.empty {
