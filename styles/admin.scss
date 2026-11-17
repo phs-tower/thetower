@@ -2610,31 +2610,134 @@ input.ta-live-num {
 	font-size: 0.9rem;
 }
 
+/* The schedule picker: search and family chips stay put while the list scrolls. */
 .ta-asc-picker {
 	max-width: 44rem;
+	height: 88vh;
+	padding-top: 0;
+	gap: 0.6rem;
+}
 
-	h3 {
+.ta-asc-picker-head {
+	position: sticky;
+	top: 0;
+	z-index: 1;
+	background: #fff;
+	padding-top: 1.25rem;
+	padding-bottom: 0.6rem;
+	border-bottom: 1px solid $rule;
+	display: flex;
+	flex-direction: column;
+	gap: 0.6rem;
+}
+
+.ta-asc-picker-search {
+	width: 100%;
+	font-size: 1rem;
+	padding: 0.5rem 0.65rem;
+}
+
+.ta-asc-picker-chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.3rem;
+
+	button {
+		padding: 0.18rem 0.55rem;
+		border: 1px solid $rule;
+		border-radius: 999px;
+		background: #fff;
+		font-family: var(--font-sans), sans-serif;
+		font-size: 0.78rem;
 		text-transform: capitalize;
-	}
+		cursor: pointer;
 
-	ul {
-		list-style: none;
-		margin: 0;
-		padding: 0;
-	}
+		span {
+			color: $muted;
+			margin-left: 0.15rem;
+		}
 
-	li {
+		&.on {
+			background: $navy;
+			border-color: $navy;
+			color: #fff;
+
+			span {
+				color: $pale;
+			}
+		}
+
+		&.full:not(.on) {
+			color: $muted;
+			text-decoration: line-through;
+		}
+	}
+}
+
+.ta-asc-picker-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+
+	button {
+		width: 100%;
 		display: flex;
-		gap: 0.75rem;
-		align-items: center;
-		justify-content: space-between;
-		padding: 0.45rem 0;
+		flex-direction: column;
+		gap: 0.1rem;
+		text-align: left;
+		padding: 0.4rem 0.5rem;
+		border: 0;
 		border-bottom: 1px solid $rule;
+		background: none;
+		font: inherit;
+		cursor: pointer;
 
-		&.blocked .ta-asc-picker-main > div:first-child {
+		&:hover:not(:disabled),
+		&:focus-visible {
+			background: color-mix(in srgb, $pale 35%, #fff);
+		}
+
+		&:disabled {
+			cursor: default;
+		}
+
+		&.blocked .ta-asc-picker-text {
 			color: $muted;
 		}
 	}
+}
+
+.ta-asc-picker-text {
+	font-size: 0.95rem;
+}
+
+.ta-asc-fam {
+	text-transform: uppercase;
+	font-size: 0.68rem;
+	letter-spacing: 0.04em;
+	font-weight: 600;
+	color: $navy;
+
+	&.sport {
+		color: $red;
+	}
+	&.nj {
+		color: #15803d;
+	}
+	&.princeton {
+		color: #ea580c;
+	}
+	&.reading {
+		color: #7c3aed;
+	}
+	&.courses {
+		color: #0891b2;
+	}
+}
+
+.ta-asc-fresh {
+	color: #15803d;
+	font-weight: 600;
 }
 
 .ta-asc-blocked {

@@ -224,6 +224,51 @@ export function groupBank(rows: BankRow[]): { family: Family; rows: BankRow[] }[
 	return FAMILIES.map(family => ({ family, rows: rows.filter(r => r.family === family) })).filter(g => g.rows.length > 0);
 }
 
+// ─── The schedule picker ────────────────────────────────────────────────────
+
+export interface PickerFilter {
+	/** Words that must all appear in the prompt's text or key. */
+	query: string;
+	/** null for every family. */
+	family: Family | null;
+	showBlocked: boolean;
+}
+
+/** The picker's list: filtered, then the likeliest picks first: runnable
+ *  before blocked, never used before used, then longest since it last ran. */
+export function pickerRows(rows: BankRow[], f: PickerFilter): BankRow[] {
+	const words = f.query.toLowerCase().split(/\s+/).filter(Boolean);
+	return rows
+		.filter(r => (f.family === null || r.family === f.family) && (f.showBlocked || !r.blocked))
+		.filter(r => {
+			const hay = `${r.text} ${r.key}`.toLowerCase();
+			return words.every(w => hay.includes(w));
+		})
+		.sort(
+			(a, b) =>
+				Number(!!a.blocked) - Number(!!b.blocked) ||
+				Number(!!a.last_ran) - Number(!!b.last_ran) ||
+				(a.last_ran ?? "").localeCompare(b.last_ran ?? "") ||
+				a.key.localeCompare(b.key)
+		);
+}
+
+export interface FamilyChip {
+	family: Family;
+	free: number;
+	total: number;
+	/** Why none can run this day, when that's the case (ascent_bank's reason). */
+	blocked: string | null;
+}
+
+/** One chip per family that has bank prompts, in FAMILIES order. */
+export function familyChips(rows: BankRow[]): FamilyChip[] {
+	return groupBank(rows).map(({ family, rows: rs }) => {
+		const free = rs.filter(r => !r.blocked).length;
+		return { family, free, total: rs.length, blocked: free === 0 ? rs[0].blocked : null };
+	});
+}
+
 /** The tag beside a bank prompt: when a copy of it last ran (or is
  *  scheduled to). Prompts may repeat; this is only so an editor notices. */
 export function lastUsedLabel(lastRan: string | null, todayIso: string): string {

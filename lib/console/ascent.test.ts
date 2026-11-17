@@ -20,6 +20,7 @@ import {
 	familyCounts,
 	fetchWikiCounts,
 	formatFamilyCounts,
+	familyChips,
 	formToWeights,
 	groupBank,
 	LADDER,
@@ -33,6 +34,7 @@ import {
 	parseSuggest,
 	parseTry,
 	parseWikiHits,
+	pickerRows,
 	placeAnswers,
 	permissions,
 	promptPhase,
@@ -193,6 +195,44 @@ test("groupBank groups by family in a fixed order and drops empty families", () 
 			["archive", 1],
 		]
 	);
+});
+
+test("pickerRows filters by family, words and blocked, likeliest picks first", () => {
+	const rows: BankRow[] = [
+		{ key: "nj-counties", family: "nj", text: "Name a New Jersey county.", last_ran: "2026-10-01", blocked: null },
+		{ key: "nj-rivers", family: "nj", text: "Name a river in New Jersey.", last_ran: null, blocked: null },
+		{ key: "nj-old", family: "nj", text: "Name a New Jersey lake.", last_ran: "2026-09-01", blocked: null },
+		{ key: "club-any", family: "club", text: "Name a club at PHS.", last_ran: null, blocked: "already a club prompt that day" },
+	];
+	const all = { query: "", family: null, showBlocked: false };
+	assert.deepEqual(
+		pickerRows(rows, all).map(r => r.key),
+		["nj-rivers", "nj-old", "nj-counties"]
+	);
+	assert.deepEqual(
+		pickerRows(rows, { ...all, showBlocked: true }).map(r => r.key),
+		["nj-rivers", "nj-old", "nj-counties", "club-any"]
+	);
+	assert.deepEqual(
+		pickerRows(rows, { ...all, query: "jersey  NAME" }).map(r => r.key),
+		["nj-rivers", "nj-old", "nj-counties"]
+	);
+	assert.deepEqual(
+		pickerRows(rows, { ...all, query: "river" }).map(r => r.key),
+		["nj-rivers"]
+	);
+	assert.deepEqual(
+		pickerRows(rows, { ...all, family: "club", showBlocked: true }).map(r => r.key),
+		["club-any"]
+	);
+});
+
+test("familyChips counts what can run and says why a family can't", () => {
+	const chips = familyChips([bankRow("c", "club", "already a club prompt that day"), bankRow("n", "nj"), bankRow("n2", "nj", "x")]);
+	assert.deepEqual(chips, [
+		{ family: "club", free: 0, total: 1, blocked: "already a club prompt that day" },
+		{ family: "nj", free: 1, total: 2, blocked: null },
+	]);
 });
 
 test("lastUsedLabel tags past, today, future and never", () => {

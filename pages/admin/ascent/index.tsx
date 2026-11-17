@@ -8,17 +8,19 @@ import {
 	addDays,
 	dayLabel,
 	defaultMonday,
+	familyChips,
 	familyCounts,
 	formatFamilyCounts,
-	groupBank,
 	lastUsedLabel,
 	localToday,
 	permissions,
+	pickerRows,
 	promptPhase,
 	PROMPT_COLUMNS,
 	weekGrid,
 	type AscentPrompt,
 	type BankRow,
+	type Family,
 } from "~/lib/console/ascent";
 
 // The Ascent's week: two prompts a school day. The scheduling rules (two
@@ -30,6 +32,9 @@ function Picker({ day, onScheduled, onClose }: { day: string; onScheduled: () =>
 	const [rows, setRows] = useState<BankRow[] | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const [busyKey, setBusyKey] = useState<string | null>(null);
+	const [query, setQuery] = useState("");
+	const [family, setFamily] = useState<Family | null>(null);
+	const [showBlocked, setShowBlocked] = useState(false);
 
 	useEffect(() => {
 		let cancelled = false;
@@ -42,6 +47,19 @@ function Picker({ day, onScheduled, onClose }: { day: string; onScheduled: () =>
 			cancelled = true;
 		};
 	}, [supabase, day]);
+
+	useEffect(() => {
+		const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+		window.addEventListener("keydown", onKey);
+		return () => window.removeEventListener("keydown", onKey);
+	}, [onClose]);
+
+	const chips = useMemo(() => familyChips(rows ?? []), [rows]);
+	const shown = useMemo(() => pickerRows(rows ?? [], { query, family, showBlocked }), [rows, query, family, showBlocked]);
+	const hiddenBlocked = useMemo(
+		() => (showBlocked ? 0 : pickerRows(rows ?? [], { query, family, showBlocked: true }).length - shown.length),
+		[rows, query, family, showBlocked, shown]
+	);
 
 	const schedule = async (key: string) => {
 		setBusyKey(key);
@@ -56,51 +74,86 @@ function Picker({ day, onScheduled, onClose }: { day: string; onScheduled: () =>
 	};
 
 	const free = rows?.filter(r => !r.blocked).length ?? 0;
+	const top = shown.find(r => !r.blocked);
 
 	return (
 		<div className="ta-xw-scrim" onClick={onClose}>
 			<div className="ta-xw-dialog ta-asc-picker" onClick={e => e.stopPropagation()} role="dialog" aria-label={`Schedule ${dayLabel(day)}`}>
-				<div className="ta-row ta-spread">
-					<h2>Schedule {dayLabel(day)}</h2>
-					<button className="ta-btn ta-btn-small" onClick={onClose}>
-						Close
-					</button>
+				<div className="ta-asc-picker-head">
+					<div className="ta-row ta-spread">
+						<h2>Schedule {dayLabel(day)}</h2>
+						<button className="ta-btn ta-btn-small" onClick={onClose}>
+							Close
+						</button>
+					</div>
+					{rows && (
+						<>
+							<input
+								type="search"
+								className="ta-asc-picker-search"
+								value={query}
+								onChange={e => setQuery(e.target.value)}
+								onKeyDown={e => {
+									if (e.key === "Enter" && top && busyKey === null) void schedule(top.key);
+								}}
+								placeholder={`Search ${free} prompts that can run this day… (Enter picks the first)`}
+								aria-label="Search prompts"
+								autoFocus
+							/>
+							<div className="ta-asc-picker-chips" role="group" aria-label="Family">
+								<button className={family === null ? "on" : ""} aria-pressed={family === null} onClick={() => setFamily(null)}>
+									All <span>{free}</span>
+								</button>
+								{chips.map(c => (
+									<button
+										key={c.family}
+										className={`${family === c.family ? "on" : ""} ${c.blocked ? "full" : ""}`}
+										aria-pressed={family === c.family}
+										onClick={() => setFamily(family === c.family ? null : c.family)}
+										title={c.blocked ?? `${c.free} of ${c.total} can run this day`}
+									>
+										{c.family} <span>{c.free}</span>
+									</button>
+								))}
+							</div>
+						</>
+					)}
+					{error && <p className="ta-error">{error}</p>}
 				</div>
-				{error && <p className="ta-error">{error}</p>}
 				{!rows && !error && <p className="ta-muted">Loading the bank…</p>}
 				{rows && (
 					<>
-						<p className="ta-muted ta-small">
-							{free} of {rows.length} prompts can run this day.
-						</p>
-						{groupBank(rows).map(group => (
-							<section key={group.family} className="ta-asc-picker-group">
-								<h3>{group.family}</h3>
-								<ul>
-									{group.rows.map(r => (
-										<li key={r.key} className={r.blocked ? "blocked" : ""}>
-											<div className="ta-asc-picker-main">
-												<div>{r.text}</div>
-												<div className="ta-muted ta-asc-meta">
-													{r.key}{" "}
-													<span className={`ta-badge ${r.last_ran ? "" : "green"}`}>
-														{lastUsedLabel(r.last_ran, localToday())}
-													</span>
-													{r.blocked && <span className="ta-asc-blocked"> · {r.blocked}</span>}
-												</div>
-											</div>
-											<button
-												className="ta-btn ta-btn-small"
-												disabled={!!r.blocked || busyKey !== null}
-												onClick={() => schedule(r.key)}
-											>
-												{busyKey === r.key ? "…" : "Pick"}
-											</button>
-										</li>
-									))}
-								</ul>
-							</section>
-						))}
+						{shown.length === 0 && (
+							<p className="ta-muted">
+								{family && chips.find(c => c.family === family)?.blocked
+									? `No ${family} prompt can run: ${chips.find(c => c.family === family)?.blocked}.`
+									: "Nothing matches."}
+							</p>
+						)}
+						<ul className="ta-asc-picker-list">
+							{shown.map(r => (
+								<li key={r.key}>
+									<button
+										className={r.blocked ? "blocked" : ""}
+										disabled={!!r.blocked || busyKey !== null}
+										onClick={() => schedule(r.key)}
+										title={r.blocked ?? "Schedule this prompt"}
+									>
+										<span className="ta-asc-picker-text">{busyKey === r.key ? "Scheduling…" : r.text}</span>
+										<span className="ta-muted ta-asc-meta">
+											<span className={`ta-asc-fam ${r.family}`}>{r.family}</span> {r.key} ·{" "}
+											<span className={r.last_ran ? "" : "ta-asc-fresh"}>{lastUsedLabel(r.last_ran, localToday())}</span>
+											{r.blocked && <span className="ta-asc-blocked"> · {r.blocked}</span>}
+										</span>
+									</button>
+								</li>
+							))}
+						</ul>
+						{(hiddenBlocked > 0 || showBlocked) && (
+							<button className="ta-linkish ta-small" onClick={() => setShowBlocked(!showBlocked)}>
+								{showBlocked ? "Hide prompts that can't run this day" : `Show ${hiddenBlocked} that can't run this day`}
+							</button>
+						)}
 					</>
 				)}
 			</div>
