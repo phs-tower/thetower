@@ -24,6 +24,7 @@ Dashboard → SQL Editor → paste & run each file in `supabase/migrations/`:
 | 11 | `20261116000001_ascent_nearest_editor.sql` | `ascent_nearest(…, p_editor)` so the console's "Test an answer" box gets AI suggestions on prompts that haven't opened (already applied to the live project). Needs the `ascent-suggest` in the app repo that passes `p_editor` |
 | 12 | `20261116000002_ascent_ai_leniency.sql` | `ascent_prompt.ai_leniency` (strict / normal / loose / very_loose), read by `ascent_nearest` and copied by `ascent_schedule`, plus `ascent_set_leniency` for the console (already applied to the live project). Copy into the app repo's `supabase/ascent.sql` |
 | 13 | `20261116000003_crossword_room.sql` | `crossword_room` + the three token functions behind the shareable crossword builder |
+| 14 | `20261117000001_ascent_rename_answer.sql` | `ascent_rename_answer` for the console's "rename" on a word-list row: the old name becomes an alias, and the bank prompt and unclosed copies follow (already applied to the live project). Copy into the app repo's `supabase/ascent.sql` |
 
 All are idempotent — safe to re-run. **Note:** `is_editor()` is SECURITY
 DEFINER (not invoker as the original brief sketched): a policy on `editor`

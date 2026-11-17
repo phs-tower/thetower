@@ -212,6 +212,7 @@ function AnswerRow({
 	place,
 	onTerm,
 	onAlias,
+	onRename,
 	onRemove,
 	onResetPrior,
 }: {
@@ -221,11 +222,13 @@ function AnswerRow({
 	place: Placing;
 	onTerm: (term: string) => Promise<string | null>;
 	onAlias: (alias: string) => Promise<string | null>;
+	onRename: (name: string) => Promise<string | null>;
 	onRemove: () => Promise<string | null>;
 	onResetPrior: () => Promise<string | null>;
 }) {
 	const [term, setTerm] = useState(answer.term ?? "");
 	const [alias, setAlias] = useState<string | null>(null);
+	const [name, setName] = useState<string | null>(null);
 	const [confirming, setConfirming] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [working, setWorking] = useState(false);
@@ -261,7 +264,34 @@ function AnswerRow({
 				</td>
 			)}
 			<td>
-				<div className="ta-asc-canonical">{answer.canonical}</div>
+				{name === null ? (
+					<div className="ta-asc-canonical">
+						{answer.canonical}
+						{can.editAnswers && (
+							<button className="ta-linkish ta-asc-inline" onClick={() => setName(answer.canonical)} disabled={busy}>
+								rename
+							</button>
+						)}
+					</div>
+				) : (
+					<form
+						className="ta-asc-inline-form"
+						onSubmit={async e => {
+							e.preventDefault();
+							const next = name.trim();
+							if (!next || next === answer.canonical) setName(null);
+							else if (await run(() => onRename(next))) setName(null);
+						}}
+					>
+						<input type="text" value={name} onChange={e => setName(e.target.value)} autoFocus aria-label={`Rename ${answer.canonical}`} />
+						<button className="ta-btn ta-btn-small" type="submit" disabled={working || !name.trim()}>
+							{working ? "…" : "Save"}
+						</button>
+						<button className="ta-btn ta-btn-small" type="button" onClick={() => setName(null)}>
+							✕
+						</button>
+					</form>
+				)}
 				{error && <p className="ta-error ta-asc-cell-error">{error}</p>}
 			</td>
 			<td className="ta-asc-aliases">
@@ -490,6 +520,23 @@ function WordList({ id }: { id: number }) {
 		await loadAnswers();
 		if (saveErr) return `Term saved, but saving its Wikipedia count failed: ${saveErr}`;
 		if (failed.length) return "Term saved, but Wikipedia didn't answer: its count is unchanged.";
+		return null;
+	};
+
+	// The old name stays on as an alias, and the bank prompt and unclosed copies
+	// follow (ascent_rename_answer). Without a search term the Wikipedia count
+	// was for the old name, so it is fetched again.
+	const renameAnswer = async (a: ReviewAnswer, name: string) => {
+		const { error: err } = await supabase.rpc("ascent_rename_answer", { p_answer_id: a.id, p_canonical: name });
+		if (err) return err.message;
+		if (a.term) {
+			await loadAnswers();
+			return null;
+		}
+		const { failed, error: saveErr } = await refreshWiki(supabase, [{ ...a, canonical: name }], () => {});
+		await loadAnswers();
+		if (saveErr) return `Renamed, but saving its Wikipedia count failed: ${saveErr}`;
+		if (failed.length) return "Renamed, but Wikipedia didn't answer: its count is still the old name's.";
 		return null;
 	};
 
@@ -763,6 +810,7 @@ function WordList({ id }: { id: number }) {
 										place={place}
 										onTerm={term => setTerm(a, term)}
 										onAlias={alias => addAlias(a, alias)}
+										onRename={name => renameAnswer(a, name)}
 										onRemove={() => remove(a)}
 										onResetPrior={() => setPrior(a.id, null)}
 									/>
@@ -780,6 +828,7 @@ function WordList({ id }: { id: number }) {
 										place={place}
 										onTerm={term => setTerm(a, term)}
 										onAlias={alias => addAlias(a, alias)}
+										onRename={name => renameAnswer(a, name)}
 										onRemove={() => remove(a)}
 										onResetPrior={() => setPrior(a.id, null)}
 									/>
