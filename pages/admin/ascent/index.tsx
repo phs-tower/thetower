@@ -15,6 +15,7 @@ import {
 	localToday,
 	permissions,
 	pickerRows,
+	pickerSections,
 	promptPhase,
 	PROMPT_COLUMNS,
 	weekGrid,
@@ -26,6 +27,26 @@ import {
 // The Ascent's week: two prompts a school day. The scheduling rules (two
 // families a day, four of a family a week; no cooldown for now) live in
 // ascent_bank and ascent_schedule; this screen shows what they say.
+
+function PickerRow({ row: r, busyKey, onPick }: { row: BankRow; busyKey: string | null; onPick: (key: string) => void }) {
+	return (
+		<li>
+			<button
+				className={r.blocked ? "blocked" : ""}
+				disabled={!!r.blocked || busyKey !== null}
+				onClick={() => onPick(r.key)}
+				title={r.blocked ?? "Schedule this prompt"}
+			>
+				<span className="ta-asc-picker-text">{busyKey === r.key ? "Scheduling…" : r.text}</span>
+				<span className="ta-muted ta-asc-meta">
+					<span className={`ta-asc-fam ${r.family}`}>{r.family}</span> {r.key} ·{" "}
+					<span className={r.last_ran ? "" : "ta-asc-fresh"}>{lastUsedLabel(r.last_ran, localToday())}</span>
+					{r.blocked && <span className="ta-asc-blocked"> · {r.blocked}</span>}
+				</span>
+			</button>
+		</li>
+	);
+}
 
 function Picker({ day, onScheduled, onClose }: { day: string; onScheduled: () => void; onClose: () => void }) {
 	const { supabase } = useAdmin();
@@ -74,7 +95,12 @@ function Picker({ day, onScheduled, onClose }: { day: string; onScheduled: () =>
 	};
 
 	const free = rows?.filter(r => !r.blocked).length ?? 0;
-	const top = shown.find(r => !r.blocked);
+	// With nothing searched or chosen, a few picks per family instead of the
+	// whole bank; a search or a family chip shows the full matching list.
+	const browsing = query.trim() === "" && family === null;
+	const sections = useMemo(() => pickerSections(rows ?? []), [rows]);
+	const fullFamilies = chips.filter(c => c.blocked);
+	const top = browsing ? sections[0]?.rows[0] : shown.find(r => !r.blocked);
 
 	return (
 		<div className="ta-xw-scrim" onClick={onClose}>
@@ -123,33 +149,45 @@ function Picker({ day, onScheduled, onClose }: { day: string; onScheduled: () =>
 				{!rows && !error && <p className="ta-muted">Loading the bank…</p>}
 				{rows && (
 					<>
-						{shown.length === 0 && (
+						{!browsing && shown.length === 0 && (
 							<p className="ta-muted">
 								{family && chips.find(c => c.family === family)?.blocked
 									? `No ${family} prompt can run: ${chips.find(c => c.family === family)?.blocked}.`
 									: "Nothing matches."}
 							</p>
 						)}
-						<ul className="ta-asc-picker-list">
-							{shown.map(r => (
-								<li key={r.key}>
-									<button
-										className={r.blocked ? "blocked" : ""}
-										disabled={!!r.blocked || busyKey !== null}
-										onClick={() => schedule(r.key)}
-										title={r.blocked ?? "Schedule this prompt"}
-									>
-										<span className="ta-asc-picker-text">{busyKey === r.key ? "Scheduling…" : r.text}</span>
-										<span className="ta-muted ta-asc-meta">
-											<span className={`ta-asc-fam ${r.family}`}>{r.family}</span> {r.key} ·{" "}
-											<span className={r.last_ran ? "" : "ta-asc-fresh"}>{lastUsedLabel(r.last_ran, localToday())}</span>
-											{r.blocked && <span className="ta-asc-blocked"> · {r.blocked}</span>}
-										</span>
-									</button>
-								</li>
-							))}
-						</ul>
-						{(hiddenBlocked > 0 || showBlocked) && (
+						{browsing && sections.length === 0 && <p className="ta-muted">No bank prompt can run this day.</p>}
+						{browsing ? (
+							sections.map(sec => (
+								<section key={sec.family} className="ta-asc-picker-section">
+									<div className="ta-asc-picker-section-head">
+										<span className={`ta-asc-fam ${sec.family}`}>{sec.family}</span>
+										{sec.free > sec.rows.length && (
+											<button className="ta-linkish ta-small" onClick={() => setFamily(sec.family)}>
+												All {sec.free} →
+											</button>
+										)}
+									</div>
+									<ul className="ta-asc-picker-list">
+										{sec.rows.map(r => (
+											<PickerRow key={r.key} row={r} busyKey={busyKey} onPick={schedule} />
+										))}
+									</ul>
+								</section>
+							))
+						) : (
+							<ul className="ta-asc-picker-list">
+								{shown.map(r => (
+									<PickerRow key={r.key} row={r} busyKey={busyKey} onPick={schedule} />
+								))}
+							</ul>
+						)}
+						{browsing && fullFamilies.length > 0 && (
+							<p className="ta-muted ta-small">
+								Can&apos;t run this day: {fullFamilies.map(c => `${c.family} (${c.blocked})`).join(" · ")}
+							</p>
+						)}
+						{!browsing && (hiddenBlocked > 0 || showBlocked) && (
 							<button className="ta-linkish ta-small" onClick={() => setShowBlocked(!showBlocked)}>
 								{showBlocked ? "Hide prompts that can't run this day" : `Show ${hiddenBlocked} that can't run this day`}
 							</button>

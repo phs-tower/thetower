@@ -2508,6 +2508,26 @@ input.ta-live-num {
 	}
 }
 
+// Each Ascent family's colour: a slot's top edge and its name in the picker.
+// club is the default navy. A new family in FAMILIES needs a colour here.
+$asc-families: (
+	sport: $red,
+	archive: #7b97a3,
+	nj: #15803d,
+	princeton: #ea580c,
+	reading: #7c3aed,
+	courses: #0891b2,
+	arts: #db2777,
+	college: #1d4ed8,
+	people: #b45309,
+	events: #65a30d,
+	science: #0d9488,
+	history: #92400e,
+	culture: #c026d3,
+	world: #0369a1,
+	seasonal: #dc2626,
+);
+
 .ta-asc-slot {
 	border: 1px solid $rule;
 	border-top: 3px solid $navy;
@@ -2519,28 +2539,10 @@ input.ta-live-num {
 	gap: 0.45rem;
 	min-height: 9rem;
 
-	&.sport {
-		border-top-color: $red;
-	}
-
-	&.archive {
-		border-top-color: $pale;
-	}
-
-	&.nj {
-		border-top-color: #15803d;
-	}
-
-	&.princeton {
-		border-top-color: #ea580c;
-	}
-
-	&.reading {
-		border-top-color: #7c3aed;
-	}
-
-	&.courses {
-		border-top-color: #0891b2;
+	@each $family, $color in $asc-families {
+		&.#{$family} {
+			border-top-color: $color;
+		}
 	}
 
 	&.empty {
@@ -2701,7 +2703,19 @@ input.ta-live-num {
 			cursor: default;
 		}
 
-		&.blocked .ta-asc-picker-text {
+		&.blocked .ta-asc-picker-section-head {
+			display: flex;
+			justify-content: space-between;
+			align-items: baseline;
+			margin: 0.5rem 0 0.15rem;
+			padding: 0 0.5rem;
+
+			.ta-asc-fam {
+				font-size: 0.75rem;
+			}
+		}
+
+		.ta-asc-picker-text {
 			color: $muted;
 		}
 	}
@@ -2718,20 +2732,10 @@ input.ta-live-num {
 	font-weight: 600;
 	color: $navy;
 
-	&.sport {
-		color: $red;
-	}
-	&.nj {
-		color: #15803d;
-	}
-	&.princeton {
-		color: #ea580c;
-	}
-	&.reading {
-		color: #7c3aed;
-	}
-	&.courses {
-		color: #0891b2;
+	@each $family, $color in $asc-families {
+		&.#{$family} {
+			color: $color;
+		}
 	}
 }
 
@@ -2757,6 +2761,24 @@ input.ta-live-num {
 .ta-asc-head h2 {
 	font-size: 1.6rem;
 	margin: 0.35rem 0 0.5rem;
+}
+
+.ta-asc-question {
+	display: flex;
+	align-items: baseline;
+	gap: 0.75rem;
+	flex-wrap: wrap;
+}
+
+.ta-asc-question-edit {
+	margin: 0.35rem 0 0.5rem;
+
+	input {
+		width: 100%;
+		font-family: var(--font-serif-header), serif;
+		font-size: 1.3rem;
+		padding: 0.35rem 0.5rem;
+	}
 }
 
 .ta-asc-try label {

@@ -4,9 +4,39 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { useAdmin } from "~/components/admin/AdminShell";
-import { formatWeights, formToWeights, weightsToForm, type AscentPrompt, type Phase, type WeightsForm } from "~/lib/console/ascent";
+import {
+	fetchWikiCounts,
+	formatWeights,
+	formToWeights,
+	weightsToForm,
+	wikiBatches,
+	type AscentPrompt,
+	type Phase,
+	type ReviewAnswer,
+	type WeightsForm,
+} from "~/lib/console/ascent";
 
 // Pieces shared by the Ascent screens (pages/admin/ascent/*).
+
+type Supabase = ReturnType<typeof useAdmin>["supabase"];
+
+/** Fetches Wikipedia counts for `answers` and saves the ones that came back,
+ *  25 rows a call. Returns the names that failed: theirs are left as they
+ *  were. */
+export async function refreshWiki(
+	supabase: Supabase,
+	answers: Pick<ReviewAnswer, "id" | "canonical" | "term">[],
+	onProgress: (text: string) => void
+): Promise<{ failed: string[]; error: string | null }> {
+	const { hits, failed } = await fetchWikiCounts(answers, undefined, (done, total) => onProgress(`Fetching Wikipedia ${done}/${total}…`));
+	const batches = wikiBatches(hits);
+	for (let i = 0; i < batches.length; i++) {
+		onProgress(`Saving ${i + 1}/${batches.length}…`);
+		const { error } = await supabase.rpc("ascent_set_answers", { p_rows: batches[i] });
+		if (error) return { failed: failed.map(f => f.canonical), error: error.message };
+	}
+	return { failed: failed.map(f => f.canonical), error: null };
+}
 
 const TABS = [
 	{ href: "/admin/ascent", label: "Week" },

@@ -26,6 +26,13 @@ Dashboard → SQL Editor → paste & run each file in `supabase/migrations/`:
 | 13 | `20261116000003_crossword_room.sql` | `crossword_room` + the three token functions behind the shareable crossword builder |
 | 14 | `20261117000001_ascent_rename_answer.sql` | `ascent_rename_answer` for the console's "rename" on a word-list row: the old name becomes an alias, and the bank prompt and unclosed copies follow (already applied to the live project). Copy into the app repo's `supabase/ascent.sql` |
 | 15 | `20261117000002_ascent_more_families.sql` | Ascent families `nj`, `princeton`, `reading`, `courses`, each with its own one-a-day / four-a-week allowance; moves the bank prompts out of `archive` (already applied to the live project). Copy into the app repo's `supabase/ascent.sql` |
+| 16 | `20261117000003_ascent_nine_families.sql` | Ascent families `arts`, `college`, `people`, `events`, `science`, `history`, `culture`, `world`, `seasonal`, and `ascent_seed_prompt` for the bank seeds below. Copy into the app repo's `supabase/ascent.sql` |
+| 17 | `20261117000004_ascent_set_text.sql` | `ascent_set_text` for the word list's "Reword": changes a prompt's question on the bank prompt and every copy that hasn't opened. Copy into the app repo's `supabase/ascent.sql` |
+
+Then, for The Ascent's bank, run each file in `supabase/seed/ascent-bank/`
+(109 prompts with word lists; any already in the bank are skipped), then
+press **Fill missing Wikipedia counts** on the console's Ascent → Bank tab. To
+add more, edit the lists in `generate.py` there and re-run it.
 
 All are idempotent — safe to re-run. **Note:** `is_editor()` is SECURITY
 DEFINER (not invoker as the original brief sketched): a policy on `editor`

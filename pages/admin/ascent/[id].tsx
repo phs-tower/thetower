@@ -4,12 +4,11 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AdminShell, { useAdmin } from "~/components/admin/AdminShell";
-import { AscentTabs, errorText, PhaseBadge, useNow, WeightsEditor } from "~/components/admin/AscentKit";
+import { AscentTabs, errorText, PhaseBadge, refreshWiki, useNow, WeightsEditor } from "~/components/admin/AscentKit";
 import {
 	byTier,
 	dayLabel,
 	describeTry,
-	fetchWikiCounts,
 	formatPrior,
 	LADDER,
 	LENIENCIES,
@@ -26,7 +25,6 @@ import {
 	selectRange,
 	sortByPrior,
 	tierIndex,
-	wikiBatches,
 	type AscentPrompt,
 	type DropTarget,
 	type Leniency,
@@ -43,24 +41,79 @@ import {
 // additions and aliases also reach the bank. Matching and scoring are the
 // server's (ascent_try, ascent_review).
 
-type Supabase = ReturnType<typeof useAdmin>["supabase"];
+/** The question, with a "Reword" link while readers haven't seen it.
+ *  ascent_set_text also rewords the bank prompt and every copy that hasn't
+ *  opened; the word list stays as it is. */
+function PromptText({ prompt, editable, onSaved }: { prompt: AscentPrompt; editable: boolean; onSaved: () => Promise<void> }) {
+	const { supabase } = useAdmin();
+	const [draft, setDraft] = useState<string | null>(null);
+	const [busy, setBusy] = useState(false);
+	const [error, setError] = useState<string | null>(null);
 
-/** Fetches Wikipedia counts for `answers` and saves the ones that came back,
- *  25 rows a call. Returns the names that failed: theirs are left as they
- *  were. */
-async function refreshWiki(
-	supabase: Supabase,
-	answers: ReviewAnswer[],
-	onProgress: (text: string) => void
-): Promise<{ failed: string[]; error: string | null }> {
-	const { hits, failed } = await fetchWikiCounts(answers, undefined, (done, total) => onProgress(`Fetching Wikipedia ${done}/${total}…`));
-	const batches = wikiBatches(hits);
-	for (let i = 0; i < batches.length; i++) {
-		onProgress(`Saving ${i + 1}/${batches.length}…`);
-		const { error } = await supabase.rpc("ascent_set_answers", { p_rows: batches[i] });
-		if (error) return { failed: failed.map(f => f.canonical), error: error.message };
-	}
-	return { failed: failed.map(f => f.canonical), error: null };
+	const save = async () => {
+		if (draft === null) return;
+		const text = draft.trim().replace(/\s+/g, " ");
+		if (!text || text === prompt.text) return setDraft(null);
+		setBusy(true);
+		setError(null);
+		const { error: err } = await supabase.rpc("ascent_set_text", { p_prompt_id: prompt.id, p_text: text });
+		if (err) {
+			setBusy(false);
+			return setError(
+				/ascent_set_text/.test(err.message) && /function|schema cache/i.test(err.message)
+					? "Couldn't save: the database doesn't have ascent_set_text yet. Run supabase/migrations/20261117000004_ascent_set_text.sql in the Supabase SQL Editor."
+					: err.message
+			);
+		}
+		await onSaved();
+		setBusy(false);
+		setDraft(null);
+	};
+
+	if (draft === null)
+		return (
+			<div className="ta-asc-question">
+				<h2>{prompt.text}</h2>
+				{editable && (
+					<button className="ta-linkish ta-small" onClick={() => setDraft(prompt.text)}>
+						Reword
+					</button>
+				)}
+			</div>
+		);
+
+	return (
+		<form
+			className="ta-stack ta-asc-question-edit"
+			onSubmit={e => {
+				e.preventDefault();
+				void save();
+			}}
+		>
+			<input
+				value={draft}
+				onChange={e => setDraft(e.target.value)}
+				onKeyDown={e => e.key === "Escape" && setDraft(null)}
+				aria-label="Question"
+				maxLength={300}
+				autoFocus
+				disabled={busy}
+			/>
+			<div className="ta-row">
+				<button className="ta-btn ta-btn-small ta-btn-primary" type="submit" disabled={busy || !draft.trim()}>
+					{busy ? "Saving…" : "Save"}
+				</button>
+				<button className="ta-btn ta-btn-small" type="button" onClick={() => setDraft(null)} disabled={busy}>
+					Cancel
+				</button>
+				<span className="ta-muted ta-small">
+					{prompt.day ? "Also changes the bank prompt" : "Also changes every scheduled copy"} that hasn&apos;t opened. The word list stays
+					the same.
+				</span>
+			</div>
+			{error && <p className="ta-error">{error}</p>}
+		</form>
+	);
 }
 
 /** How close an answer must be for the AI to offer it. Saved for the question
@@ -647,7 +700,7 @@ function WordList({ id }: { id: number }) {
 					</span>
 					<PhaseBadge phase={phase} />
 				</div>
-				<h2>{prompt.text}</h2>
+				<PromptText prompt={prompt} editable={can.editText} onSaved={loadPrompt} />
 				<WeightsEditor prompt={prompt} editable={can.editWeights} onSaved={loadPrompt} />
 				{bankId !== null && (
 					<p className="ta-muted ta-small">

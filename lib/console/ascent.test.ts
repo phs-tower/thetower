@@ -20,6 +20,7 @@ import {
 	familyCounts,
 	fetchWikiCounts,
 	formatFamilyCounts,
+	FAMILIES,
 	familyChips,
 	formToWeights,
 	groupBank,
@@ -35,6 +36,7 @@ import {
 	parseTry,
 	parseWikiHits,
 	pickerRows,
+	pickerSections,
 	placeAnswers,
 	permissions,
 	promptPhase,
@@ -127,8 +129,17 @@ test("familyCounts counts the whole week, Monday to Sunday, and nothing else", (
 		prompt({ day: "2026-11-09", family: "club" }), // next week
 		prompt({ day: "2026-11-01", family: "sport" }), // last week
 	]);
-	assert.deepEqual(counts, { club: 2, sport: 1, archive: 1, nj: 0, princeton: 0, reading: 0, courses: 0 });
-	assert.equal(formatFamilyCounts(counts), "club 2/4 · sport 1/4 · archive 1/4 · nj 0/4 · princeton 0/4 · reading 0/4 · courses 0/4");
+	assert.deepEqual(
+		Object.entries(counts).filter(([, n]) => n > 0),
+		[
+			["club", 2],
+			["sport", 1],
+			["archive", 1],
+		]
+	);
+	assert.equal(Object.keys(counts).length, FAMILIES.length);
+	assert.equal(formatFamilyCounts(counts), "club 2/4 · sport 1/4 · archive 1/4");
+	assert.equal(formatFamilyCounts(familyCounts("2026-11-02", [])), "no prompts yet");
 });
 
 // ─── Phases ───
@@ -160,7 +171,11 @@ test("permissions hide what the server would refuse", () => {
 		editAnswers: true,
 		editWeights: true,
 		addAlias: true,
+		editText: true,
 	});
+	assert.equal(permissions("bank").editText, true);
+	assert.equal(permissions("open").editText, false, "readers have seen the wording");
+	assert.equal(permissions("closed", true).editText, true);
 	const open = permissions("open");
 	assert.equal(open.unschedule, false);
 	assert.equal(open.removeAnswer, false);
@@ -224,6 +239,24 @@ test("pickerRows filters by family, words and blocked, likeliest picks first", (
 	assert.deepEqual(
 		pickerRows(rows, { ...all, family: "club", showBlocked: true }).map(r => r.key),
 		["club-any"]
+	);
+});
+
+test("pickerSections shows a few likeliest picks per runnable family", () => {
+	const rows: BankRow[] = [
+		{ key: "club-any", family: "club", text: "Name a club at PHS.", last_ran: null, blocked: "already a club prompt that day" },
+		{ key: "nj-counties", family: "nj", text: "Name a New Jersey county.", last_ran: "2026-10-01", blocked: null },
+		{ key: "nj-rivers", family: "nj", text: "Name a river in New Jersey.", last_ran: null, blocked: null },
+		{ key: "nj-old", family: "nj", text: "Name a New Jersey lake.", last_ran: "2026-09-01", blocked: null },
+		{ key: "nj-blocked", family: "nj", text: "Name a NJ town.", last_ran: null, blocked: "x" },
+		{ key: "sport-any", family: "sport", text: "Name a PHS sport.", last_ran: null, blocked: null },
+	];
+	assert.deepEqual(
+		pickerSections(rows, 2).map(s => [s.family, s.rows.map(r => r.key), s.free]),
+		[
+			["sport", ["sport-any"], 1],
+			["nj", ["nj-rivers", "nj-old"], 3],
+		]
 	);
 });
 

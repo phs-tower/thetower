@@ -17,8 +17,25 @@
 
 // The order the bank and the schedule picker group them in. A new family
 // also needs adding to ascent_prompt_family_check.
-export type Family = "club" | "sport" | "archive" | "nj" | "princeton" | "reading" | "courses";
-export const FAMILIES: Family[] = ["club", "sport", "archive", "nj", "princeton", "reading", "courses"];
+export const FAMILIES = [
+	"club",
+	"sport",
+	"archive",
+	"nj",
+	"princeton",
+	"reading",
+	"courses",
+	"arts",
+	"college",
+	"people",
+	"events",
+	"science",
+	"history",
+	"culture",
+	"world",
+	"seasonal",
+] as const;
+export type Family = (typeof FAMILIES)[number];
 
 /** At most this many prompts of one family a week (ascent_bank's rule, shown
  *  here only so the counts above the grid read "3/4"). */
@@ -185,9 +202,11 @@ export function familyCounts(monday: string, prompts: AscentPrompt[]): Record<Fa
 	return counts;
 }
 
-/** "club 3/4 · sport 4/4 · archive 1/4" */
+/** "club 3/4 · sport 4/4 · archive 1/4": only the families the week uses,
+ *  since there are too many to list them all. */
 export function formatFamilyCounts(counts: Record<Family, number>): string {
-	return FAMILIES.map(f => `${f} ${counts[f]}/${FAMILY_WEEK_CAP}`).join(" · ");
+	const used = FAMILIES.filter(f => counts[f] > 0);
+	return used.length ? used.map(f => `${f} ${counts[f]}/${FAMILY_WEEK_CAP}`).join(" · ") : "no prompts yet";
 }
 
 // ─── A prompt's state ───────────────────────────────────────────────────────
@@ -207,7 +226,16 @@ export function promptPhase(p: Pick<AscentPrompt, "day" | "opens_at" | "closes_a
  *  prompt (for testing) allows every edit to its word list and weight, and
  *  unscheduling, even after it has closed. */
 export function permissions(phase: Phase, unlocked = false) {
-	if (unlocked) return { unschedule: phase !== "bank", removeAnswer: true, addAnswer: true, editAnswers: true, editWeights: true, addAlias: true };
+	if (unlocked)
+		return {
+			unschedule: phase !== "bank",
+			removeAnswer: true,
+			addAnswer: true,
+			editAnswers: true,
+			editWeights: true,
+			addAlias: true,
+			editText: true,
+		};
 	return {
 		unschedule: phase === "upcoming",
 		removeAnswer: phase === "bank" || phase === "upcoming",
@@ -215,6 +243,8 @@ export function permissions(phase: Phase, unlocked = false) {
 		editAnswers: phase !== "closed", // search terms and Wikipedia counts
 		editWeights: phase !== "closed",
 		addAlias: true,
+		// Readers answer the wording, so it's fixed once the prompt opens.
+		editText: phase === "bank" || phase === "upcoming",
 	};
 }
 
@@ -267,6 +297,27 @@ export function familyChips(rows: BankRow[]): FamilyChip[] {
 		const free = rs.filter(r => !r.blocked).length;
 		return { family, free, total: rs.length, blocked: free === 0 ? rs[0].blocked : null };
 	});
+}
+
+/** How many prompts each family shows before its "all N" link. */
+export const PICKER_PER_FAMILY = 3;
+
+export interface PickerSection {
+	family: Family;
+	/** The family's likeliest picks, at most `perFamily`, in pickerRows order. */
+	rows: BankRow[];
+	/** How many of the family can run this day, shown or not. */
+	free: number;
+}
+
+/** The picker's opening view, before any search or family is chosen: a few
+ *  picks from each family that can run this day, families in FAMILIES order.
+ *  Families that can't run are left out (familyChips says why). */
+export function pickerSections(rows: BankRow[], perFamily = PICKER_PER_FAMILY): PickerSection[] {
+	return FAMILIES.map(family => {
+		const runnable = pickerRows(rows, { query: "", family, showBlocked: false });
+		return { family, rows: runnable.slice(0, perFamily), free: runnable.length };
+	}).filter(s => s.free > 0);
 }
 
 /** The tag beside a bank prompt: when a copy of it last ran (or is

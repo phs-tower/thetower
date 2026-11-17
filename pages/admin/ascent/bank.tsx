@@ -3,8 +3,18 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import AdminShell, { useAdmin } from "~/components/admin/AdminShell";
-import { AscentTabs } from "~/components/admin/AscentKit";
-import { FAMILIES, formatWeights, lastRunByKey, lastUsedLabel, localToday, PROMPT_COLUMNS, type AscentPrompt } from "~/lib/console/ascent";
+import { AscentTabs, refreshWiki } from "~/components/admin/AscentKit";
+import {
+	FAMILIES,
+	formatWeights,
+	lastRunByKey,
+	lastUsedLabel,
+	localToday,
+	parseReview,
+	PROMPT_COLUMNS,
+	type AscentPrompt,
+	type ReviewAnswer,
+} from "~/lib/console/ascent";
 
 // Every prompt in the bank (day is null). Each is the template its scheduled
 // copies start from: its word list, search terms, weights and hand-placed
@@ -17,6 +27,8 @@ function Bank() {
 	const [lastRun, setLastRun] = useState<Map<string, string>>(new Map());
 	const [error, setError] = useState<string | null>(null);
 	const [filter, setFilter] = useState("");
+	const [progress, setProgress] = useState<string | null>(null);
+	const [fillResult, setFillResult] = useState<string | null>(null);
 
 	const load = useCallback(async () => {
 		const [bank, runs] = await Promise.all([
@@ -33,6 +45,35 @@ function Bank() {
 		void load();
 	}, [load]);
 
+	// Every bank answer without a Wikipedia count, fetched in one go: new
+	// prompts (supabase/seed/ascent-bank) arrive with Tower counts only.
+	const fillMissingWiki = async () => {
+		if (!prompts) return;
+		setError(null);
+		setFillResult(null);
+		const missing: ReviewAnswer[] = [];
+		for (let i = 0; i < prompts.length; i++) {
+			setProgress(`Reading word lists ${i + 1}/${prompts.length}…`);
+			const { data, error: err } = await supabase.rpc("ascent_review", { p_prompt_id: prompts[i].id });
+			if (err) {
+				setProgress(null);
+				return setError(err.message);
+			}
+			missing.push(...parseReview(data).answers.filter(a => a.wiki_hits === null || a.wiki_hits === undefined));
+		}
+		if (!missing.length) {
+			setProgress(null);
+			return setFillResult("Every bank answer already has a Wikipedia count.");
+		}
+		const { failed, error: err } = await refreshWiki(supabase, missing, setProgress);
+		setProgress(null);
+		if (err) return setError(err);
+		setFillResult(
+			`Filled ${missing.length - failed.length} of ${missing.length} missing counts.` +
+				(failed.length ? ` Wikipedia didn't answer for ${failed.length}; run it again to retry them.` : "")
+		);
+	};
+
 	const groups = useMemo(() => {
 		const q = filter.trim().toLowerCase();
 		const shown = (prompts ?? []).filter(p => !q || p.text.toLowerCase().includes(q) || (p.key ?? "").toLowerCase().includes(q));
@@ -44,7 +85,18 @@ function Bank() {
 			<div className="ta-toolbar">
 				<input type="search" placeholder="Filter prompts" value={filter} onChange={e => setFilter(e.target.value)} />
 				{prompts && <span className="ta-muted">{prompts.length} prompts in the bank</span>}
+				{prompts && (
+					<button
+						className="ta-btn ta-btn-small"
+						onClick={() => void fillMissingWiki()}
+						disabled={progress !== null}
+						title="Fetch a Wikipedia count for every bank answer that has none"
+					>
+						{progress ?? "Fill missing Wikipedia counts"}
+					</button>
+				)}
 			</div>
+			{fillResult && <p className="ta-muted ta-small">{fillResult}</p>}
 			{error && <p className="ta-error">{error}</p>}
 			{!prompts && !error && <p className="ta-muted">Loading…</p>}
 			{groups.map(g => (
