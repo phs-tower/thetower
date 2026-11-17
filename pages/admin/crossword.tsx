@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AdminShell, { useAdmin } from "~/components/admin/AdminShell";
+import { ClueDialog, GridEditor } from "~/components/admin/CrosswordParts";
+import { docFromBuilder, newAuthorId } from "~/lib/console/crossword-room";
 
 // crossword.clues is a JSON STRING (text column):
 //   { "across": { "1": {clue, answer, row, col}, ... }, "down": { ... } }
@@ -21,7 +23,6 @@ import {
 	MIN_SIZE,
 	orphanCells,
 	type Dir,
-	type Entry,
 	type Grid,
 } from "~/lib/console/crossword-grid";
 
@@ -35,135 +36,17 @@ interface CrosswordRow {
 	clues: string;
 }
 
-// ─── the grid ────────────────────────────────────────────────────────────────
-
-function GridEditor({
-	grid,
-	numbers,
-	mode,
-	selected,
-	highlight,
-	onCellClick,
-	onKeyDown,
-	gridRef,
-}: {
-	grid: Grid;
-	numbers: Map<string, number>;
-	mode: "blocks" | "letters";
-	selected: { r: number; c: number } | null;
-	highlight: Set<string>;
-	onCellClick: (r: number, c: number) => void;
-	onKeyDown: (e: React.KeyboardEvent) => void;
-	gridRef: React.RefObject<HTMLDivElement>;
-}) {
-	const cols = grid[0]?.length ?? 0;
-	return (
-		<div
-			className="ta-xw-grid"
-			ref={gridRef}
-			tabIndex={0}
-			onKeyDown={onKeyDown}
-			style={{ gridTemplateColumns: `repeat(${cols}, var(--xw-cell))` }}
-			aria-label={mode === "blocks" ? "Click squares to make them black" : "Type letters into the grid"}
-		>
-			{grid.map((rowCells, r) =>
-				rowCells.map((cell, c) => {
-					const black = cell === BLACK;
-					const isSel = selected?.r === r && selected?.c === c;
-					const inWord = highlight.has(`${r},${c}`);
-					const number = numbers.get(`${r},${c}`);
-					return (
-						<div
-							key={`${r},${c}`}
-							className={`ta-xw-cell${black ? " black" : ""}${isSel ? " selected" : ""}${inWord && !isSel ? " in-word" : ""}`}
-							onMouseDown={e => {
-								e.preventDefault();
-								onCellClick(r, c);
-							}}
-						>
-							{!black && number !== undefined && <span className="ta-xw-num">{number}</span>}
-							{!black && <span className="ta-xw-letter">{cell}</span>}
-						</div>
-					);
-				})
-			)}
-		</div>
-	);
+interface RoomRow {
+	id: string;
+	token: string;
+	label: string | null;
+	crossword_id: number | null;
+	created_by: string | null;
+	updated_at: string;
+	closed: boolean;
 }
 
-// ─── the clue dialog ─────────────────────────────────────────────────────────
-
-function ClueDialog({
-	entries,
-	clues,
-	onChange,
-	onClose,
-	onSave,
-	busy,
-	error,
-}: {
-	entries: Entry[];
-	clues: Record<string, string>;
-	onChange: (key: string, value: string) => void;
-	onClose: () => void;
-	onSave: () => void;
-	busy: boolean;
-	error: string | null;
-}) {
-	const written = entries.filter(e => (clues[clueKey(e.dir, e.row, e.col)] ?? "").trim()).length;
-
-	const section = (dir: Dir) => {
-		const list = entries.filter(e => e.dir === dir);
-		return (
-			<div className="ta-xw-cluecol">
-				<h3>{dir === "across" ? "Across" : "Down"}</h3>
-				{list.length === 0 && <p className="ta-muted ta-small">No {dir} entries.</p>}
-				{list.map(e => {
-					const key = clueKey(e.dir, e.row, e.col);
-					return (
-						<label key={key} className="ta-xw-clue">
-							<span className="ta-xw-clue-head">
-								<b>{e.number}</b> <code>{e.answer}</code>
-							</span>
-							<input
-								type="text"
-								value={clues[key] ?? ""}
-								placeholder={`Clue for ${e.answer}`}
-								onChange={ev => onChange(key, ev.target.value)}
-							/>
-						</label>
-					);
-				})}
-			</div>
-		);
-	};
-
-	return (
-		<div className="ta-xw-scrim" onMouseDown={onClose}>
-			<div className="ta-xw-dialog" onMouseDown={e => e.stopPropagation()}>
-				<div className="ta-row ta-spread">
-					<h2>Write the clues</h2>
-					<span className="ta-badge">
-						{written} of {entries.length} written
-					</span>
-				</div>
-				<div className="ta-xw-clues">
-					{section("across")}
-					{section("down")}
-				</div>
-				{error && <p className="ta-error">{error}</p>}
-				<div className="ta-row">
-					<button className="ta-btn ta-btn-primary" onClick={onSave} disabled={busy}>
-						{busy ? "Saving…" : "Save crossword"}
-					</button>
-					<button className="ta-btn" onClick={onClose} disabled={busy}>
-						Back to the grid
-					</button>
-				</div>
-			</div>
-		</div>
-	);
-}
+const roomUrl = (token: string) => `${typeof window === "undefined" ? "" : window.location.origin}/crossword/build/${token}`;
 
 // ─── the builder ─────────────────────────────────────────────────────────────
 
@@ -189,6 +72,10 @@ function CrosswordEditor() {
 	const [msg, setMsg] = useState<{ ok?: string; err?: string }>({});
 	const [repairJson, setRepairJson] = useState<string | null>(null);
 
+	const [rooms, setRooms] = useState<RoomRow[]>([]);
+	const [roomBusy, setRoomBusy] = useState(false);
+	const [copiedToken, setCopiedToken] = useState<string | null>(null);
+
 	const load = useCallback(async () => {
 		const { data, error } = await supabase.from("crossword").select("id, date, title, author, clues").order("date", { ascending: false });
 		if (error) {
@@ -198,9 +85,19 @@ function CrosswordEditor() {
 		setList((data ?? []) as CrosswordRow[]);
 	}, [supabase]);
 
+	const loadRooms = useCallback(async () => {
+		const { data } = await supabase
+			.from("crossword_room")
+			.select("id, token, label, crossword_id, created_by, updated_at, closed")
+			.eq("closed", false)
+			.order("updated_at", { ascending: false });
+		setRooms((data ?? []) as RoomRow[]);
+	}, [supabase]);
+
 	useEffect(() => {
 		void load();
-	}, [load]);
+		void loadRooms();
+	}, [load, loadRooms]);
 
 	const { entries, numbers } = useMemo(() => computeEntries(grid), [grid]);
 	const orphans = useMemo(() => orphanCells(grid, entries), [grid, entries]);
@@ -348,6 +245,56 @@ function CrosswordEditor() {
 		}
 	};
 
+	/** Open a shareable room seeded from whatever is on screen. The link is the
+	 *  only credential it has, so anyone it reaches can edit that draft. */
+	const openSharedRoom = async () => {
+		setRoomBusy(true);
+		setMsg({});
+		try {
+			const author = newAuthorId();
+			const doc = docFromBuilder({ grid, clues, meta }, author, Date.now());
+			const { data, error } = await supabase.rpc("crossword_room_create", {
+				p_doc: doc,
+				p_label: meta.title.trim() || (meta.date ? `Crossword for ${meta.date}` : "Untitled crossword"),
+				p_crossword_id: typeof selectedRow === "number" ? selectedRow : null,
+			});
+			if (error) throw error;
+			const row = (data as { id: string; token: string }[] | null)?.[0];
+			if (!row) throw new Error("The room was not created.");
+			await loadRooms();
+			try {
+				await navigator.clipboard.writeText(roomUrl(row.token));
+				setCopiedToken(row.token);
+				setMsg({ ok: "Room opened and the link is on your clipboard. Anyone you send it to can edit this draft." });
+			} catch {
+				setMsg({ ok: "Room opened. Copy its link from the list below." });
+			}
+		} catch (e) {
+			setMsg({ err: e instanceof Error ? e.message : String(e) });
+		}
+		setRoomBusy(false);
+	};
+
+	const copyRoomLink = async (token: string) => {
+		try {
+			await navigator.clipboard.writeText(roomUrl(token));
+			setCopiedToken(token);
+			setTimeout(() => setCopiedToken(current => (current === token ? null : current)), 2000);
+		} catch {
+			setMsg({ err: "Could not copy the link. Open the room and copy it from the address bar." });
+		}
+	};
+
+	const closeRoom = async (room: RoomRow) => {
+		if (!confirm("Close this room? Its link stops working for everyone, and the draft can no longer be edited through it.")) return;
+		setRoomBusy(true);
+		const { error } = await supabase.from("crossword_room").update({ closed: true }).eq("id", room.id);
+		if (error) setMsg({ err: error.message });
+		else setMsg({ ok: "Room closed." });
+		await loadRooms();
+		setRoomBusy(false);
+	};
+
 	const save = async () => {
 		setBusy(true);
 		setMsg({});
@@ -412,6 +359,41 @@ function CrosswordEditor() {
 				</select>
 			</div>
 
+			{rooms.length > 0 && (
+				<div className="ta-card ta-stack">
+					<b>
+						{rooms.length} open shared room{rooms.length === 1 ? "" : "s"}
+					</b>
+					<p className="ta-muted ta-small" style={{ margin: 0 }}>
+						Each link below lets anyone holding it edit that draft without signing in. Close a room when the puzzle is finished.
+					</p>
+					<ul className="ta-room-list">
+						{rooms.map(room => (
+							<li key={room.id}>
+								<div>
+									<b>{room.label || "Untitled crossword"}</b>
+									<span className="ta-muted ta-small">
+										{room.created_by ? ` opened by ${room.created_by}` : ""} · last edited{" "}
+										{new Date(room.updated_at).toLocaleString()}
+									</span>
+								</div>
+								<div className="ta-row">
+									<a className="ta-btn ta-btn-small" href={roomUrl(room.token)} target="_blank" rel="noreferrer">
+										Open
+									</a>
+									<button className="ta-btn ta-btn-small" onClick={() => void copyRoomLink(room.token)}>
+										{copiedToken === room.token ? "Copied" : "Copy link"}
+									</button>
+									<button className="ta-btn ta-btn-small" onClick={() => void closeRoom(room)} disabled={roomBusy}>
+										Close
+									</button>
+								</div>
+							</li>
+						))}
+					</ul>
+				</div>
+			)}
+
 			{repairJson !== null && (
 				<div className="ta-card ta-stack">
 					<b>Stored clues, for repair</b>
@@ -458,6 +440,21 @@ function CrosswordEditor() {
 						<button className={showClues ? "active" : ""} onClick={() => setShowClues(true)} disabled={!gridReady}>
 							4. Clues
 						</button>
+					</div>
+
+					<div className="ta-card ta-stack">
+						<b>Build it with someone else</b>
+						<p className="ta-muted ta-small" style={{ margin: 0 }}>
+							Opens a copy of this puzzle at a private link. Anyone who has the link can edit the grid and the clues with you, live,
+							without a console account. Nothing on the link can reach anything else in the console, and only an editor can publish
+							the result to the archive. Treat the link like the puzzle itself: whoever receives it can change it, so close the room
+							when you are done.
+						</p>
+						<div>
+							<button className="ta-btn" onClick={() => void openSharedRoom()} disabled={roomBusy}>
+								{roomBusy ? "Opening…" : "Open a shared room"}
+							</button>
+						</div>
 					</div>
 
 					{step === "size" && (

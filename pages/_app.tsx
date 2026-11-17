@@ -330,8 +330,9 @@ export default function App({ Component, pageProps }: AppProps) {
 	}, [router]);
 
 	// The Tower Console lives under /admin with its own chrome — no site nav,
-	// footer, or promo popup.
-	if (router.pathname === "/admin" || router.pathname.startsWith("/admin/")) {
+	// footer, or promo popup. A shared crossword room is the console's grid on
+	// a public link, so it gets the same bare shell.
+	if (router.pathname === "/admin" || router.pathname.startsWith("/admin/") || router.pathname.startsWith("/crossword/build/")) {
 		return (
 			<>
 				<Head>

@@ -19,6 +19,12 @@
 .DS_Store
 *.pem
 
+# print issue page PDFs, dropped in the repo root to be uploaded and never
+# committed (see docs/print-issue-upload.md). Only the root is ignored, so
+# PDFs the site actually serves from public/ are still tracked.
+/*.pdf
+/*.PDF
+
 # debug
 npm-debug.log*
 

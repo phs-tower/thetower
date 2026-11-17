@@ -21,6 +21,7 @@ Dashboard → SQL Editor → paste & run each file in `supabase/migrations/`:
 | 8 | `20261012000001_gamecast.sql` | **Copied from the app repo** (`supabase/gamecast.sql`): `broadcast.gamecast`, the `gamecast` and `gamecast_play` tables, the touch trigger, reader SELECT policies, realtime |
 | 9 | `20261012000002_gamecast_console.sql` | editor-only write policies on `gamecast` / `gamecast_play`, and the console-only `gamecast_roster` table |
 | 10 | `20261012000003_gamecast_delete_fix.sql` | fixes the touch trigger so a game with plays can be deleted (the cascade used to violate a foreign key) |
+| 11 | `20261116000001_crossword_room.sql` | `crossword_room` + the three token functions behind the shareable crossword builder |
 
 All are idempotent — safe to re-run. **Note:** `is_editor()` is SECURITY
 DEFINER (not invoker as the original brief sketched): a policy on `editor`
@@ -64,3 +65,31 @@ Forms, Crosswords, Vanguard spreads, Push composer.
 
 `profile` and `enrollment` are untouched and must stay that way — student
 schedule data never appears in the console (see the app's privacy policy).
+
+## 6. Shared crossword rooms — the one anonymous write path
+
+Migration 11 adds the only place on this project where someone with **no
+account** can write. It is worth understanding before you hand a link out.
+
+An editor opens a room from **Crosswords → Open a shared room**. That mints a
+256-bit token and gives back `towerphs.com/crossword/build/<token>`. Anyone
+holding that URL can edit that one draft, live, without signing in.
+
+What keeps it contained:
+
+- **`anon` has no privilege on `crossword_room` at all** (`revoke all`), so the
+  table cannot be read, listed or written directly.
+- Every anonymous call goes through a `SECURITY DEFINER` function that requires
+  the token. There is deliberately **no function that lists rooms or finds one
+  by anything but its token**, so a caller without a link cannot discover one.
+- `crossword_room_create` checks `is_editor()` and is granted only to
+  `authenticated`. Guests join rooms; they cannot open them.
+- Publishing to `public.crossword` is unchanged and still editor-only. A guest
+  builds the puzzle; an editor puts it on the site.
+- Saves are size-capped and `rev`-checked, so a leaked link cannot be used to
+  fill the database or to clobber a draft from stale state.
+
+What it does **not** do is authenticate the person at the other end. The link
+is the credential: whoever receives it, including whoever it gets forwarded to,
+can edit that puzzle. Close the room from the console when the puzzle is done,
+which makes the link inert.
