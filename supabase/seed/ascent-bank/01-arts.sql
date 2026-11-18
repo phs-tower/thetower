@@ -164,7 +164,7 @@ select public.ascent_seed_prompt('arts-impressionists', 'arts', 'Name an Impress
     'Pierre Bonnard|Bonnard'
 ]);
 
--- 77 answers
+-- 78 answers
 select public.ascent_seed_prompt('arts-tony-musicals', 'arts', 'Name a musical that won the Tony Award for Best Musical.', 0.6, array[
     'Kiss Me, Kate',
     'South Pacific',
@@ -242,7 +242,8 @@ select public.ascent_seed_prompt('arts-tony-musicals', 'arts', 'Name a musical t
     'A Strange Loop',
     'Kimberly Akimbo',
     'The Outsiders',
-    'Maybe Happy Ending'
+    'Maybe Happy Ending',
+    'Schmigadoon!'
 ]);
 
 -- 36 answers

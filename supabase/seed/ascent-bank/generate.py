@@ -77,7 +77,7 @@ P["arts"] = [
         "Jersey Boys", "Spring Awakening", "In the Heights", "Billy Elliot the Musical|Billy Elliot", "Memphis",
         "The Book of Mormon|Book of Mormon", "Once", "Kinky Boots", "A Gentleman's Guide to Love and Murder", "Fun Home",
         "Hamilton", "Dear Evan Hansen", "The Band's Visit", "Hadestown", "Moulin Rouge!|Moulin Rouge",
-        "A Strange Loop", "Kimberly Akimbo", "The Outsiders", "Maybe Happy Ending",
+        "A Strange Loop", "Kimberly Akimbo", "The Outsiders", "Maybe Happy Ending", "Schmigadoon!",
     ]),
     ("arts-movements", "Name an art movement.", 0.6, [
         "Renaissance", "Baroque", "Rococo", "Neoclassicism", "Romanticism", "Realism", "Impressionism",
@@ -343,8 +343,8 @@ P["history"] = [
         "Brandywine", "Germantown", "Monmouth", "Long Island|Brooklyn", "White Plains", "Harlem Heights",
         "Fort Washington", "Camden", "Cowpens", "Guilford Court House", "Kings Mountain", "Bennington", "Oriskany",
         "Fort Ticonderoga|Ticonderoga", "Quebec", "Moore's Creek Bridge", "Charleston", "Savannah", "Stony Point",
-        "Red Bank", "Springfield", "Assunpink Creek|Second Trenton", "Chesapeake|Virginia Capes", "Eutaw Springs",
-        "Bound Brook", "Paoli", "Fort Mercer",
+        "Red Bank|Fort Mercer", "Springfield", "Assunpink Creek|Second Trenton", "Chesapeake|Virginia Capes", "Eutaw Springs",
+        "Bound Brook", "Paoli",
     ])),
     ("hist-civil-war-battles", "Name a battle of the Civil War.", 0.5, battles([
         "Fort Sumter", "First Bull Run|First Manassas|Bull Run", "Shiloh", "Antietam|Sharpsburg", "Fredericksburg",
@@ -383,7 +383,9 @@ P["history"] = [
         "Mary I|Bloody Mary", "Elizabeth I", "James I", "Charles I", "Charles II", "James II",
         "William III|William of Orange", "Mary II", "Queen Anne|Anne", "George I", "George II", "George III",
         "George IV", "William IV", "Queen Victoria|Victoria", "Edward VII", "George V", "Edward VIII", "George VI",
-        "Elizabeth II", "Charles III",
+        "Elizabeth II", "Charles III", "Æthelstan|Athelstan",
+        "Æthelred the Unready|Ethelred the Unready", "Cnut the Great|Canute", "Edward the Confessor",
+        "Harold Godwinson|Harold II",
     ]),
     ("hist-us-wars", "Name a war the United States fought.", 0.5, [
         "Revolutionary War|American Revolution", "Quasi-War", "War of 1812", "Mexican-American War",
@@ -438,7 +440,7 @@ P["culture"] = [
         "Carcassonne", "Codenames", "Stratego", "Othello", "Go", "Backgammon", "Mancala", "Pictionary",
         "Trivial Pursuit", "Boggle", "Mouse Trap", "Hungry Hungry Hippos", "Azul", "Splendor", "Wingspan",
         "Chinese checkers", "Parcheesi", "Sequence", "Mastermind", "Diplomacy", "Axis & Allies", "Scattergories",
-        "Twister", "Yahtzee", "Uno",
+        "Twister",
     ]),
     ("cult-marvel", "Name a Marvel Cinematic Universe movie.", 0.7, [
         "Iron Man", "The Incredible Hulk", "Iron Man 2", "Thor", "Captain America: The First Avenger",
@@ -524,7 +526,7 @@ P["world"] = [
     ]),
     ("world-south-america", "Name a country in South America.", 0.4, [
         "Argentina", "Bolivia", "Brazil", "Chile", "Colombia", "Ecuador", "Guyana", "Paraguay", "Peru", "Suriname",
-        "Uruguay", "Venezuela", "French Guiana",
+        "Uruguay", "Venezuela",
     ]),
     ("world-europe-capitals", "Name a capital city in Europe.", 0.5, [
         "Tirana", "Andorra la Vella", "Vienna", "Minsk", "Brussels", "Sarajevo", "Sofia", "Zagreb", "Nicosia",
@@ -583,7 +585,7 @@ P["seasonal"] = [
         "Christmas Eve", "Boxing Day", "Epiphany|Three Kings' Day", "Winter solstice|Yule", "St. Nicholas Day",
         "St. Lucia Day", "Bodhi Day", "Las Posadas", "Martin Luther King Jr. Day|MLK Day", "Orthodox Christmas",
         "Veterans Day", "Lunar New Year|Chinese New Year", "Día de los Muertos|Day of the Dead",
-        "All Saints' Day", "Guy Fawkes Night", "Election Day", "Festivus",
+        "All Saints' Day", "Guy Fawkes Night", "Election Day",
     ]),
     ("seas-super-bowl", "Name a team that has won the Super Bowl.", 0.4, [
         "Green Bay Packers|Packers", "Kansas City Chiefs|Chiefs", "New York Jets|Jets",
@@ -835,7 +837,6 @@ P["history"] += [
         "Maya|Mayans", "Aztec|Aztecs", "Inca|Incas", "Olmec|Olmecs", "Phoenicia|Phoenicians", "Carthage",
         "Hittites", "Minoans", "Mycenaeans", "Etruscans", "Kingdom of Kush|Kush|Nubia", "Aksum|Axum",
         "Celts", "Akkadian Empire|Akkadians", "Norte Chico|Caral", "Maurya Empire|Mauryans", "Gupta Empire",
-        "Byzantine Empire|Byzantines",
     ]),
     ("hist-explorers", "Name a famous explorer.", 0.6, [
         "Christopher Columbus|Columbus", "Ferdinand Magellan|Magellan", "Vasco da Gama", "Marco Polo",
@@ -936,7 +937,7 @@ P["existing"] += [
         "The Winter's Tale", "Pericles", "Cymbeline", "The Two Noble Kinsmen", "Troilus and Cressida",
         "Coriolanus", "Titus Andronicus", "Timon of Athens",
     ]),
-    ("reading", "sr-greek-gods", "Name a figure from Greek mythology's gods and Titans.", 0.5, [
+    ("reading", "sr-greek-gods", "Name a Greek god, goddess or Titan.", 0.5, [
         "Zeus", "Hera", "Poseidon", "Demeter", "Athena", "Apollo", "Artemis", "Ares", "Aphrodite", "Hephaestus",
         "Hermes", "Dionysus", "Hades", "Hestia", "Persephone", "Eros", "Nike", "Hecate", "Pan", "Helios",
         "Selene", "Eos", "Gaia", "Uranus", "Cronus|Kronos", "Rhea", "Nemesis", "Hypnos", "Thanatos", "Iris",

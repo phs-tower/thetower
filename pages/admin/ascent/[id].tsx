@@ -427,7 +427,12 @@ function AnswerRow({
 							</button>
 						</span>
 					) : (
-						<button className="ta-linkish ta-asc-danger" onClick={() => setConfirming(true)} disabled={busy}>
+						<button
+							className="ta-btn ta-btn-small ta-asc-remove"
+							onClick={() => setConfirming(true)}
+							disabled={busy}
+							title={`Remove ${answer.canonical} from this prompt`}
+						>
 							Remove
 						</button>
 					)}
@@ -729,16 +734,45 @@ function WordList({ id }: { id: number }) {
 				{unlockError && <p className="ta-error">{unlockError}</p>}
 			</div>
 
-			<TryBox promptId={id} leniency={leniencyOf(prompt)} onLeniency={loadPrompt} />
-
-			{can.addAnswer && (
-				<form className="ta-row ta-asc-add" onSubmit={addAnswer}>
-					<input type="text" value={newAnswer} onChange={e => setNewAnswer(e.target.value)} placeholder="New answer (never a person)" />
-					<button className="ta-btn ta-btn-primary" type="submit" disabled={adding || busy || !newAnswer.trim()}>
-						{adding ? "Adding…" : "Add answer"}
-					</button>
+			{can.addAnswer ? (
+				<form className="ta-card ta-stack ta-asc-add" onSubmit={addAnswer}>
+					<label htmlFor="ta-asc-new-answer">
+						<b>Add an answer</b>
+					</label>
+					<div className="ta-row">
+						<input
+							id="ta-asc-new-answer"
+							type="text"
+							value={newAnswer}
+							onChange={e => setNewAnswer(e.target.value)}
+							placeholder="An answer readers should get credit for"
+						/>
+						<button className="ta-btn ta-btn-primary" type="submit" disabled={adding || busy || !newAnswer.trim()}>
+							{adding ? "Adding…" : "Add answer"}
+						</button>
+					</div>
+					<p className="ta-muted ta-small" style={{ margin: 0 }}>
+						Famous and historical people are fine; never a student, teacher or anyone else who isn&apos;t a public figure.
+						{bankId !== null ? " It also goes onto the bank prompt." : ""} To take one out, use Remove on its row below.
+					</p>
 					{addError && <p className="ta-error">{addError}</p>}
 				</form>
+			) : null}
+
+			<TryBox promptId={id} leniency={leniencyOf(prompt)} onLeniency={loadPrompt} />
+
+			{!can.removeAnswer && answers && answers.length > 0 && (
+				<p className="ta-muted ta-small">
+					{phase === "open"
+						? "This prompt is open, so answers can't be removed: readers may already have given them. Add an alias instead, or remove the answer from the bank prompt for next time."
+						: "This prompt has closed, so its answers are final. Remove answers on the bank prompt for next time."}
+					{bankId !== null && (
+						<>
+							{" "}
+							<Link href={`/admin/ascent/${bankId}`}>Open the bank prompt</Link>
+						</>
+					)}
+				</p>
 			)}
 
 			{missing > 0 && (
@@ -820,7 +854,7 @@ function WordList({ id }: { id: number }) {
 									Rarity
 								</th>
 								{place.enabled && <th>Move to</th>}
-								{can.removeAnswer && <th />}
+								{can.removeAnswer && <th>Remove</th>}
 							</tr>
 						</thead>
 						{groups.map(g => (

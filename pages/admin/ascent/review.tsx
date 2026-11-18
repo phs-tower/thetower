@@ -144,7 +144,8 @@ function ReviewPrompt({ prompt, now }: { prompt: AscentPrompt; now: Date }) {
 				{phase === "open"
 					? "The prompt is still open, so readers who typed it are credited now."
 					: "The prompt has closed, so this board stays as it was shown."}{" "}
-				Never alias anything that names a person; leave those, and plain wrong answers, alone.
+				Never alias anything that names a private person (a student, teacher or anyone who isn&apos;t a public figure); leave those, and plain
+				wrong answers, alone.
 			</p>
 			{error && <p className="ta-error">{error}</p>}
 			{done.length > 0 && (

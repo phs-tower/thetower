@@ -2819,14 +2819,30 @@ $asc-families: (
 }
 
 .ta-asc-add {
-	align-items: flex-start;
+	gap: 0.45rem;
+
+	.ta-row {
+		flex-wrap: nowrap;
+	}
 
 	input[type="text"] {
-		max-width: 24rem;
+		flex: 1;
+		max-width: 32rem;
+		font-size: 1rem;
 	}
 
 	.ta-error {
-		flex-basis: 100%;
+		margin: 0;
+	}
+}
+
+/* Each row's Remove: a real button, so it can be found. */
+.ta-root .ta-asc-remove {
+	color: $red;
+	border-color: color-mix(in srgb, $red 45%, #fff);
+
+	&:hover:not(:disabled) {
+		background: color-mix(in srgb, $red 8%, #fff);
 	}
 }
 

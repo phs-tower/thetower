@@ -231,7 +231,7 @@ select public.ascent_seed_prompt('world-asia', 'world', 'Name a country in Asia.
     'Russia'
 ]);
 
--- 13 answers
+-- 12 answers
 select public.ascent_seed_prompt('world-south-america', 'world', 'Name a country in South America.', 0.4, array[
     'Argentina',
     'Bolivia',
@@ -244,8 +244,7 @@ select public.ascent_seed_prompt('world-south-america', 'world', 'Name a country
     'Peru',
     'Suriname',
     'Uruguay',
-    'Venezuela',
-    'French Guiana'
+    'Venezuela'
 ]);
 
 -- 47 answers

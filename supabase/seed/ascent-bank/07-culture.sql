@@ -201,7 +201,7 @@ select public.ascent_seed_prompt('cult-fast-food', 'culture', 'Name a fast-food 
     'Crumbl'
 ]);
 
--- 43 answers
+-- 41 answers
 select public.ascent_seed_prompt('cult-board-games', 'culture', 'Name a board game.', 0.6, array[
     'Monopoly',
     'Scrabble',
@@ -243,9 +243,7 @@ select public.ascent_seed_prompt('cult-board-games', 'culture', 'Name a board ga
     'Diplomacy',
     'Axis & Allies',
     'Scattergories',
-    'Twister',
-    'Yahtzee',
-    'Uno'
+    'Twister'
 ]);
 
 -- 38 answers

@@ -141,7 +141,7 @@ select public.ascent_seed_prompt('hist-colonies', 'history', 'Name one of the Th
     'Georgia'
 ]);
 
--- 33 answers
+-- 32 answers
 select public.ascent_seed_prompt('hist-revolution-battles', 'history', 'Name a battle of the American Revolution.', 0.5, array[
     'Lexington and Concord|Lexington|Concord|Battle of Lexington and Concord',
     'Bunker Hill|Battle of Bunker Hill',
@@ -168,14 +168,13 @@ select public.ascent_seed_prompt('hist-revolution-battles', 'history', 'Name a b
     'Charleston|Battle of Charleston',
     'Savannah|Battle of Savannah',
     'Stony Point|Battle of Stony Point',
-    'Red Bank|Battle of Red Bank',
+    'Red Bank|Fort Mercer|Battle of Red Bank',
     'Springfield|Battle of Springfield',
     'Assunpink Creek|Second Trenton|Battle of Assunpink Creek',
     'Chesapeake|Virginia Capes|Battle of Chesapeake',
     'Eutaw Springs|Battle of Eutaw Springs',
     'Bound Brook|Battle of Bound Brook',
-    'Paoli|Battle of Paoli',
-    'Fort Mercer|Battle of Fort Mercer'
+    'Paoli|Battle of Paoli'
 ]);
 
 -- 35 answers
@@ -302,7 +301,7 @@ select public.ascent_seed_prompt('hist-roman-emperors', 'history', 'Name a Roman
     'Philip the Arab'
 ]);
 
--- 43 answers
+-- 48 answers
 select public.ascent_seed_prompt('hist-english-monarchs', 'history', 'Name a king or queen of England or Great Britain.', 0.6, array[
     'William the Conqueror|William I',
     'William II',
@@ -346,7 +345,12 @@ select public.ascent_seed_prompt('hist-english-monarchs', 'history', 'Name a kin
     'Edward VIII',
     'George VI',
     'Elizabeth II',
-    'Charles III'
+    'Charles III',
+    'Æthelstan|Athelstan',
+    'Æthelred the Unready|Ethelred the Unready',
+    'Cnut the Great|Canute',
+    'Edward the Confessor',
+    'Harold Godwinson|Harold II'
 ]);
 
 -- 18 answers
@@ -425,7 +429,7 @@ select public.ascent_seed_prompt('hist-vice-presidents', 'history', 'Name a U.S.
     'JD Vance|J. D. Vance'
 ]);
 
--- 30 answers
+-- 29 answers
 select public.ascent_seed_prompt('hist-ancient-civilizations', 'history', 'Name an ancient civilization.', 0.6, array[
     'Ancient Egypt|Egyptians',
     'Mesopotamia',
@@ -455,8 +459,7 @@ select public.ascent_seed_prompt('hist-ancient-civilizations', 'history', 'Name 
     'Akkadian Empire|Akkadians',
     'Norte Chico|Caral',
     'Maurya Empire|Mauryans',
-    'Gupta Empire',
-    'Byzantine Empire|Byzantines'
+    'Gupta Empire'
 ]);
 
 -- 43 answers

@@ -143,7 +143,7 @@ select public.ascent_seed_prompt('sr-shakespeare', 'reading', 'Name a play by Sh
 ]);
 
 -- 40 answers
-select public.ascent_seed_prompt('sr-greek-gods', 'reading', 'Name a figure from Greek mythology''s gods and Titans.', 0.5, array[
+select public.ascent_seed_prompt('sr-greek-gods', 'reading', 'Name a Greek god, goddess or Titan.', 0.5, array[
     'Zeus',
     'Hera',
     'Poseidon',

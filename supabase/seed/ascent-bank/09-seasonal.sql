@@ -44,7 +44,7 @@ select public.ascent_seed_prompt('seas-thanksgiving', 'seasonal', 'Name a Thanks
     'Pumpkin bread'
 ]);
 
--- 24 answers
+-- 23 answers
 select public.ascent_seed_prompt('seas-winter-holidays', 'seasonal', 'Name a holiday celebrated between November and January.', 0.4, array[
     'Thanksgiving',
     'Christmas',
@@ -68,8 +68,7 @@ select public.ascent_seed_prompt('seas-winter-holidays', 'seasonal', 'Name a hol
     'Día de los Muertos|Day of the Dead',
     'All Saints'' Day',
     'Guy Fawkes Night',
-    'Election Day',
-    'Festivus'
+    'Election Day'
 ]);
 
 -- 20 answers
