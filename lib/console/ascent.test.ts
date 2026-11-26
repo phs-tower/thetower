@@ -31,6 +31,7 @@ import {
 	lastUsedLabel,
 	missingWiki,
 	mondayOf,
+	parseReports,
 	parseReview,
 	parseSuggest,
 	parseTry,
@@ -541,4 +542,28 @@ test("placeAnswers moves a group into a tie in order", () => {
 	assert.deepEqual(order, [1, 5, 6, 2]);
 	for (const [, p] of moved) assert.ok(p < 0.35, "stays Common");
 	assert.equal(placeAnswers(list, [9], { kind: "tier", index: 0 }), null);
+});
+
+test("parseReports groups the reports by prompt, in the server's order", () => {
+	assert.deepEqual(parseReports(null), []);
+	const row = (prompt_id: number, raw: string, answer: string | null = null) => ({
+		prompt_id,
+		day: "2026-11-25",
+		slot: prompt_id,
+		text: `Prompt ${prompt_id}`,
+		closes_at: "2026-11-26T12:00:00Z",
+		raw,
+		count: 2,
+		answer,
+	});
+	const groups = parseReports([row(2, "Model UN"), row(1, "Curling", "Curling"), row(2, "Quiz Bowl")]);
+	assert.deepEqual(
+		groups.map(g => [g.prompt_id, g.reports.map(r => r.raw)]),
+		[
+			[2, ["Model UN", "Quiz Bowl"]],
+			[1, ["Curling"]],
+		]
+	);
+	assert.equal(groups[1].reports[0].answer, "Curling");
+	assert.equal(groups[0].reports[0].answer, null);
 });

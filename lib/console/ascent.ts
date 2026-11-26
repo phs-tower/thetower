@@ -544,6 +544,46 @@ export function parseReview(data: unknown): Review {
 	return { answers: Array.isArray(d.answers) ? d.answers : [], unmatched: Array.isArray(d.unmatched) ? d.unmatched : [] };
 }
 
+/** One reported answer: what readers said was missing, how many said it,
+ *  and what it matches now (null until an editor adds it). */
+export interface ReportedAnswer {
+	raw: string;
+	count: number;
+	answer: string | null;
+}
+
+/** A prompt's open reports, from ascent_reports. */
+export interface ReportGroup {
+	prompt_id: number;
+	day: string;
+	slot: number;
+	text: string;
+	closes_at: string;
+	reports: ReportedAnswer[];
+}
+
+/** Reads ascent_reports' jsonb, one row per prompt and answer, into one
+ *  group per prompt, keeping the server's order. */
+export function parseReports(data: unknown): ReportGroup[] {
+	const groups: ReportGroup[] = [];
+	for (const r of Array.isArray(data) ? data : []) {
+		let group = groups.find(g => g.prompt_id === Number(r.prompt_id));
+		if (!group) {
+			group = {
+				prompt_id: Number(r.prompt_id),
+				day: String(r.day),
+				slot: Number(r.slot),
+				text: String(r.text),
+				closes_at: String(r.closes_at),
+				reports: [],
+			};
+			groups.push(group);
+		}
+		group.reports.push({ raw: String(r.raw), count: Number(r.count), answer: r.answer ?? null });
+	}
+	return groups;
+}
+
 /** Reads ascent_try's jsonb: a match, or null for `{}`. */
 export function parseTry(data: unknown): TryResult | null {
 	const d = data as Partial<TryResult> | null;
