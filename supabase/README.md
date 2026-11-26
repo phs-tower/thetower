@@ -28,6 +28,7 @@ Dashboard → SQL Editor → paste & run each file in `supabase/migrations/`:
 | 15 | `20261117000002_ascent_more_families.sql` | Ascent families `nj`, `princeton`, `reading`, `courses`, each with its own one-a-day / four-a-week allowance; moves the bank prompts out of `archive` (already applied to the live project). Copy into the app repo's `supabase/ascent.sql` |
 | 16 | `20261117000003_ascent_nine_families.sql` | Ascent families `arts`, `college`, `people`, `events`, `science`, `history`, `culture`, `world`, `seasonal`, and `ascent_seed_prompt` for the bank seeds below. Copy into the app repo's `supabase/ascent.sql` |
 | 17 | `20261117000004_ascent_set_text.sql` | `ascent_set_text` for the word list's "Reword": changes a prompt's question on the bank prompt and every copy that hasn't opened. Copy into the app repo's `supabase/ascent.sql` |
+| 18 | `20261126000001_ascent_test_week.sql` | The Ascent's test week (Mon 2099-01-05 to Sun 2099-01-11): `ascent_schedule_test` schedules unpublished copies there for the console's "Test week" tab, and `ascent_bank`'s `last_ran` counts published copies only (already applied to the live project). Copy into the app repo's `supabase/ascent.sql` |
 
 Then, for The Ascent's bank, run each file in `supabase/seed/ascent-bank/`
 (109 prompts with word lists; any already in the bank are skipped), then

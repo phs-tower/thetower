@@ -2491,8 +2491,20 @@ input.ta-live-num {
 	gap: 0.75rem;
 	margin-top: 1rem;
 
+	// The test week runs Monday to Sunday.
+	&.full {
+		grid-template-columns: repeat(7, minmax(0, 1fr));
+
+		@media screen and (max-width: 1400px) {
+			grid-template-columns: repeat(4, minmax(0, 1fr));
+		}
+	}
+
 	@media screen and (max-width: 900px) {
-		grid-template-columns: 1fr;
+		&,
+		&.full {
+			grid-template-columns: 1fr;
+		}
 	}
 }
 

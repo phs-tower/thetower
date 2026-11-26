@@ -40,6 +40,7 @@ export async function refreshWiki(
 
 const TABS = [
 	{ href: "/admin/ascent", label: "Week" },
+	{ href: "/admin/ascent/test", label: "Test week" },
 	{ href: "/admin/ascent/bank", label: "Bank" },
 	{ href: "/admin/ascent/review", label: "Review" },
 	{ href: "/admin/ascent/reports", label: "Reports" },

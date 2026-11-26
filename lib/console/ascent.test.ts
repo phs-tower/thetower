@@ -45,6 +45,7 @@ import {
 	selectRange,
 	sortByPrior,
 	tierIndex,
+	TEST_WEEK,
 	weekGrid,
 	weightsToForm,
 	wikiBatches,
@@ -119,6 +120,26 @@ test("weekGrid lays out Monday to Friday with two slots", () => {
 	assert.equal(grid[2].slots[0]?.id, 2);
 	assert.ok(grid.every(d => d.slots.length === 2));
 	assert.ok(!grid.some(d => d.slots.some(s => s?.id === 3 || s?.id === 4)));
+});
+
+test("weekGrid with 7 days takes the weekend too, and the test week starts on a Monday", () => {
+	const grid = weekGrid(
+		TEST_WEEK,
+		[
+			prompt({ id: 1, day: "2099-01-10", slot: 1 }), // Saturday
+			prompt({ id: 2, day: "2099-01-11", slot: 2 }), // Sunday
+			prompt({ id: 3, day: "2099-01-12", slot: 1 }), // next Monday
+		],
+		7
+	);
+	assert.equal(mondayOf(TEST_WEEK), TEST_WEEK);
+	assert.deepEqual(
+		grid.map(d => d.day),
+		["2099-01-05", "2099-01-06", "2099-01-07", "2099-01-08", "2099-01-09", "2099-01-10", "2099-01-11"]
+	);
+	assert.equal(grid[5].slots[0]?.id, 1);
+	assert.equal(grid[6].slots[1]?.id, 2);
+	assert.ok(!grid.some(d => d.slots.some(s => s?.id === 3)));
 });
 
 test("familyCounts counts the whole week, Monday to Sunday, and nothing else", () => {

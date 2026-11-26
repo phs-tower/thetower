@@ -160,6 +160,11 @@ export function defaultMonday(todayIso: string): string {
 	return dow === 0 || dow === 6 ? addDays(mondayOf(todayIso), 7) : mondayOf(todayIso);
 }
 
+/** The sandbox week's Monday: the "Test week" tab schedules unpublished
+ *  copies here, Monday to Sunday, where readers never see them. Must match
+ *  ascent_test_monday() (20261126000001_ascent_test_week.sql). */
+export const TEST_WEEK = "2099-01-05";
+
 /** Today in the browser's own calendar, as an ISO day. */
 export function localToday(now: Date = new Date()): string {
 	const p = (n: number) => String(n).padStart(2, "0");
@@ -180,9 +185,10 @@ export interface GridDay {
 	slots: [AscentPrompt | null, AscentPrompt | null];
 }
 
-/** Monday to Friday, two slots each. Prompts outside the week are ignored. */
-export function weekGrid(monday: string, prompts: AscentPrompt[]): GridDay[] {
-	return [0, 1, 2, 3, 4].map(i => {
+/** Monday to Friday (or to Sunday with `days` 7), two slots each. Prompts
+ *  outside those days are ignored. */
+export function weekGrid(monday: string, prompts: AscentPrompt[], days = 5): GridDay[] {
+	return Array.from({ length: days }, (_, i) => {
 		const day = addDays(monday, i);
 		const slots: [AscentPrompt | null, AscentPrompt | null] = [null, null];
 		for (const p of prompts) if (p.day === day && (p.slot === 1 || p.slot === 2)) slots[p.slot - 1] = p;
